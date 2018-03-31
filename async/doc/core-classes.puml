@@ -1,0 +1,72 @@
+@startuml
+
+package adk.async {
+
+interface Message {
+
++Invoke()
++Reject(error)
+
+}
+
+interface Context {
+
+Submitted messages either
+invoked or rejected
+..
++Submit(Message)
++{static}{thread_local} Current
+}
+
+Message <|-- Task
+class Task<T> {
+    +constructor(() -> T)
+    +constructor(suspend () -> T)
+    +result: Deferred<T>
+}
+
+
+class Deferred<T> {
+    +SetResult(T)
+    +SetError(Throwable)
+    +{static}ForResult(T)
+    +{static}ForError(Throwable)
+    +Subscribe(callback)
+    +Await(Context = current): T
+    ..
+    Task extensions
+    +ChainTask(callback, context): Deferred<U>
+    +ChainFinalizer(callback, context): Deferred<T>
+
+    {field}-subscribers: Callback[]
+}
+
+class ObservableSource {
+}
+
+class Observable {
+}
+
+class Subscriber {
+}
+
+}
+
+package kotlin.coroutines {
+
+class Continuation {
+    +resume(value)
+    +resumeWithException(exception)
+}
+
+class Globals {
+    +suspendCoroutine()
+    +createCoroutine(completion)
+    #suspendCoroutineOrReturn()
+    #suspendCoroutineUninterceptedOrReturn()
+    #createCoroutineUnchecked()
+}
+
+}
+
+@enduml

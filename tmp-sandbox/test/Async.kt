@@ -2,8 +2,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import kotlin.coroutines.experimental.*
 
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class AyncTest {
+private class AsyncTest {
+
     @Test
     fun Basic()
     {

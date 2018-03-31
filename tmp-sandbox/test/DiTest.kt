@@ -6,7 +6,7 @@ import kotlin.test.assertSame
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class DiTest {
+private class DiTest {
     @Test
     fun Basic()
     {
@@ -18,35 +18,35 @@ class DiTest {
         assertSame(c.i1, b.i1);
         assertEquals(42, c.GetI1_1().GetInt())
     }
-}
 
-interface I1 {
-    fun GetInt(): Int
-}
-
-class A(private val value: Int): I1 {
-
-    override fun GetInt(): Int
-    {
-        return value;
+    private interface I1 {
+        fun GetInt(): Int
     }
-}
 
-class B @Inject constructor(val i1: I1, @FactoryParam val value: Int)
+    private class A(private val value: Int): I1 {
 
-@Module
-class M {
+        override fun GetInt(): Int
+        {
+            return value;
+        }
+    }
 
-    @Provides
-    @Singleton
-    fun GetI1(): I1 = A(42)
-}
+    private class B @Inject constructor(val i1: I1, @FactoryParam val value: Int)
 
-@Component(modules = [M::class])
-internal class Comp {
-    @Inject lateinit var i1: I1
-    @Inject private lateinit var i1_1: I1
-    @Inject lateinit var bFactory: DiFactory<B>
+    @Module
+    private class M {
 
-    fun GetI1_1() = i1_1
+        @Provides
+        @Singleton
+        fun GetI1(): I1 = A(42)
+    }
+
+    @Component(modules = [M::class])
+    private class Comp {
+        @Inject lateinit var i1: I1
+        @Inject private lateinit var i1_1: I1
+        @Inject lateinit var bFactory: DiFactory<B>
+
+        fun GetI1_1() = i1_1
+    }
 }
