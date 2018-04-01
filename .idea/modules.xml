@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../adk-java/src/DI/DI.iml" filepath="$PROJECT_DIR$/../adk-java/src/DI/DI.iml" />
+      <module fileurl="file://$PROJECT_DIR$/adk/adk.iml" filepath="$PROJECT_DIR$/adk/adk.iml" />
       <module fileurl="file://$PROJECT_DIR$/async/async.iml" filepath="$PROJECT_DIR$/async/async.iml" />
       <module fileurl="file://$PROJECT_DIR$/tmp-sandbox/tmp-sandbox.iml" filepath="$PROJECT_DIR$/tmp-sandbox/tmp-sandbox.iml" />
     </modules>
