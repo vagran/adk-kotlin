@@ -4,13 +4,16 @@ import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.apache.logging.log4j.core.LoggerContext
+import org.apache.logging.log4j.core.appender.ConsoleAppender
 import org.apache.logging.log4j.core.config.*
 import org.apache.logging.log4j.core.config.plugins.Plugin
+import org.apache.logging.log4j.core.layout.PatternLayout
 import org.apache.logging.log4j.message.StringFormatterMessageFactory
 import java.io.PrintStream
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URI
+import java.util.function.Consumer
 
 
 object Log {

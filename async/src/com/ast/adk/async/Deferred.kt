@@ -1,17 +1,14 @@
 package com.ast.adk.async
 
-typealias DeferredCallback<T> = (result: T, error: Throwable) -> Unit
+import kotlin.coroutines.experimental.suspendCoroutine
+
+typealias DeferredCallback<T> = (result: T?, error: Throwable?) -> Unit
 
 @Suppress("CanBePrimaryConstructorProperty")
 /** Represents deferred result (synonymous to future or promise). Result is either some successfully
  * obtained value or error.
  */
-class Deferred<T> private constructor(result: T?, error: Throwable?) {
-
-    @FunctionalInterface
-    interface Callback<in T> {
-        fun Invoke(result: T, error: Throwable)
-    }
+class Deferred<T> private constructor() {
 
     companion object {
 
@@ -33,28 +30,102 @@ class Deferred<T> private constructor(result: T?, error: Throwable?) {
 
     fun SetResult(result: T)
     {
-
+        SetResult(result, null)
     }
 
     fun SetError(error: Throwable)
     {
-
+        SetResult(null, error)
     }
 
+    /**
+     * Subscribe for result. The provided callback is called instantly if the result is already
+     * available.
+     */
     fun Subscribe(cbk: DeferredCallback<in T>)
     {
+        var result: T? = null
+        var error: Throwable? = null
+        var isComplete = false
 
+        synchronized(this) {
+            result = this.result
+            error = this.error
+            isComplete = this.isComplete
+            if (!isComplete) {
+                if (subscriber == null) {
+                    subscriber = cbk
+                } else {
+                    if (subscribers == null) {
+                        subscribers = ArrayList()
+                    }
+                    subscribers!!.add(cbk)
+                }
+            }
+        }
+        if (isComplete) {
+            cbk(result, error)
+        }
+    }
+
+    suspend fun Await(): T
+    {
+        return suspendCoroutine {
+            cont ->
+            Subscribe({
+                result, error ->
+                if (error != null) {
+                    cont.resumeWithException(error)
+                } else {
+                    cont.resume(result!!)
+                }
+            })
+        }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    /** Either result value or error. Both are null if not yet completed. */
-    private var result: T? = result
-    private var error: Throwable? = error
+    /** Either result value or error. Result may be null as well. */
+    private var result: T? = null
+    private var error: Throwable? = null
+    private var isComplete: Boolean = false
 
     /** Most common case is just one subscriber so do not allocate list if possible. */
     private var subscriber: DeferredCallback<in T>? = null
     /** List for a case there are more than one subscriber. */
-    private var subscribers: List<DeferredCallback<in T>>? = null
+    private var subscribers: MutableList<DeferredCallback<in T>>? = null
 
-    private constructor(): this(null, null)
+    private constructor(result: T?, error: Throwable?): this()
+    {
+        this.result = result
+        this.error = error
+        isComplete = true
+    }
+
+    private fun SetResult(result: T?, error: Throwable?)
+    {
+        var subscriber: DeferredCallback<in T>? = null
+        var subscribers: MutableList<DeferredCallback<in T>>? = null
+
+        synchronized(this) {
+            if (isComplete) {
+                throw Exception("Result already set")
+            }
+            isComplete = true
+            this.result = result
+            this.error = error
+            subscriber = this.subscriber
+            this.subscriber = null
+            subscribers = this.subscribers
+            this.subscribers = null
+        }
+
+        if (subscriber != null) {
+            subscriber!!.invoke(result, error)
+        }
+        if (subscribers != null) {
+            for (cbk in subscribers!!) {
+                cbk(result, error)
+            }
+        }
+    }
 }
