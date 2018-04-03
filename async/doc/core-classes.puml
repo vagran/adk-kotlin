@@ -15,7 +15,7 @@ Submitted messages either
 invoked or rejected
 ..
 +Submit(Message)
-+{static}{thread_local} Current
++{static}{thread_local} current
 }
 
 Message <|-- Task

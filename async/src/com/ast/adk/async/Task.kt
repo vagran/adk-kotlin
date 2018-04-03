@@ -14,10 +14,10 @@ class Task<T>(private val handler: () -> T): Message {
      *      handler should ensure that all its continuations are run in the target context if
      *      needed (external coroutines should be wrapped by Context.XXX()).
      */
-    constructor(handler: suspend () -> T)
-    {
-
-    }
+//    constructor(handler: suspend () -> T)
+//    {
+//
+//    }
 
     override fun Invoke()
     {

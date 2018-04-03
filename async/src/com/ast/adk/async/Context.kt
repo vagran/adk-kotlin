@@ -5,8 +5,11 @@ interface Context {
 
     companion object {
         /** Bound context for the current thread. */
-        //XXX make thread local property
-        val Current: Context? = null
+        var current: Context?
+            get() = contextImpl.get()
+            set(value) = contextImpl.set(value)
+
+        private val contextImpl: ThreadLocal<Context?> = ThreadLocal()
     }
 
     /** Submit a message. Either message.Invoke() or message.Reject() will be called inside this
