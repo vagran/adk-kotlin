@@ -8,19 +8,25 @@ import java.util.*
 abstract class QueuedContext: Context {
 
     /** Indicate the context is starting. Should be called before Run(). */
-    fun Start()
+    open fun Start()
     {
         LockQueue {
-            isStarting = true
+            if (isStarted) {
+                throw Exception("Already started")
+            }
+            isStarted = true
         }
     }
 
     /** Signal to stop processing loop. */
-    fun Stop()
+    open fun Stop()
     {
         LockQueue {
+            if (!isStarted) {
+                throw Exception("Not started")
+            }
             if (stopRequested) {
-                throw RuntimeException("Stop already requested")
+                throw Exception("Stop already requested")
             }
             stopRequested = true
             NotifyQueue()
@@ -44,33 +50,32 @@ abstract class QueuedContext: Context {
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
 
+    protected val queue: Deque<Message> = ArrayDeque<Message>()
+
     /** Lock queue access. */
-    protected fun <T> LockQueue(block: () -> T): T
+    protected inline fun <T> LockQueue(block: () -> T): T
     {
         return synchronized(queue, block)
     }
 
     /** Wait queue notification.
-     * @param timeout Timeout in milliseconds, negative for unlimited wait.
+     * @param timeout Timeout in milliseconds, zero for unlimited wait.
      */
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
-    protected fun WaitQueue(timeout: Long = -1)
+    protected open fun WaitQueue(timeout: Long = 0)
     {
-        if (timeout < 0) {
-            (queue as java.lang.Object).wait(timeout)
-        } else {
-            (queue as java.lang.Object).wait()
-        }
+        (queue as java.lang.Object).wait(timeout)
     }
 
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
-    protected fun NotifyQueue()
+    protected open fun NotifyQueue()
     {
         (queue as java.lang.Object).notifyAll()
     }
 
     /** Should be called with queue lock acquired. */
-    protected fun IsQueueEmpty() = queue.size != 0
+    @Suppress("NOTHING_TO_INLINE")
+    protected inline fun IsQueueEmpty() = queue.size != 0
 
     /** Called when context started. */
     protected open fun OnStarted()
@@ -114,12 +119,34 @@ abstract class QueuedContext: Context {
         return false
     }
 
-    // /////////////////////////////////////////////////////////////////////////////////////////////
-    private var isRunning = false
-    private var isStarting = false
-    private var stopRequested = false
+    /** Wait and process incoming requests. Default implementation handles only submission queue.
+     * Custom implementation could, for example, wait on I/O selectors. In such case custom
+     * notification also should be implemented to wake up custom waiting.
+     *
+     * @param timeout Maximal time to wait in milliseconds, 0 for unlimited.
+     *
+     * @return True if stop requested, false otherwise.
+     */
+    protected open fun WaitAndProcess(timeout: Long = 0): Boolean
+    {
+        val result = LockQueue {
+            if (stopRequested && IsQueueEmpty()) {
+                return@LockQueue true
+            }
+            if (IsQueueEmpty()) {
+                WaitQueue(timeout)
+            }
+            false
+        }
+        if (result) {
+            return result
+        }
+        return ProcessSubmissionQueue()
+    }
 
-    private val queue: Deque<Message> = ArrayDeque<Message>()
+    // /////////////////////////////////////////////////////////////////////////////////////////////
+    private var isStarted = false
+    private var stopRequested = false
 
 
 }
