@@ -29,8 +29,7 @@ private class AsyncTest {
         }
         var result = 0
         b.createCoroutine(object: Continuation<Int> {
-            override val context: CoroutineContext
-                get() = EmptyCoroutineContext
+            override val context: CoroutineContext = EmptyCoroutineContext
 
             override fun resume(value: Int) {
                 result = value
