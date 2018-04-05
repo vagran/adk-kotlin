@@ -74,7 +74,12 @@ class Task<T>: Message {
         result.SetError(error)
     }
 
+    fun Submit(ctx: Context): Task<T>
+    {
+        ctx.Submit(this)
+        return this
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val handler: () -> Unit
-
 }
