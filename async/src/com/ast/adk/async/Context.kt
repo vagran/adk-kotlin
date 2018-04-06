@@ -21,7 +21,7 @@ interface Context {
     fun Submit(message: Message)
 
     /** Wrap the provided function so that it continues in this context. */
-    suspend fun <T> ContinueIn(func: suspend () -> T): T
+    suspend fun <T> ResumeIn(func: suspend () -> T): T
     {
         var funcError: Throwable? = null
         var funcResult: T? = null
@@ -52,7 +52,7 @@ interface Context {
     }
 
     /** Continues execution in this context. */
-    suspend fun ContinueIn()
+    suspend fun ResumeIn()
     {
         suspendCoroutine {
             cont: Continuation<Unit> ->

@@ -3,7 +3,7 @@ package com.ast.adk.async
 import com.ast.adk.utils.Log
 import org.apache.logging.log4j.Logger
 
-class ThreadContext(val name: String): QueuedContext() {
+open class ThreadContext(val name: String): QueuedContext() {
 
     val thread: Thread = Thread(this::Run)
 

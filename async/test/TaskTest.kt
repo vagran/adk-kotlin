@@ -115,7 +115,7 @@ private class TaskTest {
             val x = def1.Await(ctx2)
             log.info("in task 2, after suspend")
             assertSame(ctx2.thread, Thread.currentThread())
-            ctx1.ContinueIn()
+            ctx1.ResumeIn()
             log.info("in task 2, after context switch")
             assertSame(ctx1.thread, Thread.currentThread())
             x

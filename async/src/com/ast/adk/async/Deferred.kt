@@ -85,7 +85,7 @@ class Deferred<T> private constructor() {
 
     suspend fun Await(ctx: Context): T
     {
-        return ctx.ContinueIn({Await()})
+        return ctx.ResumeIn({Await()})
     }
 
     /** Wait until this deferred has result set. Mostly for unit testing. */
