@@ -8,7 +8,7 @@ typealias DeferredCallback<T> = (result: T?, error: Throwable?) -> Unit
 /** Represents deferred result (synonymous to future or promise). Result is either some successfully
  * obtained value or error.
  */
-class Deferred<T> private constructor() {
+class Deferred<T> private constructor(): Awaitable<T> {
 
     companion object {
 
@@ -68,7 +68,7 @@ class Deferred<T> private constructor() {
         }
     }
 
-    suspend fun Await(): T
+    override suspend fun Await(): T
     {
         return suspendCoroutine {
             cont ->
@@ -81,11 +81,6 @@ class Deferred<T> private constructor() {
                 }
             })
         }
-    }
-
-    suspend fun Await(ctx: Context): T
-    {
-        return ctx.ResumeIn({Await()})
     }
 
     /** Wait until this deferred has result set. Mostly for unit testing. */
