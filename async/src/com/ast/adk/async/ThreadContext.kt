@@ -5,6 +5,8 @@ import org.apache.logging.log4j.Logger
 
 class ThreadContext(val name: String): QueuedContext() {
 
+    val thread: Thread = Thread(this::Run)
+
     override fun Start()
     {
         super.Start()
@@ -24,7 +26,6 @@ class ThreadContext(val name: String): QueuedContext() {
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    private val thread: Thread = Thread(this::Run)
     private val log: Logger = Log.GetLogger("Ctx{$name}")
     private var isStarting = false
     private var isRunning = false

@@ -83,6 +83,31 @@ class Deferred<T> private constructor() {
         }
     }
 
+    suspend fun Await(ctx: Context): T
+    {
+        return ctx.ContinueIn({Await()})
+    }
+
+    /** Wait until this deferred has result set. Mostly for unit testing. */
+    fun WaitComplete(): Deferred<T>
+    {
+        var complete = false
+        val lock = java.lang.Object()
+        Subscribe({
+            _, _ ->
+            complete = true
+            synchronized(lock) {
+                lock.notify()
+            }
+        })
+        synchronized(lock) {
+            while (!complete) {
+                lock.wait()
+            }
+        }
+        return this
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
     /** Either result value or error. Result may be null as well. */
     private var result: T? = null
