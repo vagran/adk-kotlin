@@ -1,19 +1,58 @@
 package com.ast.adk.async
 
 import java.util.*
+import kotlin.coroutines.experimental.suspendCoroutine
 
 /** Allows timed scheduling of submitted messages via SubmitScheduled() method. */
 class ScheduledThreadContext(name: String): ThreadContext(name) {
 
-    /** Token which can be used for scheduled message cancellation. */
-    inner class Token {
+    /** Token which can be used for scheduled message cancellation.
+     * @param fireTime Firing time as returned by System.nanoTime().
+     */
+    inner class Token internal constructor(internal val message: Message,
+                                           internal val fireTime: Long) {
+
         /** Cancel scheduled message if possible.
          * @return True if cancelled, false if cannot cancel (already submitted for execution).
          */
         fun Cancel(): Boolean
         {
-            TODO()
+            return LockQueue {
+                if (!isScheduled) {
+                    return@LockQueue false
+                }
+                if (isCancelled) {
+                    throw Exception("Already cancelled")
+                }
+                isCancelled = true
+                isScheduled = false
+                var t = scheduledMessages[fireTime]
+                if (t == this) {
+                    if (next == null) {
+                        val firstTime = scheduledMessages.firstKey()
+                        scheduledMessages.remove(fireTime)
+                        if (fireTime == firstTime) {
+                            NotifyQueue()
+                        }
+                    } else {
+                        scheduledMessages[fireTime] = next!!
+                    }
+                    return@LockQueue true
+                }
+                while (t!!.next != null) {
+                    if (t.next == this) {
+                        t.next = next
+                        return@LockQueue true
+                    }
+                    t = t.next
+                }
+                true
+            }
         }
+
+        internal var next: Token? = null
+        internal var isScheduled = true
+        private var isCancelled = false
     }
 
     /** Submit a message which will be invoked with the specified delay.
@@ -21,7 +60,18 @@ class ScheduledThreadContext(name: String): ThreadContext(name) {
      */
     fun SubmitScheduled(message: Message, delay: Long): Token
     {
-        TODO()
+        val token = Token(message, System.nanoTime() + delay * 1_000_000)
+        LockQueue {
+            if (stopRequested) {
+                throw Message.RejectedError("Context is already stopped")
+            }
+            val existing = scheduledMessages.put(token.fireTime, token)
+            if (existing != null) {
+                token.next = existing
+            }
+            NotifyQueue()
+        }
+        return token
     }
 
     /** Suspend current coroutine for the specified delay.
@@ -29,7 +79,21 @@ class ScheduledThreadContext(name: String): ThreadContext(name) {
      */
     suspend fun Delay(delay: Long)
     {
-        TODO()
+        return suspendCoroutine {
+            cont ->
+
+            SubmitScheduled(object: Message {
+                override fun Invoke()
+                {
+                    cont.resume(Unit)
+                }
+
+                override fun Reject(error: Throwable)
+                {
+                    cont.resumeWithException(error)
+                }
+            }, delay)
+        }
     }
 
     /** Suspend current coroutine for the specified delay ensuring the continuation runs in the
@@ -40,6 +104,38 @@ class ScheduledThreadContext(name: String): ThreadContext(name) {
     suspend fun Delay(delay: Long, ctx: Context)
     {
         ctx.ResumeIn({Delay(delay)})
+    }
+
+    override fun Stop()
+    {
+        super.Stop()
+        while (true) {
+            val tokens = LockQueue {
+                val tokens = scheduledMessages.firstEntry()
+                if (tokens == null) {
+                    return@LockQueue null
+                }
+                scheduledMessages.remove(tokens.key)
+                var t: Token? = tokens.value
+                while (t != null) {
+                    t!!.isScheduled = false
+                    t = t!!.next
+                }
+                return@LockQueue tokens.value
+            }
+            if (tokens == null) {
+                break;
+            }
+            var t = tokens
+            while (t != null) {
+                try {
+                    t!!.message.Reject(Message.RejectedError("Context terminated"))
+                } catch (e: Throwable) {
+                    log.error("Exception in message reject handler", e)
+                }
+                t = t!!.next
+            }
+        }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,7 +151,7 @@ class ScheduledThreadContext(name: String): ThreadContext(name) {
                 nextTime = 1
             }
         }
-        if (timeout < nextTime) {
+        if (timeout != 0L && timeout < nextTime) {
             nextTime = timeout
         }
         return super.WaitAndProcess(nextTime)
@@ -67,6 +163,42 @@ class ScheduledThreadContext(name: String): ThreadContext(name) {
      */
     private fun ProcessScheduledMessages(): Long
     {
-        TODO()
+        val curTime = System.nanoTime()
+        while (true) {
+            var tokens: Token? = null
+            val time = LockQueue {
+                val e = scheduledMessages.firstEntry()
+                if (e == null) {
+                    return@LockQueue 0L
+                }
+                val fireTime = e.key
+                if (fireTime > curTime) {
+                    return@LockQueue fireTime - curTime
+                }
+                tokens = e.value
+                scheduledMessages.remove(e.key)
+                var t = tokens
+                do {
+                    t!!.isScheduled = false
+                    t = t.next
+                } while (t != null)
+                0L
+            }
+            if (tokens == null) {
+                return time
+            }
+            while (tokens != null) {
+                try {
+                    Submit(tokens!!.message)
+                } catch (e: Throwable) {
+                    try {
+                        tokens!!.message.Reject(e)
+                    } catch (_e: Throwable) {
+                        log.error("Exception in message reject handler", _e)
+                    }
+                }
+                tokens = tokens!!.next
+            }
+        }
     }
 }

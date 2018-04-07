@@ -26,7 +26,8 @@ open class ThreadContext(val name: String): QueuedContext() {
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    private val log: Logger = Log.GetLogger("Ctx{$name}")
+    protected val log: Logger = Log.GetLogger("Ctx{$name}")
+
     private var isStarting = false
     private var isRunning = false
 

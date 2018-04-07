@@ -1,18 +1,18 @@
 package com.ast.adk.async
 
-class RejectedError: Exception {
-
-    constructor(message: String):
-        super(message)
-
-    constructor(message: String, cause: Throwable):
-        super(message, cause)
-}
-
 /**
  * Message is submitted to an execution context.
  */
 interface Message {
+
+    class RejectedError: Exception {
+
+        constructor(message: String):
+                super(message)
+
+        constructor(message: String, cause: Throwable):
+                super(message, cause)
+    }
 
     /** Invoked in the target context. */
     fun Invoke()

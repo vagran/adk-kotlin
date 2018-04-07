@@ -35,16 +35,12 @@ abstract class QueuedContext: Context {
 
     override fun Submit(message: Message)
     {
-        val error = LockQueue {
+        LockQueue {
             if (stopRequested) {
-                return@LockQueue RejectedError("Context is already stopped")
+                throw Message.RejectedError("Context is already stopped")
             }
             queue.addLast(message)
             NotifyQueue()
-            null
-        }
-        if (error != null) {
-            message.Reject(error)
         }
     }
 
@@ -145,8 +141,7 @@ abstract class QueuedContext: Context {
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
+    protected var stopRequested = false
+
     private var isStarted = false
-    private var stopRequested = false
-
-
 }

@@ -1,5 +1,6 @@
 
 import com.ast.adk.async.Deferred
+import com.ast.adk.async.ScheduledThreadContext
 import com.ast.adk.async.Task
 import com.ast.adk.async.ThreadContext
 import com.ast.adk.utils.Log
@@ -157,5 +158,61 @@ private class TaskTest {
 
         ctx1.Stop()
         ctx2.Stop()
+    }
+
+    @Test
+    fun TimersTest1()
+    {
+        val ctx = ScheduledThreadContext("test")
+        ctx.Start()
+
+        val def1 = Task.Create({
+            42
+        }).Submit(ctx).result
+
+        val def2 = Task.CreateDef({
+            def1.Await()
+        }).Submit(ctx).result
+
+        VerifyDefResult(42, def2)
+
+        ctx.Stop()
+    }
+
+    @Test
+    fun TimersTest2()
+    {
+        val ctx = ScheduledThreadContext("test")
+        ctx.Start()
+
+        val task = Task.Create({
+            42
+        })
+        val def1 = task.result
+        ctx.SubmitScheduled(task, 1000)
+
+        val def2 = Task.CreateDef({
+            def1.Await()
+        }).Submit(ctx).result
+
+        VerifyDefResult(42, def2)
+
+        ctx.Stop()
+    }
+
+    @Test
+    fun TimersTest3()
+    {
+        val ctx = ScheduledThreadContext("test")
+        ctx.Start()
+
+        val def = Task.CreateDef({
+            ctx.Delay(1000L)
+            42
+        }).Submit(ctx).result
+
+        VerifyDefResult(42, def)
+
+        ctx.Stop()
     }
 }
