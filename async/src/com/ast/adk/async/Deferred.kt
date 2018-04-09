@@ -26,6 +26,73 @@ class Deferred<T> private constructor(): Awaitable<T> {
         {
             return Deferred(null, error)
         }
+
+        /** Create deferred which completes when all the specified deferred results are completed.
+         * If error occurs the first one is set to the resulted deferred.
+         * //XXX overload of When() method does not work in current kotlin version, so use these
+         * ugly names.
+         */
+        fun WhenCol(results: Collection<Deferred<*>>): Deferred<Unit>
+        {
+            return WhenIt(results.iterator())
+        }
+
+        fun WhenArr(results: Array<Deferred<*>>): Deferred<Unit>
+        {
+            return WhenIt(results.iterator())
+        }
+
+        fun WhenIt(results: Iterator<Deferred<*>>): Deferred<Unit>
+        {
+            class Aggregator {
+
+                val result = Create<Unit>()
+
+                init {
+                    while (results.hasNext()) {
+                        val def = results.next();
+                        synchronized(this) {
+                            numResults++
+                        }
+                        def.Subscribe(this::OnComplete)
+                    }
+                    synchronized(this) {
+                        iterDone = true
+                        CheckComplete()
+                    }
+                }
+
+                private var iterDone = false
+                private var numResults = 0
+                private var numComplete = 0
+                private var error: Throwable? = null
+
+                @Suppress("UNUSED_PARAMETER")
+                private fun OnComplete(value: Any?, error: Throwable?)
+                {
+                    synchronized(this) {
+                        numComplete++
+                        if (error != null && this.error == null) {
+                            this.error = error
+                        }
+                        CheckComplete()
+                    }
+                }
+
+                private fun CheckComplete()
+                {
+                    if (iterDone && numComplete == numResults) {
+                        if (error == null) {
+                            result.SetResult(Unit)
+                        } else {
+                            result.SetError(error!!)
+                        }
+                    }
+                }
+            }
+
+            return Aggregator().result
+        }
     }
 
     fun SetResult(result: T)
@@ -101,6 +168,21 @@ class Deferred<T> private constructor(): Awaitable<T> {
             }
         }
         return this
+    }
+
+    /** Get result of the deferred. The deferred should be completed otherwise exception is thrown.
+     */
+    fun Get(): T
+    {
+        synchronized(this) {
+            if (!isComplete) {
+                throw IllegalStateException("Deferred is not yet complete")
+            }
+            if (error != null) {
+                throw Exception("Deferred complete with error", error)
+            }
+            return result!!
+        }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

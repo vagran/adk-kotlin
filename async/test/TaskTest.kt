@@ -5,6 +5,7 @@ import com.ast.adk.async.Task
 import com.ast.adk.async.ThreadContext
 import com.ast.adk.utils.Log
 import org.apache.logging.log4j.Logger
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -215,4 +216,41 @@ private class TaskTest {
 
         ctx.Stop()
     }
+
+    @Test
+    fun WaitMultiple()
+    {
+        val ctx = ThreadContext("ctx1")
+        ctx.Start()
+
+        val def1 = Task.Create({
+            3
+        }).Submit(ctx).result
+
+        val def2 = Task.Create({
+            5
+        }).Submit(ctx).result
+
+        val def3 = Task.Create({
+            7
+        }).Submit(ctx).result
+
+        val def = Deferred.WhenArr(arrayOf(def1, def2, def3))
+
+        var invoked = false
+        def.Subscribe({
+            _, error ->
+            assertNull(error)
+            invoked = true
+        })
+
+        def.WaitComplete()
+        assertTrue(invoked)
+        assertEquals(3, def1.Get())
+        assertEquals(5, def2.Get())
+        assertEquals(7, def3.Get())
+
+        ctx.Stop()
+    }
+
 }

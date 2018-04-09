@@ -14,8 +14,11 @@ interface Context {
 Submitted messages either
 invoked or rejected
 ..
-+Submit(Message)
 +{static}{thread_local} current
+
++Submit(Message)
++ResumeIn()
++ResumeIn(func)
 }
 
 Message <|-- Task
@@ -25,6 +28,11 @@ class Task<T> {
     +result: Deferred<T>
 }
 
+interface Awaitable {
+    +Await(): T
+}
+
+Awaitable <|-- Deferred
 
 class Deferred<T> {
     +SetResult(T)
@@ -32,7 +40,7 @@ class Deferred<T> {
     +{static}ForResult(T)
     +{static}ForError(Throwable)
     +Subscribe(callback)
-    +Await(Context = current): T
+
     ..
     Task extensions
     +ChainTask(callback, context): Deferred<U>
