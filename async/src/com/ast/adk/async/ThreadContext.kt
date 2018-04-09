@@ -51,6 +51,8 @@ open class ThreadContext(val name: String): QueuedContext() {
             NotifyQueue()
         }
 
+        Context.current = this
+
         try {
             while (!WaitAndProcess()) {}
         } catch (e: Exception) {

@@ -18,7 +18,7 @@ interface Awaitable<T> {
     {
         val ctx = Context.current
         if (ctx == null) {
-            return Await()
+            throw Exception("No current context")
         } else {
             return Await(ctx)
         }
