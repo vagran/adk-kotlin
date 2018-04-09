@@ -29,20 +29,18 @@ class Deferred<T> private constructor(): Awaitable<T> {
 
         /** Create deferred which completes when all the specified deferred results are completed.
          * If error occurs the first one is set to the resulted deferred.
-         * //XXX overload of When() method does not work in current kotlin version, so use these
-         * ugly names.
          */
-        fun WhenCol(results: Collection<Deferred<*>>): Deferred<Unit>
+        fun When(results: Collection<Deferred<*>>): Deferred<Unit>
         {
-            return WhenIt(results.iterator())
+            return When(results.iterator())
         }
 
-        fun WhenArr(results: Array<Deferred<*>>): Deferred<Unit>
+        fun When(vararg results: Deferred<*>): Deferred<Unit>
         {
-            return WhenIt(results.iterator())
+            return When(results.iterator())
         }
 
-        fun WhenIt(results: Iterator<Deferred<*>>): Deferred<Unit>
+        fun When(results: Iterator<Deferred<*>>): Deferred<Unit>
         {
             class Aggregator {
 

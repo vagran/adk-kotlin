@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -220,7 +221,7 @@ private class TaskTest {
     @Test
     fun WaitMultiple()
     {
-        val ctx = ThreadContext("ctx1")
+        val ctx = ThreadContext("ctx")
         ctx.Start()
 
         val def1 = Task.Create({
@@ -235,7 +236,7 @@ private class TaskTest {
             7
         }).Submit(ctx).result
 
-        val def = Deferred.WhenArr(arrayOf(def1, def2, def3))
+        val def = Deferred.When(def1, def2, def3)
 
         var invoked = false
         def.Subscribe({
@@ -248,6 +249,42 @@ private class TaskTest {
         assertTrue(invoked)
         assertEquals(3, def1.Get())
         assertEquals(5, def2.Get())
+        assertEquals(7, def3.Get())
+
+        ctx.Stop()
+    }
+
+    @Test
+    fun WaitMultipleError()
+    {
+        val ctx = ThreadContext("ctx")
+        ctx.Start()
+
+        val def1 = Task.Create({
+            3
+        }).Submit(ctx).result
+
+        val def2 = Task.Create({
+            throw Error("aaa")
+        }).Submit(ctx).result
+
+        val def3 = Task.Create({
+            7
+        }).Submit(ctx).result
+
+        val def = Deferred.When(def1, def2, def3)
+
+        var invoked = false
+        def.Subscribe({
+            _, error ->
+            assertEquals("aaa", error!!.message)
+            invoked = true
+        })
+
+        def.WaitComplete()
+        assertTrue(invoked)
+        assertEquals(3, def1.Get())
+        assertThrows<Exception>("aaa", {def2.Get()})
         assertEquals(7, def3.Get())
 
         ctx.Stop()
