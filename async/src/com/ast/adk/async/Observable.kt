@@ -1,13 +1,8 @@
 package com.ast.adk.async
 
-/**
- * Invoked in arbitrary thread to get next value. Next value is requested only after a previous
- * request has been completed.
- *
- * @return Deferred with next value. Empty value if no more data. Null can be returned instantly
- *      instead of deferred with null value.
- */
-typealias ObservableSource<T> = () -> Deferred<Observable.Value<T>>?
+import javax.xml.transform.Templates
+
+typealias ObservableSourceFunc<T> = () -> Deferred<Observable.Value<T>>?
 
 class Observable<T> {
 
@@ -42,5 +37,28 @@ class Observable<T> {
 
         override val isSet: Boolean
             get() = true
+    }
+
+    interface Source<T> {
+        /**
+         * Invoked in arbitrary thread to get next value. Next value is requested only after a
+         * previous request has been completed.
+         *
+         * @return Deferred with next value. Empty value if no more data. Null can be returned
+         *      instantly instead of deferred with null value. Error is propagated to subscribers.
+         */
+        fun Get(): Deferred<Observable.Value<T>>?
+
+        companion object {
+            fun <T> FromFunc(func: ObservableSourceFunc<T>): Source<T>
+            {
+                return object: Source<T> {
+                    override fun Get(): Deferred<Value<T>>?
+                    {
+                        return func();
+                    }
+                }
+            }
+        }
     }
 }
