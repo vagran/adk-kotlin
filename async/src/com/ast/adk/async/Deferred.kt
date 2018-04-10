@@ -170,7 +170,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
 
     /** Get result of the deferred. The deferred should be completed otherwise exception is thrown.
      */
-    fun Get(): T
+    fun Get(): T?
     {
         synchronized(this) {
             if (!isComplete) {
@@ -179,7 +179,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
             if (error != null) {
                 throw Exception("Deferred complete with error", error)
             }
-            return result!!
+            return result
         }
     }
 

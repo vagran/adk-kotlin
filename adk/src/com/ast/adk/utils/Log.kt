@@ -4,13 +4,16 @@ import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.apache.logging.log4j.core.LoggerContext
+import org.apache.logging.log4j.core.appender.ConsoleAppender
 import org.apache.logging.log4j.core.config.*
 import org.apache.logging.log4j.core.config.plugins.Plugin
+import org.apache.logging.log4j.core.layout.PatternLayout
 import org.apache.logging.log4j.message.StringFormatterMessageFactory
 import java.io.PrintStream
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URI
+import java.util.function.Consumer
 
 
 object Log {
@@ -80,6 +83,32 @@ object Log {
             {
                 return TestLoggingConfig(loggers)
             }
+        }
+
+        internal class TestLoggingConfig(loggers: Array<out LoggerConfig>) : DefaultConfiguration() {
+
+            init {
+                name = "Unit test log"
+                val layout = PatternLayout.newBuilder()
+                        .withPattern(Log.TestLoggingConfiguration.PATTERN_LAYOUT).build()
+                val builder = ConsoleAppender::class.java.getMethod("newBuilder")
+                        .invoke(null) as ConsoleAppender.Builder<*>
+                val appender = builder
+                        .setTarget(ConsoleAppender.Target.SYSTEM_OUT)
+                        .withLayout(layout)
+                        .withName("ConsoleAppender").build()
+                addAppender(appender)
+                val root = rootLogger
+                /* Remove all default appenders. */
+                root.appenders.keys.forEach(Consumer<String> { root.removeAppender(it) })
+                root.addAppender(appender, Level.DEBUG, null)
+                root.level = Level.DEBUG
+
+                for (config in loggers) {
+                    addLogger(config.name, config)
+                }
+            }
+
         }
 
     }
