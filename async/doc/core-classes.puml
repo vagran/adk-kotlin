@@ -49,13 +49,13 @@ class Deferred<T> {
     {field}-subscribers: Callback[]
 }
 
-class ObservableSource {
+class Observable::Source {
 }
 
 class Observable {
 }
 
-class Subscriber {
+class Observable::Subscriber {
 }
 
 }

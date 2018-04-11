@@ -1,8 +1,15 @@
 package com.ast.adk.async
 
-import javax.xml.transform.Templates
-
 typealias ObservableSourceFunc<T> = () -> Deferred<Observable.Value<T>>?
+
+/** Subscription is cancelled if the handler throws exception.
+ * @param value Next value or empty value is completed.
+ * @param error Error if any.
+ * @return True or null to continue subscription, false to unsubscribe.
+ */
+typealias ObservableSubscriberFunc<T> =
+        (value: Observable.Value<T>, error: Throwable?) -> Deferred<Boolean>?
+
 
 class Observable<T> {
 
@@ -22,21 +29,6 @@ class Observable<T> {
 
         val isSet: Boolean
         val value: T
-    }
-
-    private class EmptyValue<out T>: Value<T> {
-
-        override val isSet: Boolean
-            get() = false
-
-        override val value: T
-            get() = throw Exception("Value is not set")
-    }
-
-    private class PresentValue<out T>(override val value: T): Value<T> {
-
-        override val isSet: Boolean
-            get() = true
     }
 
     interface Source<T> {
@@ -60,5 +52,31 @@ class Observable<T> {
                 }
             }
         }
+    }
+
+    interface Subscription {
+        fun Unsubscribe()
+    }
+
+    fun Subscribe(subscriber: ObservableSubscriberFunc<T>): Subscription
+    {
+        TODO()
+    }
+
+    // /////////////////////////////////////////////////////////////////////////////////////////////
+
+    private class EmptyValue<out T>: Value<T> {
+
+        override val isSet: Boolean
+            get() = false
+
+        override val value: T
+            get() = throw Exception("Value is not set")
+    }
+
+    private class PresentValue<out T>(override val value: T): Value<T> {
+
+        override val isSet: Boolean
+            get() = true
     }
 }
