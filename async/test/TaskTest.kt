@@ -99,6 +99,23 @@ private class TaskTest {
     }
 
     @Test
+    fun Test4()
+    {
+        val ctx = ThreadContext("test")
+        ctx.Start()
+
+        val def1 = Task.Create({
+            42
+        }).Submit(ctx).result
+
+        val def2 = Deferred.ForFunc({def1.Await()})
+
+        VerifyDefResult(42, def2)
+
+        ctx.Stop()
+    }
+
+    @Test
     fun ThreadContinuationTest()
     {
         val ctx1 = ThreadContext("ctx1")

@@ -1,6 +1,6 @@
 package com.ast.adk.async
 
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.experimental.*
 
 typealias DeferredCallback<T> = (result: T?, error: Throwable?) -> Unit
 
@@ -25,6 +25,25 @@ class Deferred<T> private constructor(): Awaitable<T> {
         fun <T> ForError(error: Throwable): Deferred<T>
         {
             return Deferred(null, error)
+        }
+
+        fun <T> ForFunc(func: suspend () -> T): Deferred<T>
+        {
+            val result = Create<T>()
+            func.createCoroutine(object: Continuation<T> {
+                override val context: CoroutineContext = EmptyCoroutineContext
+
+                override fun resume(value: T)
+                {
+                    result.SetResult(value)
+                }
+
+                override fun resumeWithException(exception: Throwable)
+                {
+                    result.SetError(exception)
+                }
+            }).resume(Unit)
+            return result
         }
 
         /** Create deferred which completes when all the specified deferred results are completed.
