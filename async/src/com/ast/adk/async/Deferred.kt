@@ -174,8 +174,8 @@ class Deferred<T> private constructor(): Awaitable<T> {
         val lock = java.lang.Object()
         Subscribe({
             _, _ ->
-            complete = true
             synchronized(lock) {
+                complete = true
                 lock.notify()
             }
         })

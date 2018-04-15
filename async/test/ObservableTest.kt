@@ -1,7 +1,7 @@
 
 import com.ast.adk.async.Deferred
-import com.ast.adk.async.Observable
-import com.ast.adk.async.ObservableSourceFunc
+import com.ast.adk.async.observable.Observable
+import com.ast.adk.async.observable.ObservableSourceFunc
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
