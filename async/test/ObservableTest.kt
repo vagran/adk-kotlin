@@ -1,7 +1,5 @@
 
-import com.ast.adk.async.Deferred
 import com.ast.adk.async.observable.Observable
-import com.ast.adk.async.observable.ObservableSourceFunc
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -35,22 +33,5 @@ private class ObservableTest {
         val x = Observable.Value.Of(42)
         assertTrue(x.isSet)
         assertEquals(42, x.value)
-    }
-
-    fun F(h: ObservableSourceFunc<Int>)
-    {
-
-    }
-
-    class A {
-        operator fun invoke(): Deferred<Observable.Value<Int>>?
-        {
-            return null
-        }
-    }
-
-    fun X()
-    {
-        F(A()::invoke)
     }
 }

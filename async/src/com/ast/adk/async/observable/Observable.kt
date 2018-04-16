@@ -94,7 +94,7 @@ class Observable<T>
         var _error: Throwable? = null
         val s = synchronized(subscribers) {
             if (isComplete) {
-                _completion = completion
+                _completion = lastValue
                 _error = error
                 return@synchronized SubscriptionImpl(subscriber, -1)
             }
@@ -195,17 +195,26 @@ class Observable<T>
     /** Number of subscribers currently processing a round value. */
     private var numSubscribersPending = 0;
     /** Completion value if completed successfully. */
-    private var completion: Value<T>? = null
+    private var lastValue: Value<T>? = null
     /** Set if complete with an error. */
     private var error: Throwable? = null
+    /** Either successful completion or error occurred. */
+    private var isComplete = false
+    /** Protects from deep recursion on next value processing. */
+    private var nextPending = false
 
     /** Check if next value should be requested. Request if necessary. Should be called with the
      * lock acquired.
      */
-    //XXX recursion protection
     private fun CheckNext()
     {
-        if (!isConnected || numSubscribersPending > 0 || subscribers.size == 0) {
+        if (isComplete || !isConnected || numSubscribersPending > 0 || subscribers.size == 0) {
+            return
+        }
+        /* Check if there are still queued subscribers for last round. */
+        val s = subscribers.peekFirst()
+        if (s.curRound != curRound) {
+            /* Current round not yet fully processed. */
             return
         }
         try {
@@ -219,17 +228,22 @@ class Observable<T>
     {
         synchronized(subscribers) {
             curRound = (1 - curRound).toByte()
-            if (error != null) {
-                this.error = error
-            } else if (!value!!.isSet) {
-                completion = value
+            lastValue = value
+            this.error = error
+            if (error != null || (value != null && !value.isSet)) {
+                isComplete = true
             }
+            if (nextPending) {
+                return
+            }
+            nextPending = true
         }
         while (true) {
             val s = synchronized(subscribers) {
                 val s = subscribers.peekFirst()
                 if (s == null || s.curRound == curRound) {
-                    return@synchronized null
+                    nextPending = false
+                    return
                 }
                 subscribers.removeFirst()
                 s.curRound = curRound
@@ -237,16 +251,7 @@ class Observable<T>
                 numSubscribersPending++
                 return@synchronized s
             }
-            if (s == null) {
-                return
-            }
-            s.Invoke(value, error)
+            s.Invoke(lastValue, this.error)
         }
     }
-
-    private inline val isComplete: Boolean
-        get()
-        {
-            return completion != null || error != null
-        }
 }
