@@ -1,6 +1,8 @@
 
+import com.ast.adk.async.Context
 import com.ast.adk.async.Deferred
 import com.ast.adk.async.ScheduledThreadContext
+import com.ast.adk.async.Task
 import com.ast.adk.async.observable.Observable
 import com.ast.adk.utils.Log
 import org.apache.logging.log4j.Logger
@@ -149,6 +151,11 @@ private class ObservableTest {
             onComplete.SetResult(Unit)
         }
 
+        fun IsFailed(shouldComplete: Boolean = true): Boolean
+        {
+            return isFailed || HasNextExpected() || (shouldComplete && !isComplete)
+        }
+
         private val expectedIt: Iterator<Int?>
         private var isComplete = false
         private var isFailed = false
@@ -216,5 +223,78 @@ private class ObservableTest {
             cur += step
             ret
         }.limit(count.toLong()))
+    }
+
+    fun <T> GetContextSource(src: Observable.Source<T>, ctx: Context): Observable.Source<T>
+    {
+        return object: Observable.Source<T> {
+            override fun Get(): Deferred<Observable.Value<T>>
+            {
+                return Task.CreateDef({ src.Get().Await() }).Submit(ctx).result
+            }
+        }
+    }
+
+    fun GetTestSource(vararg values: Int?): Observable.Source<Int?>
+    {
+        return object: Observable.Source<Int?> {
+            var curPos = 0
+
+            override fun Get(): Deferred<Observable.Value<Int?>>
+            {
+                if (curPos == values.size) {
+                    return Deferred.ForResult(Observable.Value.None())
+                }
+                val def = Deferred.ForResult(Observable.Value.Of(values[curPos]))
+                curPos++
+                return def
+            }
+        }
+    }
+
+    fun <T> InContext(subscriber: Observable.Subscriber<T>, ctx: Context): Observable.Subscriber<T>
+    {
+        return object: Observable.Subscriber<T> {
+            override fun OnNext(value: Observable.Value<T>): Deferred<Boolean>?
+            {
+                return Task.CreateDef({
+                    val def = subscriber.OnNext(value) ?: return@CreateDef true
+                    def.Await(ctx)
+                }).Submit(ctx).result
+            }
+
+            override fun OnComplete()
+            {
+                subscriber.OnComplete()
+            }
+
+            override fun OnError(error: Throwable)
+            {
+                subscriber.OnError(error)
+            }
+        }
+    }
+
+    @Test
+    fun Basic()
+    {
+        val values = arrayOf(42, 45, null, 2, 3)
+        val src = GetTestSource(*values)
+        val observable = Observable.Create(src)
+        val sub = TestSubscriber(*values)
+        observable.Subscribe(sub)
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun BasicCtx()
+    {
+        val values = arrayOf(42, 45, null, 2, 3)
+        val src = GetTestSource(*values)
+        val observable = Observable.Create(src)
+        val sub = TestSubscriber(*values)
+        observable.Subscribe(InContext(sub, ctx))
+        sub.onComplete.WaitComplete()
+        assertFalse(sub.IsFailed())
     }
 }
