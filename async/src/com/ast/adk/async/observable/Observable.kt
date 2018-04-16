@@ -1,5 +1,6 @@
 package com.ast.adk.async.observable
 
+import com.ast.adk.async.Awaitable
 import com.ast.adk.async.Deferred
 import java.util.*
 
@@ -71,9 +72,37 @@ class Observable<T>
         }
     }
 
+    interface Subscriber<T> {
+        fun OnNext(value: Observable.Value<T>): Deferred<Boolean>?
+
+        fun OnComplete()
+
+        fun OnError(error: Throwable)
+
+        fun ToHandler(): ObservableSubscriberFunc<T>
+        {
+            return handler@ {
+                value, error ->
+                if (error != null) {
+                    OnError(error)
+                    return@handler null
+                }
+                if (!value.isSet) {
+                    OnComplete()
+                    return@handler null
+                }
+                return@handler OnNext(value)
+            }
+        }
+    }
+
     interface Subscription {
         fun Unsubscribe()
     }
+
+    /** Each call to Await() returns next value, empty value if complete, throws error on failure.
+     */
+    interface AwaitableSubscription<T>: Subscription, Awaitable<Value<T>>
 
     /** Connect observable if it was created initially unconnected. No effect if already connected.
      */
@@ -107,6 +136,16 @@ class Observable<T>
             s.Invoke(_completion, _error)
         }
         return s
+    }
+
+    fun Subscribe(subscriber: Subscriber<T>): Subscription
+    {
+        return Subscribe(subscriber.ToHandler())
+    }
+
+    fun Subscribe(): AwaitableSubscription<T>
+    {
+        TODO()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
