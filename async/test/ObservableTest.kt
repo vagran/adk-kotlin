@@ -402,4 +402,98 @@ private class ObservableTest {
         assertFalse(sub.IsFailed())
         assertFalse(src.IsFailed())
     }
+
+    @Test
+    fun LongSourceContext()
+    {
+        val numValues = 5000
+        val src = TestRangeSource(1, numValues)
+        val observable = Observable.Create(src)
+
+        val sub = RangeTestSubscriber(1, numValues)
+        observable.Subscribe(InContext(sub, ctx))
+        sub.onComplete.WaitComplete()
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun MultipleSubscribers()
+    {
+        val numValues = 5000
+        val src = TestRangeSource(1, numValues)
+        val observable = Observable.Create(src, false)
+
+        val numSubscribers = 100
+        val sub = arrayOfNulls<TestSubscriber>(numSubscribers)
+        for (i in 0 until numSubscribers) {
+            sub[i] = RangeTestSubscriber(1, numValues)
+            observable.Subscribe(InContext(sub[i]!!, ctx))
+        }
+        observable.Connect()
+        for (i in 0 until numSubscribers) {
+            sub[i]!!.onComplete.WaitComplete()
+            assertFalse(sub[i]!!.IsFailed())
+        }
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun MultipleSubscribersNoContext()
+    {
+        val numValues = 5000
+        val src = TestRangeSource(1, numValues)
+        val observable = Observable.Create(src, false)
+
+        val numSubscribers = 100
+        val sub = arrayOfNulls<TestSubscriber>(numSubscribers)
+        for (i in 0 until numSubscribers) {
+            sub[i] = RangeTestSubscriber(1, numValues)
+            observable.Subscribe(sub[i]!!)
+        }
+        observable.Connect()
+        for (i in 0 until numSubscribers) {
+            sub[i]!!.onComplete.WaitComplete()
+            assertFalse(sub[i]!!.IsFailed())
+        }
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun SubscribeAfterComplete()
+    {
+        val src = TestRangeSource(1, 5)
+        val observable = Observable.Create(src)
+
+        val sub = TestSubscriber(1, 2, 3, 4, 5)
+        observable.Subscribe(sub)
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+
+        val sub2 = TestSubscriber()
+        observable.Subscribe(sub2)
+        assertFalse(sub2.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun SubscribeAfterFailure()
+    {
+        val src = TestRangeSource(1, 5)
+        src.SetError()
+        val observable = Observable.Create(src)
+
+        val sub = TestSubscriber(1, 2, 3, 4, 5)
+        sub.SetExpectedError()
+        observable.Subscribe(sub)
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+
+        val sub2 = TestSubscriber()
+        sub2.SetExpectedError()
+        observable.Subscribe(sub2)
+        assertFalse(sub2.IsFailed())
+        assertFalse(src.IsFailed())
+    }
 }
