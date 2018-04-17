@@ -3,6 +3,7 @@ import com.ast.adk.async.Context
 import com.ast.adk.async.Deferred
 import com.ast.adk.async.ScheduledThreadContext
 import com.ast.adk.async.Task
+import com.ast.adk.async.observable.From
 import com.ast.adk.async.observable.Observable
 import com.ast.adk.utils.Log
 import org.apache.logging.log4j.Logger
@@ -177,9 +178,9 @@ private class ObservableTest {
     inner class TestRangeSource(private var start: Int,
                                 private var count: Int,
                                 private val step: Int = 1):
-            Observable.Source<Int> {
+            Observable.Source<Int?> {
 
-        override fun Get(): Deferred<Observable.Value<Int>>
+        override fun Get(): Deferred<Observable.Value<Int?>>
         {
             if (complete) {
                 log.error("Get() called after completed")
@@ -235,7 +236,7 @@ private class ObservableTest {
         }
     }
 
-    fun GetTestSource(vararg values: Int?): Observable.Source<Int?>
+    fun GetTestSource(vararg values: Int?, needError: Boolean = false): Observable.Source<Int?>
     {
         return object: Observable.Source<Int?> {
             var curPos = 0
@@ -243,7 +244,11 @@ private class ObservableTest {
             override fun Get(): Deferred<Observable.Value<Int?>>
             {
                 if (curPos == values.size) {
-                    return Deferred.ForResult(Observable.Value.None())
+                    if (needError) {
+                        return Deferred.ForError(Error("test"))
+                    } else {
+                        return Deferred.ForResult(Observable.Value.None())
+                    }
                 }
                 val def = Deferred.ForResult(Observable.Value.Of(values[curPos]))
                 curPos++
@@ -296,5 +301,105 @@ private class ObservableTest {
         observable.Subscribe(InContext(sub, ctx))
         sub.onComplete.WaitComplete()
         assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun BasicError()
+    {
+        val values = arrayOf(42, 45, null, 2, 3)
+        val src = GetTestSource(*values, needError = true)
+        val observable = Observable.Create(src)
+        val sub = TestSubscriber(*values)
+        sub.SetExpectedError()
+        observable.Subscribe(sub)
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun BasicErrorCtx()
+    {
+        val values = arrayOf(42, 45, null, 2, 3)
+        val src = GetTestSource(*values, needError = true)
+        val observable = Observable.Create(src)
+        val sub = TestSubscriber(*values)
+        sub.SetExpectedError()
+        observable.Subscribe(InContext(sub, ctx))
+        sub.onComplete.WaitComplete()
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun ArraySource()
+    {
+        val observable = Observable.From(1, 2, 3, null, 5)
+
+        val sub = TestSubscriber(1, 2, 3, null, 5)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun CollectionSource()
+    {
+        val list = listOf(1, 2, 3, null, 5)
+
+        val observable = Observable.From(list)
+
+        val sub = TestSubscriber(*list.toTypedArray())
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun StreamSource()
+    {
+        val list = listOf(1, 2, 3, null, 5)
+
+        val observable = Observable.From(list.stream())
+
+        val sub = TestSubscriber(*list.toTypedArray())
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun RangeSource()
+    {
+        val observable = Observable.From<Int?>(1..5)
+
+        val sub = TestSubscriber(1, 2, 3, 4, 5)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun TestRangeSource()
+    {
+        val src = TestRangeSource(1, 5)
+        val observable = Observable.Create(src)
+
+        val sub = TestSubscriber(1, 2, 3, 4, 5)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun LongRangeSource()
+    {
+        val numValues = 5000
+        val src = TestRangeSource(1, numValues)
+        val observable = Observable.Create(src)
+
+        val sub = RangeTestSubscriber(1, numValues)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
     }
 }
