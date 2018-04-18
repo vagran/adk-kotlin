@@ -4,6 +4,7 @@ import com.ast.adk.async.Deferred
 import com.ast.adk.async.ScheduledThreadContext
 import com.ast.adk.async.Task
 import com.ast.adk.async.observable.From
+import com.ast.adk.async.observable.Map
 import com.ast.adk.async.observable.Observable
 import com.ast.adk.utils.Log
 import org.apache.logging.log4j.Logger
@@ -494,6 +495,62 @@ private class ObservableTest {
         sub2.SetExpectedError()
         observable.Subscribe(sub2)
         assertFalse(sub2.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun MapTest()
+    {
+        val src = TestRangeSource(1, 5)
+        val observable = Observable.Create(src).Map<Int?, Int?> { x -> x!! * 10 }
+
+        val sub = TestSubscriber(10, 20, 30, 40, 50)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun MapTestContext()
+    {
+        val src = TestRangeSource(1, 5)
+        val observable = Observable.Create(src).Map<Int?, Int?> { x -> x!! * 10 }
+
+        val sub = TestSubscriber(10, 20, 30, 40, 50)
+        observable.Subscribe(InContext(sub, ctx))
+        sub.onComplete.WaitComplete()
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun MapLongTest()
+    {
+        val numValues = 5000
+        val src = TestRangeSource(1, numValues)
+        val observable = Observable.Create(src).Map<Int?, Int?> { x -> x!! * 10 }
+
+        val sub = RangeTestSubscriber(10, numValues, 10)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun MapLongTestContext()
+    {
+        val numValues = 5000
+        val src = TestRangeSource(1, numValues)
+        val observable = Observable.Create(src).Map<Int?, Int?> { x -> x!! * 10 }
+
+        val sub = RangeTestSubscriber(10, numValues, 10)
+        observable.Subscribe(InContext(sub, ctx))
+        sub.onComplete.WaitComplete()
+
+        assertFalse(sub.IsFailed())
         assertFalse(src.IsFailed())
     }
 }
