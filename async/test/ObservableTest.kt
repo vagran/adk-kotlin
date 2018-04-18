@@ -5,6 +5,7 @@ import com.ast.adk.async.ScheduledThreadContext
 import com.ast.adk.async.Task
 import com.ast.adk.async.observable.From
 import com.ast.adk.async.observable.Map
+import com.ast.adk.async.observable.MapOperatorFunc
 import com.ast.adk.async.observable.Observable
 import com.ast.adk.utils.Log
 import org.apache.logging.log4j.Logger
@@ -516,6 +517,44 @@ private class ObservableTest {
     {
         val src = TestRangeSource(1, 5)
         val observable = Observable.Create(src).Map<Int?, Int?> { x -> x!! * 10 }
+
+        val sub = TestSubscriber(10, 20, 30, 40, 50)
+        observable.Subscribe(InContext(sub, ctx))
+        sub.onComplete.WaitComplete()
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun MapTestSuspend()
+    {
+        val func: MapOperatorFunc<Int?, Int?> = {
+            value: Int? ->
+            Task.Create { value!! * 10 }.Submit(ctx).result.Await()
+        }
+
+        val src = TestRangeSource(1, 5)
+        val observable = Observable.Create(src).Map(func)
+
+        val sub = TestSubscriber(10, 20, 30, 40, 50)
+        observable.Subscribe(sub)
+        sub.onComplete.WaitComplete()
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun MapTestSuspendContext()
+    {
+        val func: MapOperatorFunc<Int?, Int?> = {
+            value: Int? ->
+            Task.Create { value!! * 10 }.Submit(ctx).result.Await()
+        }
+
+        val src = TestRangeSource(1, 5)
+        val observable = Observable.Create(src).Map(func)
 
         val sub = TestSubscriber(10, 20, 30, 40, 50)
         observable.Subscribe(InContext(sub, ctx))

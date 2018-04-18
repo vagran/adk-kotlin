@@ -87,7 +87,11 @@ class MapOperator<T, U>(input: Observable<T>,
             SetResult(Observable.Value.None(), null)
             return
         }
-        func.createCoroutine(value.value, object: Continuation<U> {
+
+        suspend {
+            func(value.value)
+        }.createCoroutine(object: Continuation<U> {
+
             override val context: CoroutineContext = EmptyCoroutineContext
 
             override fun resume(value: U)
