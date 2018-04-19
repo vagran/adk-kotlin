@@ -10,52 +10,10 @@ typealias MapOperatorFunc<T, U> = suspend (T) -> U
 
 class MapOperator<T, U>(input: Observable<T>,
                         private val func: MapOperatorFunc<T, U>):
-        Observable.Source<U> {
-
-    val output: Observable<U> = Observable.Create(this)
+        ObservableOperator<U>() {
 
     init {
         input.Subscribe(this::OnNext)
-    }
-
-    override fun Get(): Deferred<Observable.Value<U>>
-    {
-        var _lastValue: Observable.Value<U>? = null
-        var _lastError: Throwable? = null
-        var _valueProcessed: Deferred<Boolean>? = null
-        val _pendingResult: Deferred<Observable.Value<U>> = Deferred.Create()
-
-        synchronized(this) {
-            if (isComplete) {
-                throw Error("Get() called after completed")
-            }
-            _lastValue = lastValue
-            _lastError = lastError
-
-            if (lastValue != null || lastError != null) {
-                if (lastError != null) {
-                    isComplete = true
-                } else if (!lastValue!!.isSet) {
-                    isComplete = true
-                }
-                lastValue = null
-                lastError = null
-                _valueProcessed = valueProcessed
-                valueProcessed = null
-
-            } else {
-                pendingResult = _pendingResult
-            }
-        }
-        if (_lastError != null) {
-            _pendingResult.SetError(_lastError!!)
-        } else if (_lastValue != null) {
-            _pendingResult.SetResult(_lastValue!!)
-        }
-        if (_valueProcessed != null) {
-            _valueProcessed!!.SetResult(true)
-        }
-        return _pendingResult
     }
 
     private fun OnNext(value: Observable.Value<T>, error: Throwable?): Deferred<Boolean>?
@@ -105,37 +63,6 @@ class MapOperator<T, U>(input: Observable<T>,
             }
         }).resume(Unit)
     }
-
-    private fun SetResult(value: Observable.Value<U>?, error: Throwable?)
-    {
-        var _valueProcessed: Deferred<Boolean>? = null
-        var _pendingResult: Deferred<Observable.Value<U>>? = null
-        synchronized(this) {
-            if (pendingResult != null) {
-                _pendingResult = pendingResult
-                pendingResult = null
-                _valueProcessed = valueProcessed
-                valueProcessed = null
-            } else {
-                lastValue = value
-                lastError = error
-            }
-        }
-        if (_pendingResult != null) {
-            if (error != null) {
-                _pendingResult!!.SetError(error)
-            } else {
-                _pendingResult!!.SetResult(value!!)
-            }
-            _valueProcessed!!.SetResult(true)
-        }
-    }
-
-    private var pendingResult: Deferred<Observable.Value<U>>? = null
-    private var valueProcessed: Deferred<Boolean>? = null
-    private var lastValue: Observable.Value<U>? = null
-    private var lastError: Throwable? = null
-    private var isComplete = false
 }
 
 fun <T, U> Observable<T>.Map(func: MapOperatorFunc<T, U>): Observable<U>
