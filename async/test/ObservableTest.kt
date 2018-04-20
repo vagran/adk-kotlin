@@ -3,10 +3,7 @@ import com.ast.adk.async.Context
 import com.ast.adk.async.Deferred
 import com.ast.adk.async.ScheduledThreadContext
 import com.ast.adk.async.Task
-import com.ast.adk.async.observable.From
-import com.ast.adk.async.observable.Map
-import com.ast.adk.async.observable.MapOperatorFunc
-import com.ast.adk.async.observable.Observable
+import com.ast.adk.async.observable.*
 import com.ast.adk.utils.Log
 import org.apache.logging.log4j.Logger
 import org.junit.jupiter.api.*
@@ -592,4 +589,46 @@ private class ObservableTest {
         assertFalse(sub.IsFailed())
         assertFalse(src.IsFailed())
     }
+
+    @Test
+    fun FilterTest()
+    {
+        val src = TestRangeSource(1, 5)
+        val observable = Observable.Create(src).Filter { x -> x != 2 && x != 3 }
+
+        val sub = TestSubscriber(1, 4, 5)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun FilterTestContext()
+    {
+        val src = TestRangeSource(1, 5)
+        val observable = Observable.Create(src).Filter({ x -> x != 2 && x != 3 })
+
+        val sub = TestSubscriber(1, 4, 5)
+        observable.Subscribe(InContext(sub, ctx))
+        sub.onComplete.WaitComplete()
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun MapFilterTest()
+    {
+        val src = TestRangeSource(1, 5)
+        val observable: Observable<Int?> = Observable.Create(src)
+                .Filter({ x -> x != 2 && x != 3 }).Map({ x -> x!! * 10 })
+
+        val sub = TestSubscriber(10, 40, 50)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
 }
