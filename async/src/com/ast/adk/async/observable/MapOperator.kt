@@ -18,19 +18,7 @@ class MapOperator<T, U>(input: Observable<T>,
 
     private fun OnNext(value: Observable.Value<T>, error: Throwable?): Deferred<Boolean>?
     {
-        val result = synchronized(this) {
-            /* Operator function may complete output earlier than input is completed, so just skip
-             * the rest input.
-             */
-            if (isComplete) {
-                return null
-            }
-            if (valueProcessed != null) {
-                throw Error("Next value provided before previous one is processed")
-            }
-            valueProcessed = Deferred.Create()
-            return@synchronized valueProcessed
-        }
+        val result = NextInput()
         ProcessNext(value, error)
         return result
     }

@@ -36,7 +36,9 @@ abstract class ObservableOperator<T>: Observable.Source<T> {
                 }
                 lastValue = null
                 lastError = null
-                _valueProcessed = valueProcessed
+                if (OnOutputConsumed()) {
+                    _valueProcessed = valueProcessed
+                }
                 valueProcessed = null
 
             } else {
@@ -62,7 +64,14 @@ abstract class ObservableOperator<T>: Observable.Source<T> {
             if (pendingResult != null) {
                 _pendingResult = pendingResult
                 pendingResult = null
-                _valueProcessed = valueProcessed
+                if (error != null) {
+                    isComplete = true
+                } else if (!value!!.isSet) {
+                    isComplete = true
+                }
+                if (OnOutputConsumed()) {
+                    _valueProcessed = valueProcessed
+                }
                 valueProcessed = null
             } else {
                 lastValue = value
@@ -75,8 +84,18 @@ abstract class ObservableOperator<T>: Observable.Source<T> {
             } else {
                 _pendingResult!!.SetResult(value!!)
             }
-            _valueProcessed!!.SetResult(true)
+            if (_valueProcessed != null) {
+                _valueProcessed!!.SetResult(true)
+            }
         }
+    }
+
+    /** Called when pending output value consumed.
+     * @return True to signal input value processed.
+     */
+    protected open fun OnOutputConsumed(): Boolean
+    {
+        return true
     }
 
     /** Signal that input value is processed without output result set. */
@@ -88,6 +107,23 @@ abstract class ObservableOperator<T>: Observable.Source<T> {
             valueProcessed = null
         }
         _valueProcessed!!.SetResult(true)
+    }
+
+    protected fun NextInput(): Deferred<Boolean>?
+    {
+        return synchronized(this) {
+            /* Operator function may complete output earlier than input is completed, so just skip
+             * the rest input.
+             */
+            if (isComplete) {
+                return null
+            }
+            if (valueProcessed != null) {
+                throw Error("Next value provided before previous one is processed")
+            }
+            valueProcessed = Deferred.Create()
+            return@synchronized valueProcessed
+        }
     }
 
     private var pendingResult: Deferred<Observable.Value<T>>? = null
