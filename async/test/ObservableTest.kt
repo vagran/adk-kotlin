@@ -243,10 +243,10 @@ private class ObservableTest {
             override fun Get(): Deferred<Observable.Value<Int?>>
             {
                 if (curPos == values.size) {
-                    if (needError) {
-                        return Deferred.ForError(Error("test"))
+                    return if (needError) {
+                        Deferred.ForError(Error("test"))
                     } else {
-                        return Deferred.ForResult(Observable.Value.None())
+                        Deferred.ForResult(Observable.Value.None())
                     }
                 }
                 val def = Deferred.ForResult(Observable.Value.Of(values[curPos]))
@@ -294,7 +294,7 @@ private class ObservableTest {
     fun BasicCtx()
     {
         val values = arrayOf(42, 45, null, 2, 3)
-        val src = GetTestSource(*values)
+        val src = GetContextSource(GetTestSource(*values), ctx)
         val observable = Observable.Create(src)
         val sub = TestSubscriber(*values)
         observable.Subscribe(InContext(sub, ctx))
