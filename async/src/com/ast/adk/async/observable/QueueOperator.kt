@@ -15,10 +15,6 @@ class QueueOperator<T>(input: Observable<T>,
 
     val output: Observable<T> = Observable.Create(this)
 
-    init {
-        input.Subscribe(this::OnNext)
-    }
-
     override fun Get(): Deferred<Observable.Value<T>>
     {
         var _lastValue: Observable.Value<T>? = null
@@ -71,7 +67,7 @@ class QueueOperator<T>(input: Observable<T>,
                 if (error != null) {
                     pendingError = error;
                 } else {
-                    if (tailDrop && queue.size >= maxSize) {
+                    if (tailDrop && queue.size >= maxSize && value.isSet) {
                         queue.removeFirst()
                     }
                     queue.addLast(value)
@@ -94,10 +90,16 @@ class QueueOperator<T>(input: Observable<T>,
         return _valueProcessed
     }
 
-    private val queue: Deque<Observable.Value<T>> = ArrayDeque(maxSize)
+
     private var pendingResult: Deferred<Observable.Value<T>>? = null
     private var pendingError: Throwable? = null
     private var valueProcessed: Deferred<Boolean>? = null
+    /* Reserve one value for completion which should not drop a value. */
+    private val queue: Deque<Observable.Value<T>> = ArrayDeque(maxSize + 1)
+
+    init {
+        input.Subscribe(this::OnNext)
+    }
 }
 
 fun <T> Observable<T>.Queue(maxSize: Int, tailDrop: Boolean): Observable<T>

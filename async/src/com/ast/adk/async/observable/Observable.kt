@@ -157,12 +157,16 @@ class Observable<T>
 
         override val value: T
             get() = throw Exception("Value is not set")
+
+        override fun toString(): String = "None"
     }
 
     private class PresentValue<out T>(override val value: T): Value<T> {
 
         override val isSet: Boolean
             get() = true
+
+        override fun toString(): String = value.toString()
     }
 
     /**

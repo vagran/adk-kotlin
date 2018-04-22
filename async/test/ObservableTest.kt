@@ -85,7 +85,7 @@ private class ObservableTest {
         override fun OnNext(value: Observable.Value<Int?>): Deferred<Boolean>?
         {
             if (isComplete) {
-                log.error("Unexpected value after completed: %d", value)
+                log.error("Unexpected value after completed: %d", value.value)
                 isFailed = true
                 return null
             }
@@ -97,7 +97,7 @@ private class ObservableTest {
             val expected = NextExpected()
             if (expected != null) {
                 if (expected != value.value) {
-                    log.error("Unexpected value: %d/%d", value, expected)
+                    log.error("Unexpected value: %d/%d", value.value, expected)
                     isFailed = true
                     return null
                 }
@@ -631,4 +631,89 @@ private class ObservableTest {
         assertFalse(src.IsFailed())
     }
 
+    @Test
+    fun QueueTest()
+    {
+        val src = TestRangeSource(1, 5)
+        val observable = Observable.Create(src).Queue(3, false)
+
+        val sub = RangeTestSubscriber(1, 5)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun QueueDropTest()
+    {
+        val src = TestRangeSource(1, 5)
+        val observable = Observable.Create(src).Queue(3, true)
+
+        val sub = RangeTestSubscriber(3, 3)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun QueueLongTest()
+    {
+        val numValues = 5000
+        val src = TestRangeSource(1, numValues)
+        val observable = Observable.Create(src).Queue(10, false)
+
+        val sub = RangeTestSubscriber(1, numValues)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun QueueDropLongTest()
+    {
+        val numValues = 5000
+        val queueSize = 10
+        val src = TestRangeSource(1, numValues)
+        val observable = Observable.Create(src).Queue(queueSize, true)
+
+        val sub = RangeTestSubscriber(numValues - queueSize + 1, queueSize)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun QueueLongTestContext()
+    {
+        val numValues = 5000
+        val src = TestRangeSource(1, numValues)
+        val observable = Observable.Create(src).Queue(10, false)
+
+        val sub = RangeTestSubscriber(1, numValues)
+        observable.Subscribe(InContext(sub, ctx))
+        sub.onComplete.WaitComplete()
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
+
+    @Test
+    fun QueueDropLongTestContext()
+    {
+        val numValues = 5000
+        val queueSize = 10
+        val src = TestRangeSource(1, numValues)
+        val observable = Observable.Create(src).Queue(queueSize, true)
+
+        val sub = RangeTestSubscriber(numValues - queueSize + 1, queueSize)
+        observable.Subscribe(InContext(sub, ctx))
+        sub.onComplete.WaitComplete()
+
+        assertFalse(sub.IsFailed())
+        assertFalse(src.IsFailed())
+    }
 }
