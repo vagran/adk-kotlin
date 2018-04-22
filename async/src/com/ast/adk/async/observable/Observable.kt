@@ -100,10 +100,6 @@ class Observable<T>
         fun Unsubscribe()
     }
 
-    /** Each call to Await() returns next value, empty value if complete, throws error on failure.
-     */
-    interface AwaitableSubscription<T>: Subscription, Awaitable<Value<T>>
-
     /** Connect observable if it was created initially unconnected. No effect if already connected.
      */
     fun Connect()
@@ -141,11 +137,6 @@ class Observable<T>
     fun Subscribe(subscriber: Subscriber<T>): Subscription
     {
         return Subscribe(subscriber.ToHandler())
-    }
-
-    fun Subscribe(): AwaitableSubscription<T>
-    {
-        TODO()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
