@@ -12,10 +12,6 @@ class MapOperator<T, U>(input: Observable<T>,
                         private val func: MapOperatorFunc<T, U>):
         ObservableOperator<U>() {
 
-    init {
-        input.Subscribe(this::OnNext)
-    }
-
     private fun OnNext(value: Observable.Value<T>, error: Throwable?): Deferred<Boolean>?
     {
         val result = NextInput()
@@ -50,6 +46,10 @@ class MapOperator<T, U>(input: Observable<T>,
                 SetResult(null, exception)
             }
         }).resume(Unit)
+    }
+
+    init {
+        input.Subscribe(this::OnNext)
     }
 }
 

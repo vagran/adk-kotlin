@@ -100,10 +100,6 @@ class Observable<T>
         fun Unsubscribe()
     }
 
-    /** Each call to Await() returns next value, empty value if complete, throws error on failure.
-     */
-    interface AwaitableSubscription<T>: Subscription, Awaitable<Value<T>>
-
     /** Connect observable if it was created initially unconnected. No effect if already connected.
      */
     fun Connect()
@@ -143,11 +139,6 @@ class Observable<T>
         return Subscribe(subscriber.ToHandler())
     }
 
-    fun Subscribe(): AwaitableSubscription<T>
-    {
-        TODO()
-    }
-
     // /////////////////////////////////////////////////////////////////////////////////////////////
 
     private class EmptyValue<out T>: Value<T> {
@@ -157,12 +148,16 @@ class Observable<T>
 
         override val value: T
             get() = throw Exception("Value is not set")
+
+        override fun toString(): String = "None"
     }
 
     private class PresentValue<out T>(override val value: T): Value<T> {
 
         override val isSet: Boolean
             get() = true
+
+        override fun toString(): String = value.toString()
     }
 
     /**

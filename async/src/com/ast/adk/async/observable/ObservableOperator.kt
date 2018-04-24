@@ -25,6 +25,9 @@ abstract class ObservableOperator<T>: Observable.Source<T> {
             if (isComplete) {
                 throw Error("Get() called after completed")
             }
+            if (pendingResult != null) {
+                throw Error("Get() called while previous request not completed")
+            }
             _lastValue = lastValue
             _lastError = lastError
 
@@ -45,14 +48,17 @@ abstract class ObservableOperator<T>: Observable.Source<T> {
                 pendingResult = _pendingResult
             }
         }
+
         if (_lastError != null) {
             _pendingResult.SetError(_lastError!!)
         } else if (_lastValue != null) {
             _pendingResult.SetResult(_lastValue!!)
         }
+
         if (_valueProcessed != null) {
             _valueProcessed!!.SetResult(true)
         }
+
         return _pendingResult
     }
 
@@ -60,6 +66,7 @@ abstract class ObservableOperator<T>: Observable.Source<T> {
     {
         var _valueProcessed: Deferred<Boolean>? = null
         var _pendingResult: Deferred<Observable.Value<T>>? = null
+
         synchronized(this) {
             if (pendingResult != null) {
                 _pendingResult = pendingResult
@@ -78,6 +85,7 @@ abstract class ObservableOperator<T>: Observable.Source<T> {
                 lastError = error
             }
         }
+
         if (_pendingResult != null) {
             if (error != null) {
                 _pendingResult!!.SetError(error)
