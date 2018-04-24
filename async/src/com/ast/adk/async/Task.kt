@@ -8,7 +8,7 @@ import kotlin.coroutines.experimental.createCoroutine
 /**
  * Once submitted to the target context the task execution begins.
  */
-class Task<T>: Message, Awaitable<T> {
+class Task<T>: Message, Awaitable<T?> {
 
     /** Task result provided by the task handler when complete. */
     val result: Deferred<T> = Deferred.Create()
@@ -76,7 +76,7 @@ class Task<T>: Message, Awaitable<T> {
         return this
     }
 
-    override suspend fun Await(): T
+    override suspend fun Await(): T?
     {
         return result.Await()
     }

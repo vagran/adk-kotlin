@@ -78,7 +78,7 @@ private class DeferredTest {
             cbkRes = r
             assertNull(e)
         })
-        assertEquals(null, cbkRes)
+        assertNull(cbkRes)
     }
 
     @Test
@@ -92,7 +92,7 @@ private class DeferredTest {
             assertNull(e)
         })
         def.SetResult(null)
-        assertEquals(null, cbkRes)
+        assertNull(cbkRes)
     }
 
     @Test
@@ -150,5 +150,32 @@ private class DeferredTest {
         assertTrue(done)
         assertNull(res)
         assertEquals("aaa", resError!!.message)
+    }
+
+    @Test
+    fun AsyncNull()
+    {
+        val def: Deferred<Int?> = Deferred.Create()
+        var res: Int? = null
+        var done = false
+        suspend {
+            res = def.Await()
+        }.createCoroutine(object: Continuation<Unit> {
+            override val context: CoroutineContext
+                get() = EmptyCoroutineContext
+
+            override fun resume(value: Unit) {
+                done = true
+            }
+
+            override fun resumeWithException(exception: Throwable) {
+                fail(exception)
+            }
+        }).resume(Unit)
+        assertFalse(done)
+        assertNull(res)
+        def.SetResult(null)
+        assertTrue(done)
+        assertNull(res)
     }
 }
