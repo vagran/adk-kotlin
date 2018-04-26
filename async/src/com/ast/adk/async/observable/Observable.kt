@@ -1,6 +1,5 @@
 package com.ast.adk.async.observable
 
-import com.ast.adk.async.Awaitable
 import com.ast.adk.async.Deferred
 import java.util.*
 

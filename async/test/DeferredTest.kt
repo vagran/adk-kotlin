@@ -107,11 +107,13 @@ private class DeferredTest {
             override val context: CoroutineContext
                 get() = EmptyCoroutineContext
 
-            override fun resume(value: Unit) {
+            override fun resume(value: Unit)
+            {
                 done = true
             }
 
-            override fun resumeWithException(exception: Throwable) {
+            override fun resumeWithException(exception: Throwable)
+            {
                 fail(exception)
             }
         }).resume(Unit)
@@ -135,11 +137,13 @@ private class DeferredTest {
             override val context: CoroutineContext
                 get() = EmptyCoroutineContext
 
-            override fun resume(value: Unit) {
+            override fun resume(value: Unit)
+            {
                 done = true
             }
 
-            override fun resumeWithException(exception: Throwable) {
+            override fun resumeWithException(exception: Throwable)
+            {
                 resError = exception
                 done = true
             }
@@ -164,11 +168,13 @@ private class DeferredTest {
             override val context: CoroutineContext
                 get() = EmptyCoroutineContext
 
-            override fun resume(value: Unit) {
+            override fun resume(value: Unit)
+            {
                 done = true
             }
 
-            override fun resumeWithException(exception: Throwable) {
+            override fun resumeWithException(exception: Throwable)
+            {
                 fail(exception)
             }
         }).resume(Unit)

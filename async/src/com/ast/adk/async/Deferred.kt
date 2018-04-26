@@ -161,7 +161,8 @@ class Deferred<T> private constructor(): Awaitable<T> {
                 if (error != null) {
                     cont.resumeWithException(error)
                 } else {
-                    cont.resume(result!!)
+                    @Suppress("UNCHECKED_CAST")
+                    cont.resume(result as T)
                 }
             })
         }
@@ -189,7 +190,8 @@ class Deferred<T> private constructor(): Awaitable<T> {
 
     /** Get result of the deferred. The deferred should be completed otherwise exception is thrown.
      */
-    fun Get(): T?
+    @Suppress("UNCHECKED_CAST")
+    fun Get(): T
     {
         synchronized(this) {
             if (!isComplete) {
@@ -198,7 +200,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
             if (error != null) {
                 throw Exception("Deferred complete with error", error)
             }
-            return result
+            return result as T
         }
     }
 

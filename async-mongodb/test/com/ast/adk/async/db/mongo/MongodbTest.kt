@@ -9,7 +9,9 @@ import com.mongodb.async.client.MongoClients
 import com.mongodb.async.client.MongoDatabase
 import com.mongodb.connection.ClusterSettings
 import com.mongodb.connection.ConnectionPoolSettings
+import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.Logger
+import org.apache.logging.log4j.core.config.LoggerConfig
 import org.bson.Document
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -26,7 +28,7 @@ private class ContextTest {
     @BeforeAll
     fun Setup()
     {
-        Log.InitTestLogging()
+        Log.InitTestLogging(LoggerConfig("org.mongodb.driver.protocol", Level.INFO, true))
         log = Log.GetLogger("MongodbTest")
 
         client = MongoClients.create(
@@ -59,7 +61,7 @@ private class ContextTest {
 
         val numDocs = 50000
 
-        val task = Task.CreateDef {
+        Task.CreateDef {
             for (i in 0..numDocs) {
                 val inserted = MongoCallback<Void?>()
                 collection.insertOne(
