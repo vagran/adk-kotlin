@@ -1,13 +1,10 @@
 
-import com.ast.adk.async.Message
-import com.ast.adk.async.ScheduledThreadContext
-import com.ast.adk.async.ThreadContext
+import com.ast.adk.async.*
 import com.ast.adk.utils.Log
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.fail
+import java.util.concurrent.atomic.AtomicLong
+import kotlin.test.assertEquals
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ContextTest {
@@ -19,7 +16,7 @@ private class ContextTest {
     }
 
     @Test
-    fun Test1()
+    fun ThreadContextTest()
     {
         val ctx = ThreadContext("test")
         ctx.Start()
@@ -37,5 +34,32 @@ private class ContextTest {
         })
         ctx.Stop()
         assertTrue(invoked)
+    }
+
+    @Test
+    fun ThreadPoolContextTest()
+    {
+        val numValues = 500_000L
+        val it = (1L..numValues).iterator()
+        val ctx = ThreadPoolContext("testPool", 8)
+        ctx.Start()
+        val sum = AtomicLong(0)
+
+        TaskThrottler(16, {
+            val value = synchronized(it) {
+                if (!it.hasNext()) {
+                    return@TaskThrottler null
+                }
+                it.nextLong()
+            }
+            return@TaskThrottler Task.Create {
+                sum.addAndGet(value)
+            }.Submit(ctx).result
+        }).Run().WaitComplete()
+
+        Assertions.assertFalse(it.hasNext())
+        assertEquals(numValues * (1 + numValues) / 2, sum.get())
+
+        ctx.Stop()
     }
 }

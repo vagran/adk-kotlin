@@ -318,5 +318,4 @@ private class TaskTest {
         }).Run().WaitComplete()
         assertFalse(it.hasNext())
     }
-
 }

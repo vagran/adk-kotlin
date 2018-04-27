@@ -25,14 +25,15 @@ class TaskThrottler(private val maxParallel: Int,
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val result: Deferred<Void?> = Deferred.Create()
+    private var resultSet = false
     /** Current error if any. */
     private var error: Throwable? = null
     /** Current number of of parallel running tasks.  */
-    private var curParallel: Int = 0
+    private var curParallel = 0
     /** Fabric signalled about no more tasks left. */
-    private var tasksExhausted: Boolean = false
-    /** Counter for preventing deep recursion when all tasks are completed synchronously.  */
-    private var schedulePending: Int = 0
+    private var tasksExhausted = false
+    /** Flag for preventing deep recursion when tasks are completed synchronously.  */
+    private var schedulePending = false
 
     init {
         if (maxParallel < 1) {
@@ -47,13 +48,14 @@ class TaskThrottler(private val maxParallel: Int,
             var nextTask: Deferred<*>? = null
             synchronized(this) {
                 if (isFirst) {
+                    if (schedulePending) {
+                        return
+                    }
                     isFirst = false
                 } else {
-                    schedulePending--
+                    schedulePending = false
                 }
-                if (schedulePending != 0) {
-                    return
-                }
+
                 if (curParallel == maxParallel) {
                     return
                 }
@@ -63,20 +65,18 @@ class TaskThrottler(private val maxParallel: Int,
                         if (nextTask == null) {
                             tasksExhausted = true
                         } else {
-                            schedulePending++
+                            schedulePending = true
                             curParallel++
                         }
                     } catch (error: Exception) {
                         if (this.error == null) {
                             this.error = error
                         }
-                        nextTask = null
                     }
-
-                } else {
-                    nextTask = null
                 }
-                if (nextTask == null && curParallel == 0) {
+
+                if (nextTask == null && curParallel == 0 && !resultSet) {
+                    resultSet = true
                     if (error != null) {
                         result.SetError(error!!)
                     } else {

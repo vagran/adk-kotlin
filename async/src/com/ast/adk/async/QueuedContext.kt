@@ -70,8 +70,7 @@ abstract class QueuedContext: Context {
     }
 
     /** Should be called with queue lock acquired. */
-    @Suppress("NOTHING_TO_INLINE")
-    protected inline fun IsQueueEmpty() = queue.size == 0
+    protected fun IsQueueEmpty() = queue.size == 0
 
     /** Called when context started. */
     protected open fun OnStarted()
