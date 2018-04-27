@@ -1,10 +1,8 @@
 
-import com.ast.adk.async.Deferred
-import com.ast.adk.async.ScheduledThreadContext
-import com.ast.adk.async.Task
-import com.ast.adk.async.ThreadContext
+import com.ast.adk.async.*
 import com.ast.adk.utils.Log
 import org.apache.logging.log4j.Logger
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -305,6 +303,20 @@ private class TaskTest {
         assertEquals(7, def3.Get())
 
         ctx.Stop()
+    }
+
+    @Test
+    fun TaskThrottlerSyncTest()
+    {
+        /* Test for potential deep recursion. */
+        val it = (1..5000000).iterator()
+        TaskThrottler(8, {
+            if (!it.hasNext()) {
+                return@TaskThrottler null
+            }
+            return@TaskThrottler Deferred.ForResult(it.next())
+        }).Run().WaitComplete()
+        assertFalse(it.hasNext())
     }
 
 }

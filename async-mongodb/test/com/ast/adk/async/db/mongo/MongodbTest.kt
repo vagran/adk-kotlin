@@ -1,6 +1,6 @@
 package com.ast.adk.async.db.mongo
 
-import com.ast.adk.async.Task
+import com.ast.adk.async.TaskThrottler
 import com.ast.adk.utils.Log
 import com.mongodb.ServerAddress
 import com.mongodb.async.client.MongoClient
@@ -34,7 +34,7 @@ private class ContextTest {
         client = MongoClients.create(
             MongoClientSettings.builder()
                 .connectionPoolSettings(
-                    ConnectionPoolSettings.builder().maxSize(8).maxWaitQueueSize(50000).build())
+                    ConnectionPoolSettings.builder().maxSize(16).maxWaitQueueSize(50000).build())
                 .clusterSettings(
                     ClusterSettings.builder()
                         .hosts(arrayOf(ServerAddress("localhost")).asList()).build())
@@ -59,19 +59,21 @@ private class ContextTest {
     {
         val collection = database.getCollection("test")
 
-        val numDocs = 50000
+        val numDocs = 50_000
 
-        Task.CreateDef {
-            for (i in 0..numDocs) {
-                val inserted = MongoCallback<Void?>()
-                collection.insertOne(
-                    Document("index", i)
-                        .append("name", "test")
-                        .append("info", Document("x", i).append("y", i * 2)),
-                    inserted)
-                inserted.Await()
+        val it = (1..numDocs).iterator()
+        TaskThrottler(16, {
+            if (!it.hasNext()) {
+                return@TaskThrottler null
             }
-        }.also { it.Invoke() }.result.WaitComplete()
-
+            val i = it.nextInt()
+            val inserted = MongoCallback<Void?>()
+            collection.insertOne(
+                Document("index", i)
+                    .append("name", "test")
+                    .append("info", Document("x", i).append("y", i * 2)),
+                inserted)
+            return@TaskThrottler inserted.result
+        }).Run().WaitComplete()
     }
 }
