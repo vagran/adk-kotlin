@@ -62,7 +62,7 @@ private class ContextTest {
         val numDocs = 50_000
 
         val it = (1..numDocs).iterator()
-        TaskThrottler(16, {
+        TaskThrottler(32, {
             if (!it.hasNext()) {
                 return@TaskThrottler null
             }

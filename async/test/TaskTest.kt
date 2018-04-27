@@ -309,13 +309,13 @@ private class TaskTest {
     fun TaskThrottlerSyncTest()
     {
         /* Test for potential deep recursion. */
-        val it = (1..5000000).iterator()
+        val it = (1..5_000_000).iterator()
         TaskThrottler(8, {
             if (!it.hasNext()) {
                 return@TaskThrottler null
             }
             return@TaskThrottler Deferred.ForResult(it.next())
-        }).Run().WaitComplete()
+        }, false).Run().WaitComplete()
         assertFalse(it.hasNext())
     }
 }

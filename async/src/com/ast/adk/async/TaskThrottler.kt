@@ -1,5 +1,7 @@
 package com.ast.adk.async
 
+import kotlin.math.min
+
 /** Can be called in arbitrary thread.
  * @return Next task for execution. Should already be submitted for execution. Null if no more
  *      tasks.
@@ -8,9 +10,12 @@ typealias TaskThrottlerFabric = () -> Deferred<*>?
 
 /**
  * Runs multiple tasks in parallel, limiting maximal number of concurrent tasks.
+ * @param parallelHint True to indicate that tasks are running on different threads, false for
+ *      single thread. This allows additional optimizations.
  */
 class TaskThrottler(private val maxParallel: Int,
-                    private val fabric: TaskThrottlerFabric) {
+                    private val fabric: TaskThrottlerFabric,
+                    parallelHint: Boolean = true) {
 
     /** Run tasks. Should be called once.
      *
@@ -33,7 +38,9 @@ class TaskThrottler(private val maxParallel: Int,
     /** Fabric signalled about no more tasks left. */
     private var tasksExhausted = false
     /** Flag for preventing deep recursion when tasks are completed synchronously.  */
-    private var schedulePending = false
+    private var schedulePending = 0
+    /** Maximal recursion depth for scheduling. */
+    private val maxScheduleDepth = if (parallelHint) min(maxParallel, 8) else 1
 
     init {
         if (maxParallel < 1) {
@@ -48,12 +55,12 @@ class TaskThrottler(private val maxParallel: Int,
             var nextTask: Deferred<*>? = null
             synchronized(this) {
                 if (isFirst) {
-                    if (schedulePending) {
+                    if (schedulePending >= maxScheduleDepth) {
                         return
                     }
                     isFirst = false
                 } else {
-                    schedulePending = false
+                    schedulePending--
                 }
 
                 if (curParallel == maxParallel) {
@@ -65,7 +72,7 @@ class TaskThrottler(private val maxParallel: Int,
                         if (nextTask == null) {
                             tasksExhausted = true
                         } else {
-                            schedulePending = true
+                            schedulePending++
                             curParallel++
                         }
                     } catch (error: Exception) {
