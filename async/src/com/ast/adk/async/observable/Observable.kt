@@ -14,8 +14,14 @@ typealias ObservableSourceFunc<T> = () -> Deferred<Observable.Value<T>>
 typealias ObservableSubscriberFunc<T> =
         (value: Observable.Value<T>, error: Throwable?) -> Deferred<Boolean>?
 
+/** The same as ObservableSubscriberFunc but without return value (assuming always continue
+ * subscription).
+ */
+typealias ObservableSubscriberVoidFunc<T> =
+    (value: Observable.Value<T>, error: Throwable?) -> Unit
+
 /** Propagates sequence of data items. Can be used to organize data streams, events, etc. */
-interface Observable<T> {
+interface Observable<out T> {
 
     interface Value<out T> {
 
@@ -107,6 +113,15 @@ interface Observable<T> {
     fun Subscribe(subscriber: Subscriber<T>): Subscription
     {
         return Subscribe(subscriber.ToHandler())
+    }
+
+    fun SubscribeVoid(subscriber: ObservableSubscriberVoidFunc<T>): Subscription
+    {
+        return Subscribe({
+            value, error ->
+            subscriber(value, error)
+            null
+        })
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

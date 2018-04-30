@@ -1,5 +1,6 @@
 package com.ast.adk.async.db.mongo
 
+import com.ast.adk.async.Deferred
 import com.ast.adk.async.TaskThrottler
 import com.ast.adk.utils.Log
 import com.mongodb.ServerAddress
@@ -12,15 +13,18 @@ import com.mongodb.connection.ConnectionPoolSettings
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.Logger
 import org.apache.logging.log4j.core.config.LoggerConfig
+import org.bson.BsonDocument
+import org.bson.BsonInt32
 import org.bson.Document
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import java.util.TreeSet
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ContextTest {
 
+    private val numCores = Runtime.getRuntime().availableProcessors()
     private lateinit var client: MongoClient
     private lateinit var database: MongoDatabase
     private lateinit var log: Logger
@@ -34,7 +38,9 @@ private class ContextTest {
         client = MongoClients.create(
             MongoClientSettings.builder()
                 .connectionPoolSettings(
-                    ConnectionPoolSettings.builder().maxSize(16).maxWaitQueueSize(50000).build())
+                    ConnectionPoolSettings.builder()
+                        .maxSize(numCores * 2)
+                        .maxWaitQueueSize(50000).build())
                 .clusterSettings(
                     ClusterSettings.builder()
                         .hosts(arrayOf(ServerAddress("localhost")).asList()).build())
@@ -59,8 +65,10 @@ private class ContextTest {
 
         val numDocs = 50_000
 
+        assertEquals(0, MongoCall(collection::count).WaitComplete().Get().toInt())
+
         val it = (1..numDocs).iterator()
-        TaskThrottler(32, {
+        TaskThrottler(numCores * 2, {
             val i = synchronized(it) {
                 if (!it.hasNext()) {
                     return@TaskThrottler null
@@ -74,5 +82,35 @@ private class ContextTest {
                     .append("name", "test")
                     .append("info", Document("x", i).append("y", i * 2)))
         }).Run().WaitComplete()
+
+        run {
+            val res = MongoCall(collection.find(BsonDocument("index", BsonInt32(42)))::first)
+                .WaitComplete().Get()
+            assertEquals(42, res.get("info", Document::class.java).getInteger("x"))
+        }
+
+        assertEquals(numDocs, MongoCall(collection::count).WaitComplete().Get().toInt())
+
+        val docs = MongoObservable(collection.find())
+        docs.SetBatchSize(1000)
+        val done = Deferred.Create<Void?>()
+        val verified = TreeSet<Int>()
+        docs.SubscribeVoid { doc, error ->
+            if (error != null) {
+                log.error("Collection iteration error: %s", Log.GetStackTrace(error))
+                fail("Unexpected error: $error")
+            }
+            if (!doc.isSet) {
+                done.SetResult(null)
+                return@SubscribeVoid
+            }
+            val x = doc.value.get("info", Document::class.java).getInteger("x")
+            synchronized(verified) {
+                assertFalse(verified.contains(x))
+                verified.add(x)
+            }
+        }
+        done.WaitComplete().Get()
+        assertEquals(numDocs, verified.size)
     }
 }
