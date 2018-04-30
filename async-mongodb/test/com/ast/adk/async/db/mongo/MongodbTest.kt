@@ -63,10 +63,12 @@ private class ContextTest {
 
         val it = (1..numDocs).iterator()
         TaskThrottler(32, {
-            if (!it.hasNext()) {
-                return@TaskThrottler null
+            val i = synchronized(it) {
+                if (!it.hasNext()) {
+                    return@TaskThrottler null
+                }
+                it.nextInt()
             }
-            val i = it.nextInt()
             val inserted = MongoCallback<Void?>()
             collection.insertOne(
                 Document("index", i)

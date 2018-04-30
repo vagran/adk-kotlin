@@ -1,8 +1,9 @@
 package com.ast.adk.async
 
-import kotlin.math.min
+import java.util.concurrent.atomic.AtomicInteger
 
-/** Can be called in arbitrary thread.
+/** Can be called in arbitrary threads in parallel. May be called multiple times after null is
+ * returned, null should be returned all times after the first time it is returned.
  * @return Next task for execution. Should already be submitted for execution. Null if no more
  *      tasks.
  */
@@ -24,23 +25,22 @@ class TaskThrottler(private val maxParallel: Int,
      */
     fun Run(): Deferred<Void?>
     {
-        ScheduleNextTasks()
+        ScheduleNext()
         return result
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val result: Deferred<Void?> = Deferred.Create()
-    private var resultSet = false
     /** Current error if any. */
-    private var error: Throwable? = null
-    /** Current number of of parallel running tasks.  */
-    private var curParallel = 0
-    /** Fabric signalled about no more tasks left. */
-    private var tasksExhausted = false
-    /** Flag for preventing deep recursion when tasks are completed synchronously.  */
-    private var schedulePending = 0
+    @Volatile private var error: Throwable? = null
+    /** Number of tasks to needed to be produced. Negative number to initiate termination,
+     * number of tasks still running with negative sign and minus one.
+     */
+    private val tasksWanted = AtomicInteger(maxParallel)
     /** Maximal recursion depth for scheduling. */
-    private val maxScheduleDepth = if (parallelHint) min(maxParallel, 8) else 1
+    private val maxScheduleDepth = if (parallelHint) maxParallel + 1 else 1
+    /** Number of pending schedule rounds, used to prevent deep recursion. */
+    private val schedulePending = AtomicInteger(0)
 
     init {
         if (maxParallel < 1) {
@@ -48,67 +48,121 @@ class TaskThrottler(private val maxParallel: Int,
         }
     }
 
-    private fun ScheduleNextTasks()
+    private fun ScheduleNext()
     {
-        var isFirst = true
-        while (true) {
-            var nextTask: Deferred<*>? = null
-            synchronized(this) {
-                if (isFirst) {
-                    if (schedulePending >= maxScheduleDepth) {
-                        return
-                    }
-                    isFirst = false
-                } else {
-                    schedulePending--
+        if (schedulePending.get() >= maxScheduleDepth) {
+            return
+        }
+        while (GetTaskQuota()) {
+            var error: Throwable? = null
+            val nextTask =
+                try {
+                    fabric()
+                } catch (e: Throwable) {
+                    error = e
+                    null
                 }
-
-                if (curParallel == maxParallel) {
-                    return
-                }
-                if (error == null && !tasksExhausted) {
-                    try {
-                        nextTask = fabric()
-                        if (nextTask == null) {
-                            tasksExhausted = true
-                        } else {
-                            schedulePending++
-                            curParallel++
-                        }
-                    } catch (error: Exception) {
-                        if (this.error == null) {
-                            this.error = error
-                        }
-                    }
-                }
-
-                if (nextTask == null && curParallel == 0 && !resultSet) {
-                    resultSet = true
-                    if (error != null) {
-                        result.SetError(error!!)
-                    } else {
-                        result.SetResult(null)
-                    }
-                    return
-                }
+            if (nextTask == null) {
+                OnTaskComplete(true, error)
+                continue
             }
-            if (nextTask != null) {
-                nextTask!!.Subscribe { _, error -> OnTaskDone(error) }
-            } else {
-                return
-            }
+            schedulePending.incrementAndGet()
+            nextTask.Subscribe({_, e -> OnTaskComplete(false, e)})
+            schedulePending.decrementAndGet()
         }
     }
 
-    private fun OnTaskDone(error: Throwable?) {
-        synchronized(this) {
-            curParallel--
-            if (error != null) {
+    /** Atomically check if new task needed to be spawn (quota is acquired in such case). Also
+     * detects if scheduler is terminated and calls appropriate handler.
+     * @return True to spawn new task.
+     */
+    private fun GetTaskQuota(): Boolean
+    {
+        var isWanted: Boolean
+        var n = tasksWanted.get()
+        while (true) {
+            var newValue: Int
+            if (n > 0) {
+                newValue = n - 1
+                isWanted = true
+            } else {
+                /* Either no more tasks needed or already terminating(-ed). */
+                return false
+            }
+
+            val expected = n
+            n = tasksWanted.compareAndExchange(expected, newValue)
+            if (n == expected) {
+                break
+            }
+        }
+        return isWanted
+    }
+
+    /** Called when task is complete. Returns quota held. Also detects if scheduler is terminated
+     * and calls appropriate handler.
+     * @param terminate Signals that termination is triggered (e.g. by returning null by fabric).
+     *      Non-null error always triggers termination so this argument is ignored in such case.
+     * @param error Completion error if any.
+     */
+    private fun OnTaskComplete(terminate: Boolean, error: Throwable?)
+    {
+        if (error != null) {
+            /* Only the first error is stored. */
+            synchronized(this) {
                 if (this.error == null) {
                     this.error = error
                 }
             }
         }
-        ScheduleNextTasks()
+
+        var isTerminated: Boolean
+        var wantNext: Boolean
+        var n = tasksWanted.get()
+        while (true) {
+            val newValue: Int
+            wantNext = false
+            if (n >= 0) {
+                newValue =
+                    if (terminate || error != null) {
+                        /* The calling task is terminated so no minus one. */
+                        n - maxParallel
+                    } else {
+                        wantNext = true
+                        n + 1
+                    }
+            } else {
+                newValue = n + 1
+            }
+
+            isTerminated = newValue == -1
+
+            val expected = n
+            n = tasksWanted.compareAndExchange(expected, newValue)
+            if (n == expected) {
+                break
+            }
+        }
+
+        if (wantNext) {
+            ScheduleNext()
+        }
+
+        if (isTerminated) {
+            /* Last task completed, finish termination. */
+            OnTerminated()
+        }
+    }
+
+    private fun OnTerminated()
+    {
+        /* Error can be accessed without locking since the synchronization code ensures this method
+         * is called when all tasks are completed and nobody can change the error.
+         */
+        if (error != null) {
+            result.SetError(error!!)
+        } else {
+            result.SetResult(null)
+        }
     }
 }

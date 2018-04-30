@@ -41,11 +41,11 @@ private class ContextTest {
     {
         val numValues = 500_000L
         val it = (1L..numValues).iterator()
-        val ctx = ThreadPoolContext("testPool", 8)
+        val ctx = ThreadPoolContext("testPool", 4)
         ctx.Start()
         val sum = AtomicLong(0)
 
-        TaskThrottler(16, {
+        TaskThrottler(4, {
             val value = synchronized(it) {
                 if (!it.hasNext()) {
                     return@TaskThrottler null
