@@ -39,7 +39,7 @@ private class ContextTest {
     @Test
     fun ThreadPoolContextTest()
     {
-        val numValues = 500_00000L
+        val numValues = 500_000L
         val numCores = Runtime.getRuntime().availableProcessors()
         val it = (1L..numValues).iterator()
         val ctx = ThreadPoolContext("testPool", numCores)
