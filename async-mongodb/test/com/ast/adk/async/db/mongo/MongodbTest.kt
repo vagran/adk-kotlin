@@ -42,9 +42,7 @@ private class ContextTest {
 
         database = client.getDatabase("local")
         for (name in arrayOf("mapped", "test")) {
-            val dropped = MongoCallback<Void>()
-            database.getCollection(name).drop(dropped)
-            dropped.result.WaitComplete()
+            MongoCall(database.getCollection(name)::drop).WaitComplete()
         }
     }
 
@@ -69,13 +67,12 @@ private class ContextTest {
                 }
                 it.nextInt()
             }
-            val inserted = MongoCallback<Void?>()
-            collection.insertOne(
+
+            return@TaskThrottler MongoCall(
+                collection::insertOne,
                 Document("index", i)
                     .append("name", "test")
-                    .append("info", Document("x", i).append("y", i * 2)),
-                inserted)
-            return@TaskThrottler inserted.result
+                    .append("info", Document("x", i).append("y", i * 2)))
         }).Run().WaitComplete()
     }
 }
