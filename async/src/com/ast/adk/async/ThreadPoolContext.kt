@@ -16,8 +16,8 @@ class ThreadPoolContext(val name: String,
         super.Start()
         LockQueue {
             freeThreads.addAll(threads)
-            Schedule()
         }
+        Schedule()
     }
 
     override fun Stop()
@@ -42,8 +42,8 @@ class ThreadPoolContext(val name: String,
                 throw Message.RejectedError("Context is already stopped")
             }
             queue.addLast(message)
-            Schedule()
         }
+        Schedule()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,11 +57,23 @@ class ThreadPoolContext(val name: String,
     private val freeThreads: ArrayDeque<ThreadContext> = ArrayDeque(numThreads)
 
 
-    /** Schedule queued messages if possible. Should be called with queue locked. */
+    /** Schedule queued messages if possible. */
     private fun Schedule()
     {
-        while (freeThreads.size > 0 && !IsQueueEmpty()) {
-            ScheduleMessage(queue.removeFirst(), freeThreads.removeLast())
+        var message: Message? = null
+        var ctx: ThreadContext? = null
+        while (true) {
+            if (!LockQueue {
+                if (freeThreads.size > 0 && !IsQueueEmpty()) {
+                    message = queue.removeFirst()
+                    ctx = freeThreads.removeLast()
+                    return@LockQueue true
+                }
+                false
+            }) {
+                return
+            }
+            ScheduleMessage(message as Message, ctx as ThreadContext)
         }
     }
 
@@ -93,7 +105,7 @@ class ThreadPoolContext(val name: String,
     {
         LockQueue {
             freeThreads.addLast(ctx)
-            Schedule()
         }
+        Schedule()
     }
 }

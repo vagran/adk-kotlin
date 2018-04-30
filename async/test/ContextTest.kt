@@ -39,13 +39,14 @@ private class ContextTest {
     @Test
     fun ThreadPoolContextTest()
     {
-        val numValues = 500_000L
+        val numValues = 500_00000L
+        val numCores = Runtime.getRuntime().availableProcessors()
         val it = (1L..numValues).iterator()
-        val ctx = ThreadPoolContext("testPool", 4)
+        val ctx = ThreadPoolContext("testPool", numCores)
         ctx.Start()
         val sum = AtomicLong(0)
 
-        TaskThrottler(4, {
+        TaskThrottler(numCores, {
             val value = synchronized(it) {
                 if (!it.hasNext()) {
                     return@TaskThrottler null
