@@ -91,6 +91,7 @@ abstract class QueuedContext: Context {
             var msg: Message? = null
             val stopped = LockQueue {
                 if (stopRequested && IsQueueEmpty()) {
+                    NotifyQueue()
                     return@LockQueue true
                 }
                 if (n == -1) {
@@ -126,6 +127,7 @@ abstract class QueuedContext: Context {
     {
         val result = LockQueue {
             if (stopRequested && IsQueueEmpty()) {
+                NotifyQueue()
                 return@LockQueue true
             }
             if (IsQueueEmpty()) {

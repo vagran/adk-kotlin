@@ -67,6 +67,9 @@ class ThreadPoolContext(val name: String,
                 if (freeThreads.size > 0 && !IsQueueEmpty()) {
                     message = queue.removeFirst()
                     ctx = freeThreads.removeLast()
+                    if (stopRequested && IsQueueEmpty()) {
+                        NotifyQueue()
+                    }
                     return@LockQueue true
                 }
                 false
