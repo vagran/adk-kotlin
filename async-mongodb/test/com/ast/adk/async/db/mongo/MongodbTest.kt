@@ -113,4 +113,16 @@ private class ContextTest {
         done.WaitComplete().Get()
         assertEquals(numDocs, verified.size)
     }
+
+    class A {
+        val i = 42
+    }
+
+    @Test
+    fun BasicMapping()
+    {
+        val codecs = MongoMapper.ForClasses(A::class)
+        val doc = MongoMapper.EncodeObject(codecs, A())
+        log.debug(doc.toJson())
+    }
 }
