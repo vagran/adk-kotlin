@@ -16,10 +16,11 @@ import org.apache.logging.log4j.core.config.LoggerConfig
 import org.bson.BsonDocument
 import org.bson.BsonInt32
 import org.bson.Document
+import org.bson.types.ObjectId
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import java.util.TreeSet
+import java.util.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ContextTest {
@@ -114,15 +115,32 @@ private class ContextTest {
         assertEquals(numDocs, verified.size)
     }
 
-    class A {
+    interface I
+
+    inner class A: I {
+        @MongoId var id: ObjectId? = null
         val i = 42
+        @MongoField var j = 43
     }
 
     @Test
     fun BasicMapping()
     {
         val codecs = MongoMapper.ForClasses(A::class)
-        val doc = MongoMapper.EncodeObject(codecs, A())
+        val doc = MongoMapper.EncodeObject(codecs, Any())
         log.debug(doc.toJson())
     }
+
+    //XXX required tests
+    // duplicated MongoId
+    // Any class mapped
+    // inner classes
+    // data classes?
+    // class hierarchy
+    // collections
+    // arrays
+    // collections and arrays of inner classes
+    // BSON types
+    // nullable/non-nullable types
+    // getter/setter, virtual
 }
