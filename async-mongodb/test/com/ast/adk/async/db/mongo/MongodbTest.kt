@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import java.util.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-private class ContextTest {
+private class MongodbTest {
 
     private val numCores = Runtime.getRuntime().availableProcessors()
     private lateinit var client: MongoClient
@@ -121,6 +121,8 @@ private class ContextTest {
         @MongoId var id: ObjectId? = null
         val i = 42
         @MongoField var j = 43
+        @MongoField var ia: IntArray = intArrayOf(44)
+        @MongoField val col = ArrayList<Int>()
     }
 
     @Test

@@ -10,11 +10,14 @@ import org.bson.codecs.configuration.CodecProvider
 import org.bson.codecs.configuration.CodecRegistries
 import org.bson.codecs.configuration.CodecRegistry
 import org.bson.types.ObjectId
+import java.lang.reflect.ParameterizedType
 import java.util.*
 import kotlin.reflect.*
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.superclasses
+import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure
 
 /**
@@ -75,6 +78,74 @@ class MongoMapper {
                     null
                 }
             }
+
+            /** Get type of element of the specified property collection class. Returns null if the
+             * specified property class is not a collection.
+             */
+            fun GetCollectionElementType(prop: KProperty1<*, *>): KClass<*>?
+            {
+                val cls = prop.returnType.jvmErasure
+                if (cls.isSubclassOf(Collection::class)) {
+                    val type = prop.javaField?.genericType as? ParameterizedType ?: return null
+                    val elCls = type.actualTypeArguments[0] as? Class<*> ?: return null
+                    return elCls.kotlin
+                }
+                return null
+            }
+
+            /* Get all non-interface classes in inheritance hierarchy. Order is from base to derived
+             * (to have more clear duplicates handling). "Any" base class is not included.
+             */
+            fun GetClassHierarchy(cls: KClass<*>): Collection<KClass<*>>
+            {
+                val classes = ArrayDeque<KClass<*>>()
+                var curCls = cls
+                while (true) {
+                    if (curCls == Any::class) {
+                        break
+                    }
+                    classes.addFirst(curCls)
+                    for (_cls in curCls.superclasses) {
+                        if (_cls.java.isInterface) {
+                            continue
+                        }
+                        curCls = _cls
+                        break
+                    }
+                }
+                return classes
+            }
+
+            /** Get constructor for the specified class. */
+            fun GetClassConstructor(cls: KClass<*>): ConstructorFunc
+            {
+                var defCtr: KFunction<*>? = null
+                for (ctr in cls.constructors) {
+                    if (cls.isInner) {
+                        if (ctr.parameters.size == 1) {
+                            defCtr = ctr
+                            break
+                        }
+                    } else {
+                        if (ctr.parameters.isEmpty()) {
+                            defCtr = ctr
+                            break
+                        }
+                    }
+                }
+                if (defCtr == null) {
+                    throw Error("No default constructor for mapped class ${cls.qualifiedName}")
+                }
+                if (defCtr.visibility != KVisibility.PUBLIC) {
+                    throw Error(
+                        "Default constructor for mapped class ${cls.qualifiedName} must be public")
+                }
+                if (cls.isInner) {
+                    return {outerInstance ->  defCtr.call(outerInstance) as Any}
+                } else {
+                    return { _ ->  defCtr.call() as Any}
+                }
+            }
         }
 
         private val mappedCodecs: MutableMap<KClass<*>, MappedCodec<*>> = HashMap()
@@ -121,9 +192,13 @@ class MongoMapper {
             }
         }
 
-        private class FieldDesc(val name: String, val property: KProperty1<*, *>) {
+        private class FieldDesc(val name: String,
+                                val property: KProperty1<*, *>) {
+            val type = property.returnType.jvmErasure
+            val colElType = GetCollectionElementType(property)
             val getter: GetterFunc
             val setter: SetterFunc?
+            var codec: Codec<*>? = null
 
             init {
                 getter = property::get as GetterFunc
@@ -176,6 +251,7 @@ class MongoMapper {
                             "Found for property ${curCls.qualifiedName}::${prop.name}")
                     }
 
+                    val type = prop.returnType.jvmErasure
                     val name:String
                     if (fieldAnn != null) {
                         if (fieldAnn.name != "") {
@@ -190,7 +266,7 @@ class MongoMapper {
                                 "Found duplicate for property ${cls.qualifiedName}::${prop.name}")
                         }
                         idSeen = true
-                        if (prop.returnType.jvmErasure != ObjectId::class) {
+                        if (type != ObjectId::class) {
                             throw Error(
                                 "@MongoId annotation should be used for field with type ObjectId. " +
                                 "Found for property ${cls.qualifiedName}::${prop.name}")
@@ -200,6 +276,14 @@ class MongoMapper {
 
                     val fd = FieldDesc(name, prop)
                     classDesc.fields[fd.name] = fd
+
+                    if (fd.colElType != null) {
+                        if (fd.colElType != cls) {
+                            QueueFieldType(fd.colElType)
+                        }
+                    } else if (type != cls) {
+                        QueueFieldType(type)
+                    }
                 }
             }
 
@@ -207,57 +291,23 @@ class MongoMapper {
             return classDesc
         }
 
-        /* Get all non-interface classes in inheritance hierarchy. Order is from base to derived
-         * (to have more clear duplicates handling). "Any" base class is not included.
-         */
-        private fun GetClassHierarchy(cls: KClass<*>): Collection<KClass<*>>
+        /** Queue type of a mapped class field as dependency for mapping if applicable. */
+        private fun QueueFieldType(cls: KClass<*>)
         {
-            val classes = ArrayDeque<KClass<*>>()
-            var curCls = cls
-            while (true) {
-                if (curCls == Any::class) {
-                    break
-                }
-                classes.addFirst(curCls)
-                for (_cls in curCls.superclasses) {
-                    if (_cls.java.isInterface) {
-                        continue
-                    }
-                    curCls = _cls
-                    break
-                }
+            if (cls.java.isArray) {
+                QueueFieldType(cls.java.componentType.kotlin)
+                return
             }
-            return classes
-        }
-
-        /** Get constructor for the specified class. */
-        private fun GetClassConstructor(cls: KClass<*>): ConstructorFunc
-        {
-            var defCtr: KFunction<*>? = null
-            for (ctr in cls.constructors) {
-                if (cls.isInner) {
-                    if (ctr.parameters.size == 1) {
-                        defCtr = ctr
-                        break
-                    }
-                } else {
-                    if (ctr.parameters.isEmpty()) {
-                        defCtr = ctr
-                        break
-                    }
-                }
+            if (cls.java.isPrimitive) {
+                return
             }
-            if (defCtr == null) {
-                throw Error("No default constructor for mapped class ${cls.qualifiedName}")
+            if (pendingClasses.contains(cls)) {
+                return
             }
-            if (defCtr.visibility != KVisibility.PUBLIC) {
-                throw Error("Default constructor for mapped class ${cls.qualifiedName} must be public")
+            if (GetBuiltinCodec(cls.java) != null) {
+                return
             }
-            if (cls.isInner) {
-                return {outerInstance ->  defCtr.call(outerInstance) as Any}
-            } else {
-                return { _ ->  defCtr.call() as Any}
-            }
+            pendingClasses.add(cls)
         }
     }
 
