@@ -1,9 +1,6 @@
 package com.ast.adk.async.db.mongo
 
-import org.bson.BsonDocument
-import org.bson.BsonDocumentWriter
-import org.bson.BsonReader
-import org.bson.BsonWriter
+import org.bson.*
 import org.bson.codecs.*
 import org.bson.codecs.configuration.CodecConfigurationException
 import org.bson.codecs.configuration.CodecProvider
@@ -13,10 +10,7 @@ import org.bson.types.ObjectId
 import java.lang.reflect.ParameterizedType
 import java.util.*
 import kotlin.reflect.*
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.isSubclassOf
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.full.superclasses
+import kotlin.reflect.full.*
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure
 
@@ -61,10 +55,14 @@ class MongoMapper {
 
     private class Builder(private val mappedClasses: Iterable<KClass<*>>) {
 
+        private val mappedCodecs: MutableMap<KClass<*>, MappedCodec<*>> = HashMap()
+        private val pendingClasses: Deque<KClass<*>> = ArrayDeque()
+
         companion object {
             private val builtinCodecs = listOf(BsonValueCodecProvider(),
                                                ValueCodecProvider(),
-                                               DocumentCodecProvider())
+                                               DocumentCodecProvider(),
+                                               PrimitiveValueCodecProvider())
             private val builtinRegistry = CodecRegistries.fromProviders(builtinCodecs)
 
             /** @return  built-in codec instance for the specified class if exists. Null if does not
@@ -148,31 +146,326 @@ class MongoMapper {
             }
         }
 
-        private val mappedCodecs: MutableMap<KClass<*>, MappedCodec<*>> = HashMap()
-        private val pendingClasses: Deque<KClass<*>> = ArrayDeque()
-
-        private class MappedCodec<T: Any>(private val cls: KClass<T>):
+        private class MappedCodec<T: Any>(val classDesc: ClassDesc<T>):
             Codec<T> {
 
             override fun getEncoderClass(): Class<T>
             {
-                return cls.java
+                return classDesc.cls.java
             }
 
+            @Suppress("UNCHECKED_CAST")
             override fun encode(writer: BsonWriter, value: T, encoderContext: EncoderContext)
             {
-
+                writer.writeStartDocument()
+                for (field in classDesc.fields.values) {
+                    val fieldValue = field.getter(value)
+                    if (fieldValue != null) {
+                        writer.writeName(field.name)
+                        if (field.isArray) {
+                            writer.writeStartArray()
+                            WriteArray(writer, encoderContext, fieldValue,
+                                       field.elementType!!, field.codec!!)
+                            writer.writeEndArray()
+                        } else if (field.elementType != null) {
+                            writer.writeStartArray()
+                            WriteCollection(writer, encoderContext, fieldValue, field.codec!!)
+                            writer.writeEndArray()
+                        } else {
+                            encoderContext.encodeWithChildContext(field.codec as Codec<Any>, writer,
+                                                                  fieldValue)
+                        }
+                    }
+                }
+                writer.writeEndDocument()
             }
 
             override fun decode(reader: BsonReader, decoderContext: DecoderContext): T
             {
-                TODO()
+                return decode(reader, decoderContext, null)
+            }
+
+            @Suppress("UNCHECKED_CAST")
+            internal fun decode(reader: BsonReader, decoderContext: DecoderContext,
+                                parentContext: CodecContext?): T
+            {
+                val item: T
+                if (classDesc.outerClass != null) {
+                    if (parentContext == null) {
+                        throw Error("No codecContext for inner class decoding")
+                    }
+                    val instance = parentContext.FindInstance(classDesc.outerClass)
+                    item = classDesc.constructor.invoke(instance) as T
+                } else {
+                    item = classDesc.constructor.invoke(null) as T
+                }
+                val context = CodecContext(item, parentContext)
+
+                reader.readStartDocument()
+                while (true) {
+                    val type = reader.readBsonType()
+                    if (type == BsonType.END_OF_DOCUMENT) {
+                        break
+                    }
+                    if (type == BsonType.NULL) {
+                        reader.skipName()
+                        reader.readNull()
+                        continue
+                    }
+                    val fieldName = reader.readName()
+                    val field = classDesc.fields.get(fieldName)
+                    if (field != null) {
+                        if (field.elementType != null && field.isArray) {
+                            ReadCollection(reader, decoderContext, item, field, context)
+                        } else {
+                            val value: Any =
+                                when {
+                                    field.isArray -> {
+                                        ReadArray(reader, decoderContext, field, context)
+                                    }
+                                    field.codec is MappedCodec ->
+                                        (field.codec as MappedCodec<Any>).decode(reader,
+                                                                                 decoderContext,
+                                                                                 context)
+                                    else -> field.codec!!.decode(reader, decoderContext)
+                                }
+                            field.setter!!.invoke(item, value)
+                        }
+                    } else {
+                        reader.skipValue()
+                    }
+                }
+                reader.readEndDocument()
+
+                return item
+            }
+
+            @Suppress("UNCHECKED_CAST")
+            private fun WriteArray(writer: BsonWriter, encoderContext: EncoderContext, array: Any,
+                                   elementClass: KClass<*>, codec: Codec<*>)
+            {
+                if (elementClass.java.isPrimitive) {
+                    when (elementClass) {
+                        Byte::class ->
+                            for (element in array as ByteArray) {
+                                writer.writeInt32(element.toInt())
+                            }
+                        Short::class ->
+                            for (element in array as ShortArray) {
+                                writer.writeInt32(element.toInt())
+                            }
+                        Int::class ->
+                            for (element in array as IntArray) {
+                                writer.writeInt32(element)
+                            }
+                        Long::class ->
+                            for (element in array as LongArray) {
+                                writer.writeInt64(element)
+                            }
+                        Char::class ->
+                            for (element in array as CharArray) {
+                                (codec as Codec<Char>).encode(writer, element, encoderContext)
+                            }
+                        Float::class ->
+                            for (element in array as FloatArray) {
+                                writer.writeDouble(element.toDouble())
+                            }
+                        Double::class ->
+                            for (element in array as DoubleArray) {
+                                writer.writeDouble(element)
+                            }
+                        else -> throw Error("Unhandled type: ${elementClass.simpleName}")
+                    }
+                } else {
+                    for (element in array as Array<Any?>) {
+                        if (element != null) {
+                            encoderContext.encodeWithChildContext(codec as Codec<Any>,
+                                                                  writer, element)
+                        } else {
+                            writer.writeNull()
+                        }
+                    }
+                }
+            }
+
+            @Suppress("UNCHECKED_CAST")
+            private fun WriteCollection(writer: BsonWriter,
+                                        encoderContext: EncoderContext,
+                                        collection: Any,
+                                        codec: Codec<*>)
+            {
+                (collection as Collection<*>).forEach {
+                    element ->
+                    if (element != null) {
+                        encoderContext.encodeWithChildContext(codec as Codec<Any>, writer, element)
+                    } else {
+                        writer.writeNull()
+                    }
+                }
+            }
+
+            @Suppress("UNCHECKED_CAST")
+            private fun ReadArray(reader: BsonReader, decoderContext: DecoderContext,
+                                  field: FieldDesc, context: CodecContext): Any
+            {
+                reader.readStartArray()
+                val elementClass = field.elementType
+                val values = ArrayList<Any?>()
+                while (true) {
+                    val type = reader.readBsonType()
+                    if (type == BsonType.END_OF_DOCUMENT) {
+                        break
+                    }
+                    if (field.isPrimitive) {
+                        if (elementClass == Byte::class ||
+                            elementClass == Short::class ||
+                            elementClass == Int::class) {
+
+                            values.add(reader.readInt32())
+
+                        } else if (elementClass == Long::class) {
+                            values.add(reader.readInt64())
+
+                        } else if (elementClass == Char::class) {
+                            values.add((field.codec as Codec<Char>).decode(reader, decoderContext))
+
+                        } else if (elementClass == Float::class ||
+                                   elementClass == Double::class) {
+
+                            values.add(reader.readDouble())
+
+                        } else {
+                            throw Error("Unhandled type: ${elementClass!!.simpleName}")
+                        }
+                    } else {
+                        values.add(ReadValue(type, field, reader, decoderContext, context))
+                    }
+                }
+                reader.readEndArray()
+                val n = values.size
+                if (field.isPrimitive) {
+                    when (elementClass) {
+                        Byte::class -> {
+                            val result = ByteArray(n)
+                            for (i in 0 until n) {
+                                result[i] = (values[i] as Int).toByte()
+                            }
+                            return result
+                        }
+                        Short::class -> {
+                            val result = ShortArray(n)
+                            for (i in 0 until n) {
+                                result[i] = (values[i] as Int).toShort()
+                            }
+                            return result
+                        }
+                        Int::class -> {
+                            val result = IntArray(n)
+                            for (i in 0 until n) {
+                                result[i] = values[i] as Int
+                            }
+                            return result
+                        }
+                        Long::class -> {
+                            val result = LongArray(n)
+                            for (i in 0 until n) {
+                                result[i] = values[i] as Long
+                            }
+                            return result
+                        }
+                        Char::class -> {
+                            val result = CharArray(n)
+                            for (i in 0 until n) {
+                                result[i] = values[i] as Char
+                            }
+                            return result
+                        }
+                        Float::class -> {
+                            val result = FloatArray(n)
+                            for (i in 0 until n) {
+                                result[i] = (values[i] as Double).toFloat()
+                            }
+                            return result
+                        }
+                        Double::class -> {
+                            val result = DoubleArray(n)
+                            for (i in 0 until n) {
+                                result[i] = values[i] as Double
+                            }
+                            return result
+                        }
+                        else -> throw Error("Unhandled type: ${elementClass!!.simpleName}")
+                    }
+                } else {
+//                    val result = java.lang.reflect.Array.newInstance(elementClass.ja, n)
+//
+//                    System.arraycopy(values.toTypedArray(), 0, result, 0, n)
+//                    return result
+                    TODO()
+                }
+            }
+
+            @Suppress("UNCHECKED_CAST")
+            private fun ReadCollection(reader: BsonReader,
+                                       decoderContext: DecoderContext,
+                                       item: T,
+                                       field: FieldDesc,
+                                       context: CodecContext)
+            {
+                var collection = field.getter(item) as MutableCollection<Any?>?
+                val isNew: Boolean
+                if (collection == null) {
+                    collection = field.type.createInstance() as MutableCollection<Any?>
+                    isNew = true
+                } else {
+                    collection.clear()
+                    isNew = false
+                }
+                reader.readStartArray()
+                while (true) {
+                    val type = reader.readBsonType()
+                    if (type == BsonType.END_OF_DOCUMENT) {
+                        break
+                    }
+                    if (type == BsonType.NULL) {
+                        collection.add(null)
+                        reader.readNull()
+                    } else {
+                        collection.add(ReadValue(type, field, reader, decoderContext, context))
+                    }
+                }
+                reader.readEndArray()
+                if (isNew) {
+                    val _collection = collection
+                    field.setter!!.invoke(item, _collection)
+                }
+            }
+
+            @Suppress("UNCHECKED_CAST")
+            private fun ReadValue(type: BsonType,
+                                  field: FieldDesc,
+                                  reader: BsonReader,
+                                  decoderContext: DecoderContext,
+                                  context: CodecContext): Any?
+            {
+                return when {
+                    type == BsonType.NULL -> {
+                        reader.readNull()
+                        null
+                    }
+                    field.codec is MappedCodec ->
+                        (field.codec as MappedCodec<Any>).decode(reader,
+                                                                 decoderContext,
+                                                                 context)
+                    else ->
+                        (field.codec as Codec<Any>).decode(reader, decoderContext)
+                }
             }
         }
 
-        private class ClassDesc(private val cls: KClass<*>) {
-            var isInner = false
-            var constructor: ConstructorFunc? = null
+        private class ClassDesc<T: Any>(val cls: KClass<T>) {
+            val outerClass: KClass<*>? = if (cls.isInner) cls.java.enclosingClass?.kotlin else null
+            val constructor: ConstructorFunc = GetClassConstructor(cls)
             /** True if the object has read-only mapped properties and thus can only be encoded. */
             var encodeOnly = false
             /** Indexed by DB name. */
@@ -190,23 +483,63 @@ class MongoMapper {
                     }
                 }
             }
+
+            fun ResolveCodecs(registry: CodecRegistry)
+            {
+                for (field in fields.values) {
+                    field.codec = registry.get(
+                        if (field.elementType != null) field.elementType.java else field.type.java)
+                }
+            }
         }
 
+        @Suppress("UNCHECKED_CAST")
         private class FieldDesc(val name: String,
-                                val property: KProperty1<*, *>) {
+                                val property: KProperty1<*, *>,
+                                val enclosingClass: KClass<*>) {
             val type = property.returnType.jvmErasure
-            val colElType = GetCollectionElementType(property)
+            /** Null if not collection or array field. */
+            val elementType: KClass<*>?
             val getter: GetterFunc
             val setter: SetterFunc?
             var codec: Codec<*>? = null
+            val isArray: Boolean
+            val isPrimitive: Boolean
 
             init {
-                getter = property::get as GetterFunc
+                getter = {
+                    obj -> (property as KProperty1<Any, Any?>).get(obj)
+                }
                 setter = if (property is KMutableProperty1) {
-                    property::set as SetterFunc
+                    {
+                        obj, value -> (property as KMutableProperty1<Any, Any?>).set(obj, value)
+                    }
                 } else {
                     null
                 }
+                isArray = type.java.isArray
+                elementType =
+                    if (isArray) {
+                        isPrimitive = type.java.componentType.isPrimitive
+                        type.java.componentType.kotlin
+                    } else {
+                        isPrimitive = false
+                        GetCollectionElementType(property)
+                    }
+            }
+
+            override fun toString(): String
+            {
+                val sb = StringBuilder()
+                sb.append(enclosingClass.qualifiedName)
+                sb.append("::")
+                sb.append(property.name)
+                if (name != property.name) {
+                    sb.append(" as '")
+                    sb.append(name)
+                    sb.append("'")
+                }
+                return sb.toString()
             }
         }
 
@@ -214,16 +547,23 @@ class MongoMapper {
         {
             pendingClasses.addAll(mappedClasses)
             while (!pendingClasses.isEmpty()) {
-                ProcessClass(pendingClasses.removeFirst())
+                val classDesc = ProcessClass(pendingClasses.removeFirst())
+                if (classDesc != null) {
+                    mappedCodecs[classDesc.cls] = MappedCodec(classDesc)
+                }
             }
 
             val providers = ArrayList<CodecProvider>()
             providers.addAll(builtinCodecs)
             providers.add(MappedCodecsProvider(mappedCodecs.values))
-            return CodecRegistries.fromProviders(providers)
+            val registry = CodecRegistries.fromProviders(providers)
+            for (mappedCodec in mappedCodecs.values) {
+                mappedCodec.classDesc.ResolveCodecs(registry)
+            }
+            return registry
         }
 
-        private fun ProcessClass(cls: KClass<*>): ClassDesc?
+        private fun ProcessClass(cls: KClass<*>): ClassDesc<*>?
         {
             if (mappedCodecs.containsKey(cls)) {
                 return null
@@ -233,12 +573,10 @@ class MongoMapper {
             }
 
             val classDesc = ClassDesc(cls)
-            classDesc.isInner = cls.isInner
-            classDesc.constructor = GetClassConstructor(cls)
 
             var idSeen = false
             for (curCls in GetClassHierarchy(cls)) {
-                val properties = curCls.memberProperties
+                val properties = curCls.declaredMemberProperties
                 for (prop in properties) {
                     val fieldAnn = prop.findAnnotation<MongoField>()
                     val idAnn = prop.findAnnotation<MongoId>()
@@ -263,23 +601,31 @@ class MongoMapper {
                         if (idSeen) {
                             throw Error(
                                 "@MongoId annotation should be used only once. " +
-                                "Found duplicate for property ${cls.qualifiedName}::${prop.name}")
+                                "Found duplicate for property ${curCls.qualifiedName}::${prop.name}")
                         }
                         idSeen = true
                         if (type != ObjectId::class) {
                             throw Error(
                                 "@MongoId annotation should be used for field with type ObjectId. " +
-                                "Found for property ${cls.qualifiedName}::${prop.name}")
+                                "Found for property ${curCls.qualifiedName}::${prop.name}")
                         }
                         name = "_id"
                     }
 
-                    val fd = FieldDesc(name, prop)
-                    classDesc.fields[fd.name] = fd
+                    if (prop.visibility != KVisibility.PUBLIC) {
+                        throw Error("Mapped field should be public: " +
+                                    "${curCls.qualifiedName}::${prop.name}")
+                    }
 
-                    if (fd.colElType != null) {
-                        if (fd.colElType != cls) {
-                            QueueFieldType(fd.colElType)
+                    val fd = FieldDesc(name, prop, curCls)
+                    val prevField = classDesc.fields.put(fd.name, fd)
+                    if (prevField != null) {
+                        throw Error("Duplicated field DB name: $fd clashes with $prevField")
+                    }
+
+                    if (fd.elementType != null) {
+                        if (fd.elementType != cls) {
+                            QueueFieldType(fd.elementType)
                         }
                     } else if (type != cls) {
                         QueueFieldType(type)
@@ -304,6 +650,9 @@ class MongoMapper {
             if (pendingClasses.contains(cls)) {
                 return
             }
+            if (mappedCodecs.containsKey(cls)) {
+                return
+            }
             if (GetBuiltinCodec(cls.java) != null) {
                 return
             }
@@ -326,6 +675,43 @@ class MongoMapper {
             for (codec in codecs) {
                 this.codecs[codec.encoderClass] = codec
             }
+        }
+    }
+
+    /** Context for resolving outer class instance when creating inner class instance. */
+    private class CodecContext(val instance: Any,
+                               val parent: CodecContext?) {
+
+        fun FindInstance(cls: KClass<*>): Any
+        {
+            return when {
+                this.instance::class == cls -> instance
+                parent != null -> parent.FindInstance(cls)
+                else -> throw Error("Required outer class instance not found: ${cls.simpleName}")
+            }
+        }
+    }
+
+    private class PrimitiveValueCodecProvider: CodecProvider {
+
+        private val codecs: MutableMap<Class<*>, Codec<*>> = HashMap()
+
+        init
+        {
+            codecs[Boolean::class.java] = BooleanCodec()
+            codecs[Char::class.java] = CharacterCodec()
+            codecs[Byte::class.java] = ByteCodec()
+            codecs[Short::class.java] = ShortCodec()
+            codecs[Int::class.java] = IntegerCodec()
+            codecs[Long::class.java] = LongCodec()
+            codecs[Float::class.java] = FloatCodec()
+            codecs[Double::class.java] = DoubleCodec()
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T> get(clazz: Class<T>, registry: CodecRegistry): Codec<T>?
+        {
+            return codecs[clazz] as? Codec<T>
         }
     }
 }
