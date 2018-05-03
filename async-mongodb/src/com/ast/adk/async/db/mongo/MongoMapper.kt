@@ -215,7 +215,7 @@ class MongoMapper {
                     val fieldName = reader.readName()
                     val field = classDesc.fields.get(fieldName)
                     if (field != null) {
-                        if (field.elementType != null && field.isArray) {
+                        if (field.elementType != null && !field.isArray) {
                             ReadCollection(reader, decoderContext, item, field, context)
                         } else {
                             val value: Any =
@@ -317,25 +317,18 @@ class MongoMapper {
                         break
                     }
                     if (field.isPrimitive) {
-                        if (elementClass == Byte::class ||
-                            elementClass == Short::class ||
-                            elementClass == Int::class) {
-
-                            values.add(reader.readInt32())
-
-                        } else if (elementClass == Long::class) {
-                            values.add(reader.readInt64())
-
-                        } else if (elementClass == Char::class) {
-                            values.add((field.codec as Codec<Char>).decode(reader, decoderContext))
-
-                        } else if (elementClass == Float::class ||
-                                   elementClass == Double::class) {
-
-                            values.add(reader.readDouble())
-
-                        } else {
-                            throw Error("Unhandled type: ${elementClass!!.simpleName}")
+                        when (elementClass) {
+                            Byte::class, Short::class, Int::class ->
+                                values.add(reader.readInt32())
+                            Long::class ->
+                                values.add(reader.readInt64())
+                            Char::class ->
+                                values.add((field.codec as Codec<Char>)
+                                    .decode(reader, decoderContext))
+                            Float::class, Double::class ->
+                                values.add(reader.readDouble())
+                            else ->
+                                throw Error("Unhandled type: ${elementClass!!.simpleName}")
                         }
                     } else {
                         values.add(ReadValue(type, field, reader, decoderContext, context))
@@ -397,11 +390,9 @@ class MongoMapper {
                         else -> throw Error("Unhandled type: ${elementClass!!.simpleName}")
                     }
                 } else {
-//                    val result = java.lang.reflect.Array.newInstance(elementClass.ja, n)
-//
-//                    System.arraycopy(values.toTypedArray(), 0, result, 0, n)
-//                    return result
-                    TODO()
+                    val result = java.lang.reflect.Array.newInstance(elementClass!!.java, n)
+                    System.arraycopy(values.toTypedArray(), 0, result, 0, n)
+                    return result
                 }
             }
 

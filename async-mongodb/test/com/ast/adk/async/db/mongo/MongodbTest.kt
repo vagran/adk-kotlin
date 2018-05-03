@@ -352,4 +352,151 @@ private class MongodbTest {
         assertNull(item.nullBoxed)
         assertNull(item.nullArray)
     }
+
+    class ItemBoxed: ItemBase() {
+        @MongoField
+        var i: Int? = null
+
+        @MongoField
+        var nullInt: Int? = null
+
+        @MongoField
+        var b: Byte? = null
+
+        @MongoField
+        var s: Short? = null
+
+        @MongoField
+        var c: Char? = null
+
+        @MongoField
+        var f: Float? = null
+    }
+
+    @Test
+    fun Boxed()
+    {
+        var item = ItemBoxed()
+        item.i = 42
+        item.b = 43
+        item.c = 'A'
+        item.f = 44.5f
+        item.s = 45
+        item = TestMapping(item, "Boxed")
+        assertEquals(42, item.i!!)
+        assertNull(item.nullInt)
+        assertEquals(43, item.b!!)
+        assertEquals('A', item.c!!)
+        assertEquals(44.5f, item.f!!, 0.001f)
+        assertEquals(45, item.s!!)
+    }
+
+    class ItemPrimitiveArray: ItemBase() {
+        @MongoField
+        var i: IntArray? = null
+        @MongoField
+        var f: FloatArray? = null
+        @MongoField
+        var b: ByteArray? = null
+        @MongoField
+        var c: CharArray? = null
+    }
+
+    @Test
+    fun PrimitiveArray()
+    {
+        var item = ItemPrimitiveArray()
+        item.i = intArrayOf(1, 2, 3)
+        item.f = floatArrayOf(4f, 5f, 6f)
+        item.b = byteArrayOf(7, 8, 9)
+        item.c = charArrayOf('a', 'b', 'c')
+        item = TestMapping(item, "Primitive array")
+        assertEquals(1, item.i!![0])
+        assertEquals(2, item.i!![1])
+        assertEquals(3, item.i!![2])
+        assertEquals(4f, item.f!![0], 0.01f)
+        assertEquals(5f, item.f!![1], 0.01f)
+        assertEquals(6f, item.f!![2], 0.01f)
+        assertEquals(7, item.b!![0])
+        assertEquals(8, item.b!![1])
+        assertEquals(9, item.b!![2])
+        assertEquals('a', item.c!![0])
+        assertEquals('b', item.c!![1])
+        assertEquals('c', item.c!![2])
+    }
+
+    class ItemRefArray: ItemBase() {
+        @MongoField
+        var i: Array<Int?>? = null
+        @MongoField
+        var s: Array<String?>? = null
+    }
+
+    @Test
+    fun RefArray()
+    {
+        var item = ItemRefArray()
+        item.i = arrayOf(1, 2, 3, null)
+        item.s = arrayOf("4", "5", "6", null)
+        item = TestMapping(item, "References array")
+        assertEquals(4, item.i!!.size)
+        assertEquals(1, item.i!![0])
+        assertEquals(2, item.i!![1])
+        assertEquals(3, item.i!![2])
+        assertNull(item.i!![3])
+        assertEquals(4, item.s!!.size)
+        assertEquals("4", item.s!![0])
+        assertEquals("5", item.s!![1])
+        assertEquals("6", item.s!![2])
+        assertNull(item.s!![3])
+    }
+
+    class ItemDocument: ItemBase {
+
+        @MongoField
+        var doc: Document? = null
+
+        @MongoField
+        var i: Int = 0
+
+        constructor() {}
+
+        internal constructor(i: Int) {
+            this.i = i
+        }
+    }
+
+    @Test
+    fun Document()
+    {
+        var item = ItemDocument()
+        item.i = 42
+        item.doc = Document("a", "b").append("subitem", ItemDocument(43))
+        item = TestMapping(item, "Document")
+        assertEquals(42, item.i)
+        assertNotNull(item.doc)
+        assertEquals(43, item.doc!!.get("subitem", Document::class.java).getInteger("i").toInt())
+        assertEquals("b", item.doc!!.getString("a"))
+    }
+
+    class ItemMappedArray: ItemBase() {
+        @MongoField
+        var subItems: Array<SubItem?>? = null
+
+        @MongoField
+        var nullSubItems: Array<SubItem?>? = null
+    }
+
+    @Test
+    fun MappedArray()
+    {
+        var item = ItemMappedArray()
+        item.subItems = arrayOf(SubItem(42), SubItem(43), null)
+        item = TestMapping(item, "Mapped array")
+        assertNull(item.nullSubItems)
+        assertEquals(3, item.subItems!!.size)
+        assertEquals(42, item.subItems!![0]!!.i)
+        assertEquals(43, item.subItems!![1]!!.i)
+        assertNull(item.subItems!![2])
+    }
 }
