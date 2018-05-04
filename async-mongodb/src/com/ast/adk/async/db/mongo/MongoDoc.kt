@@ -22,6 +22,16 @@ class MongoDoc(builderFunc: MongoDocBuilderFunc): Document() {
         append(key, MongoDoc(builderFunc))
     }
 
+    infix fun String.to(value: Any?)
+    {
+        append(this@to, value)
+    }
+
+    infix fun String.to(builderFunc: MongoDocBuilderFunc)
+    {
+        append(this@to, MongoDoc(builderFunc))
+    }
+
     init {
         this.builderFunc()
     }

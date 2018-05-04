@@ -79,10 +79,10 @@ private class MongodbTest {
             return@TaskThrottler MongoCall(
                 collection::insertOne,
                 MongoDoc {
-                    V("index", i)
-                    V("info") {
-                        V("x", i)
-                        V("y", i * 2)
+                    "index" to i
+                    "info" to {
+                        "x" to i
+                        "y" to i * 2
                     }
                 })
         }).Run().WaitComplete()
@@ -141,11 +141,6 @@ private class MongodbTest {
         val doc = MongoMapper.EncodeObject(codecs, A())
         log.debug(doc.toJson())
     }
-
-    //XXX required tests
-    // Any class mapped
-    // nullable/non-nullable types
-
 
     class Valid {
         @MongoId

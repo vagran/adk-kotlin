@@ -155,7 +155,7 @@ class MongoMapper {
                     return null
                 }
                 var outerParam: KParameter? = null
-                for (paramIdx in 0..ctr.parameters.size - 1) {
+                for (paramIdx in 0 until ctr.parameters.size) {
                     val param = ctr.parameters[paramIdx]
                     if (isInner && paramIdx == 0) {
                         if (param.isOptional) {
@@ -223,8 +223,8 @@ class MongoMapper {
             }
 
             @Suppress("UNCHECKED_CAST")
-            internal fun decode(reader: BsonReader, decoderContext: DecoderContext,
-                                parentContext: CodecContext?): T
+            private fun decode(reader: BsonReader, decoderContext: DecoderContext,
+                               parentContext: CodecContext?): T
             {
                 val item: T
                 item =
@@ -256,6 +256,9 @@ class MongoMapper {
                         if (field.elementType != null && !field.isArray) {
                             ReadCollection(reader, decoderContext, item, field, context)
                         } else {
+                            if (field.setter == null) {
+                                throw Error("Field is not writable: $field")
+                            }
                             val value: Any =
                                 when {
                                     field.isArray -> {
@@ -267,7 +270,7 @@ class MongoMapper {
                                                                                  context)
                                     else -> field.codec!!.decode(reader, decoderContext)
                                 }
-                            field.setter!!.invoke(item, value)
+                            field.setter.invoke(item, value)
                         }
                     } else {
                         reader.skipValue()
@@ -444,6 +447,9 @@ class MongoMapper {
                 var collection = field.getter(item) as MutableCollection<Any?>?
                 val isNew: Boolean
                 if (collection == null) {
+                    if (field.setter == null) {
+                        throw Error("Field is not writable: $field")
+                    }
                     collection = field.type.createInstance() as MutableCollection<Any?>
                     isNew = true
                 } else {
@@ -536,16 +542,13 @@ class MongoMapper {
             val isPrimitive: Boolean
 
             init {
-                getter = {
-                    obj -> (property as KProperty1<Any, Any?>).get(obj)
-                }
-                setter = if (property is KMutableProperty1) {
-                    {
-                        obj, value -> (property as KMutableProperty1<Any, Any?>).set(obj, value)
+                getter = { obj -> (property as KProperty1<Any, Any?>).get(obj) }
+                setter =
+                    if (property is KMutableProperty1) {
+                        { obj, value -> (property as KMutableProperty1<Any, Any?>).set(obj, value) }
+                    } else {
+                        null
                     }
-                } else {
-                    null
-                }
                 isArray = type.java.isArray
                 elementType =
                     if (isArray) {
