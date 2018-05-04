@@ -1,5 +1,9 @@
 package com.ast.adk.async.db.mongo
 
+import com.ast.adk.async.db.mongo.MongoMapper.Builder.Companion.GetBuiltinCodec
+import com.ast.adk.async.db.mongo.MongoMapper.Builder.Companion.GetClassConstructor
+import com.ast.adk.async.db.mongo.MongoMapper.Builder.Companion.GetClassHierarchy
+import com.ast.adk.async.db.mongo.MongoMapper.Builder.Companion.GetCollectionElementType
 import com.mongodb.async.client.MongoCollection
 import com.mongodb.async.client.MongoDatabase
 import org.bson.*
@@ -13,6 +17,7 @@ import java.lang.reflect.ParameterizedType
 import java.util.*
 import kotlin.reflect.*
 import kotlin.reflect.full.*
+import kotlin.reflect.jvm.internal.impl.util.Check
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure
 
@@ -124,31 +129,50 @@ class MongoMapper {
             /** Get constructor for the specified class. */
             fun GetClassConstructor(cls: KClass<*>): ConstructorFunc
             {
-                var defCtr: KFunction<*>? = null
+                var defCtr: ConstructorFunc? = null
                 for (ctr in cls.constructors) {
-                    if (cls.isInner) {
-                        if (ctr.parameters.size == 1) {
-                            defCtr = ctr
-                            break
+                    defCtr = CheckConstructor(ctr, cls.isInner)
+                    if (defCtr != null) {
+                        if (ctr.visibility != KVisibility.PUBLIC) {
+                            throw Error("Default constructor for mapped class " +
+                                        "${cls.qualifiedName} must be public")
                         }
-                    } else {
-                        if (ctr.parameters.isEmpty()) {
-                            defCtr = ctr
-                            break
-                        }
+                        break
                     }
                 }
                 if (defCtr == null) {
                     throw Error("No default constructor for mapped class ${cls.qualifiedName}")
                 }
-                if (defCtr.visibility != KVisibility.PUBLIC) {
-                    throw Error(
-                        "Default constructor for mapped class ${cls.qualifiedName} must be public")
+                return defCtr
+            }
+
+            /** Check if constructor is suitable for instance creation. It should not have mandatory
+             * arguments except outer class instance for inner class.
+             */
+            private fun CheckConstructor(ctr: KFunction<*>, isInner: Boolean): ConstructorFunc?
+            {
+                if (isInner && ctr.parameters.isEmpty()) {
+                    return null
                 }
-                if (cls.isInner) {
-                    return {outerInstance ->  defCtr.call(outerInstance) as Any}
+                var outerParam: KParameter? = null
+                for (paramIdx in 0..ctr.parameters.size - 1) {
+                    val param = ctr.parameters[paramIdx]
+                    if (isInner && paramIdx == 0) {
+                        if (param.isOptional) {
+                            return null
+                        }
+                        outerParam = param
+                        continue
+                    }
+                    if (!param.isOptional) {
+                        return null
+                    }
+                }
+                if (isInner) {
+                    val _outerParam = outerParam!!
+                    return {outerInstance ->  ctr.callBy(mapOf(_outerParam to outerInstance)) as Any}
                 } else {
-                    return { _ ->  defCtr.call() as Any}
+                    return { _ ->  ctr.callBy(emptyMap()) as Any}
                 }
             }
         }

@@ -143,18 +143,8 @@ private class MongodbTest {
     }
 
     //XXX required tests
-    // duplicated MongoId
-    // duplicated field name
     // Any class mapped
-    // inner classes
-    // data classes?
-    // class hierarchy
-    // collections
-    // arrays
-    // collections and arrays of inner classes
-    // BSON types
     // nullable/non-nullable types
-    // getter/setter, virtual
 
 
     class Valid {
@@ -292,7 +282,8 @@ private class MongodbTest {
         @MongoField
         var i: Int = 0
 
-        constructor() {}
+        @Suppress("unused")
+        constructor()
 
         constructor(i: Int)
         {
@@ -461,7 +452,7 @@ private class MongodbTest {
         @MongoField
         var i: Int = 0
 
-        constructor() {}
+        constructor()
 
         internal constructor(i: Int) {
             this.i = i
@@ -518,7 +509,7 @@ private class MongodbTest {
             @MongoField
             var inner: Inner2Item? = null
 
-            inner class Inner2Item {
+            inner class Inner2Item(/*XXX until bug fixed in Kotlin: @MongoField var l: Int = 45*/) {
                 @MongoField
                 var j: Int = 0
 
@@ -551,6 +542,7 @@ private class MongodbTest {
         assertNotNull(item.inner!!.inner)
         assertEquals(43, item.inner!!.inner!!.j)
         assertEquals(44, item.inner!!.inner!!.k)
+        //XXX assertEquals(45, item.inner!!.inner!!.l)
         assertEquals(item, item.inner!!.GetOuter())
         assertEquals(item.inner, item.inner!!.inner!!.GetOuter())
     }
@@ -565,7 +557,8 @@ private class MongodbTest {
             @MongoField
             var i: Int = 0
 
-            constructor() {}
+            @Suppress("unused")
+            constructor()
 
             internal constructor(i: Int)
             {
@@ -638,7 +631,8 @@ private class MongodbTest {
             @MongoField
             var i: Int = 0
 
-            constructor() {}
+            @Suppress("unused")
+            constructor()
 
             internal constructor(i: Int) {
                 this.i = i
@@ -722,4 +716,78 @@ private class MongodbTest {
         assertEquals(43.5, item.f!!.value)
     }
 
+    class GetterSetterItem: ItemBase() {
+        @MongoField
+        var i: Int
+            get() = _i * 2
+            set(value)
+            {
+                _i = value * 3
+            }
+
+        val j: Int
+            get() =_i
+
+        private var _i = 0
+    }
+
+    @Test
+    fun GetterSetter()
+    {
+        var item = GetterSetterItem()
+        item.i = 5
+        assertEquals(15, item.j)
+        assertEquals(30, item.i)
+        item = TestMapping(item, "Getter/setter")
+        assertEquals(90, item.j)
+        assertEquals(180, item.i)
+    }
+
+    abstract class GetterSetterBaseItem: ItemBase() {
+        @MongoField
+        abstract var i: Int
+    }
+
+    class GetterSetterDerivedItem: GetterSetterBaseItem() {
+
+        override var i: Int
+            get() = _i * 2
+            set(value)
+            {
+                _i = value * 3
+            }
+
+        val j: Int
+            get() =_i
+
+        private var _i = 0
+    }
+
+    @Test
+    fun AbstractGetterSetter()
+    {
+        var item = GetterSetterDerivedItem()
+        item.i = 5
+        assertEquals(15, item.j)
+        assertEquals(30, item.i)
+        item = TestMapping(item, "Abstract getter/setter")
+        assertEquals(90, item.j)
+        assertEquals(180, item.i)
+    }
+
+    data class DataItem(@MongoField var i: Int = 0,
+                        @MongoField var s: String = "",
+                        @MongoField var j: Int = 42):
+        ItemBase()
+
+    @Test
+    fun DataClass()
+    {
+        val item = DataItem(i = 10, s = "Test")
+        val item2 = TestMapping(item, "Data class")
+        assertTrue(item == item2)
+        assertEquals(10, item2.i)
+        assertEquals("Test", item2.s)
+        assertEquals(42, item2.j)
+    }
 }
