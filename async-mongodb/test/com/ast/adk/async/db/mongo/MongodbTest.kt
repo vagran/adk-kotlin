@@ -14,9 +14,7 @@ import com.mongodb.connection.ConnectionPoolSettings
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.Logger
 import org.apache.logging.log4j.core.config.LoggerConfig
-import org.bson.BsonDocument
-import org.bson.BsonInt32
-import org.bson.Document
+import org.bson.*
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -80,13 +78,17 @@ private class MongodbTest {
 
             return@TaskThrottler MongoCall(
                 collection::insertOne,
-                Document("index", i)
-                    .append("name", "test")
-                    .append("info", Document("x", i).append("y", i * 2)))
+                MongoDoc {
+                    V("index", i)
+                    V("info") {
+                        V("x", i)
+                        V("y", i * 2)
+                    }
+                })
         }).Run().WaitComplete()
 
         run {
-            val res = MongoCall(collection.find(BsonDocument("index", BsonInt32(42)))::first)
+            val res = MongoCall(collection.find(MongoDoc("index", 42))::first)
                 .WaitComplete().Get()
             assertEquals(42, res.get("info", Document::class.java).getInteger("x"))
         }
@@ -282,7 +284,7 @@ private class MongodbTest {
 
         MongoCall(collection::insertOne, item).WaitComplete().Get()
 
-        return MongoObservable(collection.find(Document("id", id))).One().WaitComplete().Get()
+        return MongoObservable(collection.find(MongoDoc("id", id))).One().WaitComplete().Get()
     }
 
     class SubItem {
@@ -471,7 +473,10 @@ private class MongodbTest {
     {
         var item = ItemDocument()
         item.i = 42
-        item.doc = Document("a", "b").append("subitem", ItemDocument(43))
+        item.doc = MongoDoc {
+            V("a", "b")
+            V("subitem", ItemDocument(43))
+        }
         item = TestMapping(item, "Document")
         assertEquals(42, item.i)
         assertNotNull(item.doc)
@@ -499,4 +504,222 @@ private class MongodbTest {
         assertEquals(43, item.subItems!![1]!!.i)
         assertNull(item.subItems!![2])
     }
+
+    class ItemInnerClass: ItemBase() {
+
+        @MongoField
+        var inner: InnerItem? = null
+
+        inner class InnerItem {
+
+            @MongoField
+            var i: Int = 0
+
+            @MongoField
+            var inner: Inner2Item? = null
+
+            inner class Inner2Item {
+                @MongoField
+                var j: Int = 0
+
+                var k: Int = 44
+
+                fun GetOuter(): InnerItem
+                {
+                    return this@InnerItem
+                }
+            }
+
+            fun GetOuter(): ItemInnerClass
+            {
+                return this@ItemInnerClass
+            }
+        }
+    }
+
+    @Test
+    fun InnerClass()
+    {
+        var item = ItemInnerClass()
+        item.inner = item.InnerItem()
+        item.inner!!.i = 42
+        item.inner!!.inner = item.inner!!.Inner2Item()
+        item.inner!!.inner!!.j = 43
+        item = TestMapping(item, "Inner class")
+        assertNotNull(item.inner)
+        assertEquals(42, item.inner!!.i)
+        assertNotNull(item.inner!!.inner)
+        assertEquals(43, item.inner!!.inner!!.j)
+        assertEquals(44, item.inner!!.inner!!.k)
+        assertEquals(item, item.inner!!.GetOuter())
+        assertEquals(item.inner, item.inner!!.inner!!.GetOuter())
+    }
+
+    class ItemInnerClassArray: ItemBase() {
+
+        @MongoField
+        var inner: Array<InnerItem?>? = null
+
+        inner class InnerItem {
+
+            @MongoField
+            var i: Int = 0
+
+            constructor() {}
+
+            internal constructor(i: Int)
+            {
+                this.i = i
+            }
+
+            fun GetOuter(): ItemInnerClassArray
+            {
+                return this@ItemInnerClassArray
+            }
+        }
+    }
+
+    @Test
+    fun InnerClassArray()
+    {
+        var item = ItemInnerClassArray()
+        item.inner = arrayOf(item.InnerItem(42), null, item.InnerItem(43))
+        item = TestMapping(item, "Inner class array")
+        assertNotNull(item.inner)
+        assertEquals(3, item.inner!!.size)
+        assertEquals(42, item.inner!![0]!!.i)
+        assertEquals(item, item.inner!![0]!!.GetOuter())
+        assertNull(item.inner!![1])
+        assertEquals(43, item.inner!![2]!!.i)
+        assertEquals(item, item.inner!![2]!!.GetOuter())
+    }
+
+    class ItemCollection: ItemBase() {
+
+        @MongoField
+        var i: ArrayList<Int?>? = null
+
+        @MongoField(name = "jj")
+        val j: MutableList<Int?> = ArrayList()
+    }
+
+
+    @Test
+    fun CollectionTest()
+    {
+        var item = ItemCollection()
+        item.i = ArrayList()
+        item.i!!.add(1)
+        item.i!!.add(null)
+        item.i!!.add(2)
+        item.j.add(3)
+        item.j.add(null)
+        item.j.add(4)
+        item = TestMapping(item, "Collection")
+        assertNotNull(item.i)
+        assertEquals(3, item.i!!.size)
+        assertEquals(1, item.i!![0])
+        assertNull(item.i!![1])
+        assertEquals(2, item.i!![2])
+        assertNotNull(item.j)
+        assertEquals(3, item.j.size)
+        assertEquals(3, item.j[0]!!)
+        assertNull(item.j[1])
+        assertEquals(4, item.j[2]!!)
+    }
+
+    class ItemInnerClassCollection: ItemBase() {
+
+        @MongoField
+        var inner: ArrayList<InnerItem?>? = null
+
+        inner class InnerItem {
+
+            @MongoField
+            var i: Int = 0
+
+            constructor() {}
+
+            internal constructor(i: Int) {
+                this.i = i
+            }
+
+            fun GetOuter(): ItemInnerClassCollection
+            {
+                return this@ItemInnerClassCollection
+            }
+        }
+    }
+
+    @Test
+    fun InnerClassCollection()
+    {
+        var item = ItemInnerClassCollection()
+        item.inner = ArrayList()
+        item.inner!!.add(item.InnerItem(42))
+        item.inner!!.add(null)
+        item.inner!!.add(item.InnerItem(43))
+        item = TestMapping(item, "Inner class collection")
+        assertNotNull(item.inner)
+        assertEquals(3, item.inner!!.size)
+        assertEquals(42, item.inner!![0]!!.i)
+        assertEquals(item, item.inner!![0]!!.GetOuter())
+        assertNull(item.inner!![1])
+        assertEquals(43, item.inner!![2]!!.i)
+        assertEquals(item, item.inner!![2]!!.GetOuter())
+
+        /* Test replacing. */
+        item.inner = ArrayList()
+        item.inner!!.add(item.InnerItem(52))
+        item.inner!!.add(null)
+        item.inner!!.add(item.InnerItem(53))
+
+        val collection = MongoMapper.GetCollection(database, "mapped",
+                                                   ItemInnerClassCollection::class)
+        val updateResult = MongoCall(collection::replaceOne, MongoDoc("id", item.id), item)
+            .WaitComplete().Get()
+        assertEquals(1, updateResult.modifiedCount)
+
+        item = MongoObservable(collection.find(MongoDoc("id", item.id))).One().WaitComplete().Get()
+        assertNotNull(item.inner)
+        assertEquals(3, item.inner!!.size)
+        assertEquals(52, item.inner!![0]!!.i)
+        assertEquals(item, item.inner!![0]!!.GetOuter())
+        assertNull(item.inner!![1])
+        assertEquals(53, item.inner!![2]!!.i)
+        assertEquals(item, item.inner!![2]!!.GetOuter())
+    }
+
+    class ItemBsonTypes: ItemBase() {
+        @MongoField
+        var i: BsonInt32? = null
+
+        @MongoField
+        var nullInt: BsonInt32? = null
+
+        @MongoField
+        var b: BsonBoolean? = null
+
+        @MongoField
+        var s: BsonString? = null
+
+        @MongoField
+        var f: BsonDouble? = null
+    }
+
+    @Test
+    fun BsonTypes() {
+        var item = ItemBsonTypes()
+        item.i = BsonInt32(42)
+        item.b = BsonBoolean(true)
+        item.s = BsonString("test")
+        item.f = BsonDouble(43.5)
+        item = TestMapping(item, "BSON types")
+        assertEquals(42, item.i!!.value)
+        assertNull(item.nullInt)
+        assertTrue(item.b!!.value)
+        assertEquals("test", item.s!!.value)
+        assertEquals(43.5, item.f!!.value)
+    }
+
 }

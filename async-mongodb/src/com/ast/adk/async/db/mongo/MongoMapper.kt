@@ -1,5 +1,7 @@
 package com.ast.adk.async.db.mongo
 
+import com.mongodb.async.client.MongoCollection
+import com.mongodb.async.client.MongoDatabase
 import org.bson.*
 import org.bson.codecs.*
 import org.bson.codecs.configuration.CodecConfigurationException
@@ -50,6 +52,11 @@ class MongoMapper {
             val writer = BsonDocumentWriter(BsonDocument())
             codec.encode(writer, obj, EncoderContext.builder().build())
             return writer.document
+        }
+
+        fun <T: Any> GetCollection(db: MongoDatabase, name: String, cls: KClass<T>): MongoCollection<T>
+        {
+            return db.getCollection<T>(name, cls.java).withCodecRegistry(ForClasses(cls))
         }
     }
 
@@ -162,18 +169,24 @@ class MongoMapper {
                     val fieldValue = field.getter(value)
                     if (fieldValue != null) {
                         writer.writeName(field.name)
-                        if (field.isArray) {
-                            writer.writeStartArray()
-                            WriteArray(writer, encoderContext, fieldValue,
-                                       field.elementType!!, field.codec!!)
-                            writer.writeEndArray()
-                        } else if (field.elementType != null) {
-                            writer.writeStartArray()
-                            WriteCollection(writer, encoderContext, fieldValue, field.codec!!)
-                            writer.writeEndArray()
-                        } else {
-                            encoderContext.encodeWithChildContext(field.codec as Codec<Any>, writer,
-                                                                  fieldValue)
+                        when {
+                            field.isArray -> {
+                                writer.writeStartArray()
+                                WriteArray(writer, encoderContext, fieldValue,
+                                    field.elementType!!, field.codec!!)
+                                writer.writeEndArray()
+                            }
+
+                            field.elementType != null -> {
+                                writer.writeStartArray()
+                                WriteCollection(writer, encoderContext, fieldValue, field.codec!!)
+                                writer.writeEndArray()
+                            }
+
+                            else ->
+                                encoderContext.encodeWithChildContext(field.codec as Codec<Any>,
+                                                                      writer,
+                                                                      fieldValue)
                         }
                     }
                 }
@@ -190,15 +203,16 @@ class MongoMapper {
                                 parentContext: CodecContext?): T
             {
                 val item: T
-                if (classDesc.outerClass != null) {
-                    if (parentContext == null) {
-                        throw Error("No codecContext for inner class decoding")
+                item =
+                    if (classDesc.outerClass != null) {
+                        if (parentContext == null) {
+                            throw Error("No codecContext for inner class decoding")
+                        }
+                        val instance = parentContext.FindInstance(classDesc.outerClass)
+                        classDesc.constructor.invoke(instance) as T
+                    } else {
+                        classDesc.constructor.invoke(null) as T
                     }
-                    val instance = parentContext.FindInstance(classDesc.outerClass)
-                    item = classDesc.constructor.invoke(instance) as T
-                } else {
-                    item = classDesc.constructor.invoke(null) as T
-                }
                 val context = CodecContext(item, parentContext)
 
                 reader.readStartDocument()
@@ -213,7 +227,7 @@ class MongoMapper {
                         continue
                     }
                     val fieldName = reader.readName()
-                    val field = classDesc.fields.get(fieldName)
+                    val field = classDesc.fields[fieldName]
                     if (field != null) {
                         if (field.elementType != null && !field.isArray) {
                             ReadCollection(reader, decoderContext, item, field, context)
@@ -583,11 +597,12 @@ class MongoMapper {
                     val type = prop.returnType.jvmErasure
                     val name:String
                     if (fieldAnn != null) {
-                        if (fieldAnn.name != "") {
-                            name = fieldAnn.name
-                        } else {
-                            name = prop.name
-                        }
+                        name =
+                            if (fieldAnn.name != "") {
+                                fieldAnn.name
+                            } else {
+                                prop.name
+                            }
                     } else {
                         if (idSeen) {
                             throw Error(
