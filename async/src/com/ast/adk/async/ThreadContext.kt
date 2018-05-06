@@ -1,6 +1,6 @@
 package com.ast.adk.async
 
-import com.ast.adk.utils.Log
+import com.ast.adk.Log
 import org.apache.logging.log4j.Logger
 
 open class ThreadContext(val name: String): QueuedContext() {

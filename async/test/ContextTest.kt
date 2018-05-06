@@ -1,6 +1,6 @@
 
 import com.ast.adk.async.*
-import com.ast.adk.utils.Log
+import com.ast.adk.Log
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertTrue
 import java.util.concurrent.atomic.AtomicLong

@@ -4,7 +4,7 @@ import com.ast.adk.async.Deferred
 import com.ast.adk.async.ScheduledThreadContext
 import com.ast.adk.async.Task
 import com.ast.adk.async.observable.*
-import com.ast.adk.utils.Log
+import com.ast.adk.Log
 import org.apache.logging.log4j.Logger
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals

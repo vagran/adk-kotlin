@@ -1,4 +1,4 @@
-package com.ast.adk.utils
+package com.ast.adk
 
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.Logger

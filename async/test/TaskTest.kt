@@ -1,6 +1,6 @@
 
 import com.ast.adk.async.*
-import com.ast.adk.utils.Log
+import com.ast.adk.Log
 import org.apache.logging.log4j.Logger
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

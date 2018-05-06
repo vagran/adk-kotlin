@@ -1,4 +1,4 @@
-package com.ast.adk.utils
+package com.ast.adk
 
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger
 import org.apache.logging.log4j.core.LoggerContext
 import org.apache.logging.log4j.core.appender.ConsoleAppender
 import org.apache.logging.log4j.core.config.*
+import org.apache.logging.log4j.core.config.Configuration
 import org.apache.logging.log4j.core.config.plugins.Plugin
 import org.apache.logging.log4j.core.layout.PatternLayout
 import org.apache.logging.log4j.message.StringFormatterMessageFactory
@@ -26,7 +27,8 @@ object Log {
     /** Redirect stderr to log.  */
     fun RedirectStderr()
     {
-        System.setErr(PrintStream(LoggingOutputStream(GetLogger("STDERR"), Level.ERROR), true))
+        System.setErr(PrintStream(
+            LoggingOutputStream(GetLogger("STDERR"), Level.ERROR), true))
     }
 
     fun GetStackTrace(t: Throwable): String
@@ -56,7 +58,7 @@ object Log {
     fun InitTestLogging(vararg loggers: LoggerConfig)
     {
         ConfigurationFactory.setConfigurationFactory(
-                TestLoggingConfiguration.ConfigFactory(loggers))
+            TestLoggingConfiguration.ConfigFactory(loggers))
     }
 
     /** Configuration for logging in unit tests.  */
@@ -73,7 +75,8 @@ object Log {
             }
 
             override fun getConfiguration(loggerContext: LoggerContext,
-                                          source: ConfigurationSource): Configuration
+                                          source: ConfigurationSource):
+                Configuration
             {
                 return TestLoggingConfig(loggers)
             }
@@ -90,7 +93,7 @@ object Log {
             init {
                 name = "Unit test log"
                 val layout = PatternLayout.newBuilder()
-                        .withPattern(Log.TestLoggingConfiguration.PATTERN_LAYOUT).build()
+                        .withPattern(PATTERN_LAYOUT).build()
                 val builder = ConsoleAppender::class.java.getMethod("newBuilder")
                         .invoke(null) as ConsoleAppender.Builder<*>
                 val appender = builder
