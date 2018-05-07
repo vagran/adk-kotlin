@@ -20,7 +20,7 @@ object Resources {
             props = Properties()
         }
         props.putAll(System.getProperties())
-        props.setProperty("log4j.configurationFile", "${packagePath}/assets/log-config.xml")
+        props.setProperty("log4j.configurationFile", "$packagePath/assets/log-config.xml")
         System.setProperties(props)
     }
 
@@ -31,7 +31,7 @@ object Resources {
      */
     fun GetAsset(path: String): InputStream?
     {
-        return baseClassLoader!!.getResourceAsStream("${packagePath}/assets/$path")
+        return baseClassLoader!!.getResourceAsStream("$packagePath/assets/$path")
     }
 
     /** Get properties by path in assets directory. Should be used only for reading.
