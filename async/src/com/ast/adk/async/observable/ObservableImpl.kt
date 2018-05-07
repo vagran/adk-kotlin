@@ -73,7 +73,7 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
                 Resubscribe()
                 return
             }
-            def.Subscribe({
+            def.Subscribe {
                 result, _error ->
                 if (_error != null) {
                     //XXX propagate somewhere
@@ -85,7 +85,7 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
                 } else {
                     Unsubscribe()
                 }
-            })
+            }
         }
 
         private fun Resubscribe()

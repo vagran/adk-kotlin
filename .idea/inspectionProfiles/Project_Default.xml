@@ -8,7 +8,7 @@
       <option name="namePattern" value="[_a-z][A-Za-z\d]*" />
     </inspection_tool>
     <inspection_tool class="TestFunctionName" enabled="true" level="WEAK WARNING" enabled_by_default="true">
-      <option name="namePattern" value="[A-Z][A-Za-z_\d]*" />
+      <option name="namePattern" value="[A-Za-z][A-Za-z_\d]*" />
     </inspection_tool>
   </profile>
 </component>

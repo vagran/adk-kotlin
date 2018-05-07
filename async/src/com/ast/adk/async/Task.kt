@@ -19,7 +19,6 @@ class Task<T>: Message, Awaitable<T?> {
             return Task(handler)
         }
 
-
         // Different name to overcome current type inference problem in Kotlin. Can be made the
         // same when fixed.
         fun <T> CreateDef(handler: suspend () -> T): Task<T>

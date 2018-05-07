@@ -1,6 +1,6 @@
 
-import com.ast.adk.async.*
 import com.ast.adk.Log
+import com.ast.adk.async.*
 import org.apache.logging.log4j.Logger
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
+import kotlin.coroutines.experimental.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -58,6 +59,81 @@ private class TaskTest {
         }).Submit(ctx).result
 
         VerifyDefResult(42, def)
+
+        ctx.Stop()
+    }
+
+    //XXX
+    @Test
+    fun TestResume()
+    {
+        val ctx = ThreadContext("test")
+        ctx.Start()
+
+        val _def = Deferred.ForResult(42)
+        val def = Task.CreateDef({
+
+             ctx.ResumeIn()
+//             _def.Await()
+             throw Throwable("aaa")
+//            try {
+//
+//                suspendCoroutine { cont: Continuation<Unit> ->
+//                    cont.resumeWithException(Throwable("aaa"))
+//                }
+//            } catch (e: Throwable) {
+//                throw Throwable("bbb", e)
+//            }
+
+            42
+        }).Submit(ctx).result
+
+        VerifyDefResult(42, def)
+
+        ctx.Stop()
+    }
+
+    //XXX
+    @Test
+    fun TestCoroutine()
+    {
+        var c: Continuation<Unit>? = null
+        suspend {
+            suspendCoroutine {
+                cont: Continuation<Unit> ->
+                c = cont
+            }
+            throw Throwable("A")
+        }
+        .createCoroutine(object: Continuation<Unit> {
+            override val context: CoroutineContext = EmptyCoroutineContext
+
+            override fun resume(value: Unit)
+            {
+                throw Throwable("C")
+            }
+
+            override fun resumeWithException(exception: Throwable)
+            {
+                throw Throwable("B", exception)
+            }
+        }).resume(Unit)
+
+        c!!.resume(Unit)
+    }
+
+    @Test
+    fun UnitTaskTest()
+    {
+        val ctx = ThreadContext("test")
+        ctx.Start()
+
+//        var result: Int? = null
+        val def = Task.Create({}).Submit(ctx).result
+
+        VerifyDefResult(Unit, def)
+
+//        assertEquals(42, result!!)
 
         ctx.Stop()
     }
@@ -254,11 +330,11 @@ private class TaskTest {
         val def = Deferred.When(def1, def2, def3)
 
         var invoked = false
-        def.Subscribe({
+        def.Subscribe {
             _, error ->
             assertNull(error)
             invoked = true
-        })
+        }
 
         def.WaitComplete()
         assertTrue(invoked)
@@ -290,11 +366,11 @@ private class TaskTest {
         val def = Deferred.When(def1, def2, def3)
 
         var invoked = false
-        def.Subscribe({
+        def.Subscribe {
             _, error ->
             assertEquals("aaa", error!!.message)
             invoked = true
-        })
+        }
 
         def.WaitComplete()
         assertTrue(invoked)

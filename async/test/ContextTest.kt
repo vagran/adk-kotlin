@@ -1,6 +1,6 @@
 
-import com.ast.adk.async.*
 import com.ast.adk.Log
+import com.ast.adk.async.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertTrue
 import java.util.concurrent.atomic.AtomicLong
@@ -32,6 +32,28 @@ private class ContextTest {
                 fail(error)
             }
         })
+        ctx.Stop()
+        assertTrue(invoked)
+    }
+
+    @Test
+    fun RunTest()
+    {
+        val ctx = ThreadContext("test")
+        ctx.Start()
+        var invoked = false
+        ctx.Run {invoked = true}
+        ctx.Stop()
+        assertTrue(invoked)
+    }
+
+    @Test
+    fun WrapTest()
+    {
+        val ctx = ThreadContext("test")
+        ctx.Start()
+        var invoked = false
+        (ctx.Wrap {invoked = true; Unit}).invoke()
         ctx.Stop()
         assertTrue(invoked)
     }

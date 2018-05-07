@@ -87,6 +87,8 @@ class ThreadPoolContext(val name: String,
             {
                 try {
                     message.Invoke()
+                } catch (e: Throwable) {
+                    log.error("Exception in message handler", e)
                 } finally {
                     OnWorkerFreed(ctx)
                 }
@@ -96,6 +98,8 @@ class ThreadPoolContext(val name: String,
             {
                 try {
                     message.Reject(error)
+                } catch (e: Throwable) {
+                    log.error("Exception in message reject handler", e)
                 } finally {
                     OnWorkerFreed(ctx)
                 }

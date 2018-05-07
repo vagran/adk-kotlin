@@ -67,7 +67,7 @@ class TaskThrottler(private val maxParallel: Int,
                 continue
             }
             schedulePending.incrementAndGet()
-            nextTask.Subscribe({_, e -> OnTaskComplete(false, e)})
+            nextTask.Subscribe {_, e -> OnTaskComplete(false, e)}
             schedulePending.decrementAndGet()
         }
     }

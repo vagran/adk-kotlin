@@ -19,11 +19,11 @@ private class DeferredTest {
     {
         val def = Deferred.ForResult(42)
         var cbkRes: Int? = null
-        def.Subscribe({
+        def.Subscribe {
             r, e ->
             cbkRes = r
             assertNull(e)
-        })
+        }
         assertEquals(42, cbkRes)
     }
 
@@ -32,11 +32,11 @@ private class DeferredTest {
     {
         val def: Deferred<Int> = Deferred.Create()
         var cbkRes: Int? = null
-        def.Subscribe({
+        def.Subscribe {
             r, e ->
             cbkRes = r
             assertNull(e)
-        })
+        }
         def.SetResult(42)
         assertEquals(42, cbkRes)
     }
@@ -46,11 +46,11 @@ private class DeferredTest {
     {
         val def: Deferred<Int> = Deferred.ForError(Throwable("aaa"))
         var cbkE: Throwable? = null
-        def.Subscribe({
+        def.Subscribe {
             r, e ->
             assertNull(r)
             cbkE = e
-        })
+        }
         assertEquals("aaa", cbkE!!.message)
     }
 
@@ -59,11 +59,11 @@ private class DeferredTest {
     {
         val def: Deferred<Int> = Deferred.Create()
         var cbkE: Throwable? = null
-        def.Subscribe({
+        def.Subscribe {
             r, e ->
             assertNull(r)
             cbkE = e
-        })
+        }
         def.SetError(Throwable("aaa"))
         assertEquals("aaa", cbkE!!.message)
     }
@@ -73,11 +73,11 @@ private class DeferredTest {
     {
         val def: Deferred<Int?> = Deferred.ForResult(null)
         var cbkRes: Int? = 42
-        def.Subscribe({
+        def.Subscribe {
             r, e ->
             cbkRes = r
             assertNull(e)
-        })
+        }
         assertNull(cbkRes)
     }
 
@@ -86,11 +86,11 @@ private class DeferredTest {
     {
         val def: Deferred<Int?> = Deferred.Create()
         var cbkRes: Int? = 42
-        def.Subscribe({
+        def.Subscribe {
             r, e ->
             cbkRes = r
             assertNull(e)
-        })
+        }
         def.SetResult(null)
         assertNull(cbkRes)
     }

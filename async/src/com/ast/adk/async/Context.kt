@@ -70,4 +70,95 @@ interface Context {
             })
         }
     }
+
+    /** Wrap the provided function so that the call is forwarded to the context. Result is ignored
+     * as well as any exception. Use Task when result is needed.
+     */
+    fun Wrap(func: () -> Any?): () -> Unit
+    {
+        return {
+            Submit(object: Message {
+                override fun Invoke() {
+                    func()
+                }
+
+                override fun Reject(error: Throwable) {/* Rejection ignored. */}
+            })
+        }
+    }
+
+    fun <TArg1> Wrap(func: (TArg1) -> Any?): (TArg1) -> Unit
+    {
+        return {
+            arg1 ->
+            Submit(object: Message {
+                override fun Invoke() { func(arg1) }
+
+                override fun Reject(error: Throwable) {/* Rejection ignored. */}
+            })
+        }
+    }
+
+    fun <TArg1, TArg2> Wrap(func: (TArg1, TArg2) -> Any?): (TArg1, TArg2) -> Unit
+    {
+        return {
+            arg1, arg2 ->
+            Submit(object: Message {
+                override fun Invoke() { func(arg1, arg2) }
+
+                override fun Reject(error: Throwable) {/* Rejection ignored. */}
+            })
+        }
+    }
+
+    fun <TArg1, TArg2, TArg3> Wrap(func: (TArg1, TArg2, TArg3) -> Any?):
+        (TArg1, TArg2, TArg3) -> Unit
+    {
+        return {
+            arg1, arg2, arg3 ->
+            Submit(object: Message {
+                override fun Invoke() { func(arg1, arg2, arg3) }
+
+                override fun Reject(error: Throwable) {/* Rejection ignored. */}
+            })
+        }
+    }
+
+    fun <TArg1, TArg2, TArg3, TArg4> Wrap(func: (TArg1, TArg2, TArg3, TArg4) -> Any?):
+        (TArg1, TArg2, TArg3, TArg4) -> Unit
+    {
+        return {
+            arg1, arg2, arg3, arg4 ->
+            Submit(object: Message {
+                override fun Invoke() { func(arg1, arg2, arg3, arg4) }
+
+                override fun Reject(error: Throwable) {/* Rejection ignored. */}
+            })
+        }
+    }
+
+    fun <TArg1, TArg2, TArg3, TArg4, TArg5> Wrap(func: (TArg1, TArg2, TArg3, TArg4, TArg5) -> Any?):
+        (TArg1, TArg2, TArg3, TArg4, TArg5) -> Unit
+    {
+        return {
+            arg1, arg2, arg3, arg4, arg5 ->
+            Submit(object: Message {
+                override fun Invoke() { func(arg1, arg2, arg3, arg4, arg5) }
+
+                override fun Reject(error: Throwable) {/* Rejection ignored. */}
+            })
+        }
+    }
+
+    /** Run the provided function in the context. Result is ignored s well as any exception.
+     * Use Task when result is needed.
+     */
+    fun <T> Run(func: () -> T)
+    {
+        Submit(object: Message {
+            override fun Invoke() { func() }
+
+            override fun Reject(error: Throwable) {/* Rejection ignored. */}
+        })
+    }
 }

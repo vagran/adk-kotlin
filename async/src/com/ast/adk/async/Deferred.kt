@@ -156,7 +156,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
     {
         return suspendCoroutine {
             cont ->
-            Subscribe({
+            Subscribe {
                 result, error ->
                 if (error != null) {
                     cont.resumeWithException(error)
@@ -164,7 +164,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
                     @Suppress("UNCHECKED_CAST")
                     cont.resume(result as T)
                 }
-            })
+            }
         }
     }
 
@@ -173,13 +173,13 @@ class Deferred<T> private constructor(): Awaitable<T> {
     {
         var complete = false
         val lock = java.lang.Object()
-        Subscribe({
+        Subscribe {
             _, _ ->
             synchronized(lock) {
                 complete = true
                 lock.notify()
             }
-        })
+        }
         synchronized(lock) {
             while (!complete) {
                 lock.wait()
@@ -229,7 +229,11 @@ class Deferred<T> private constructor(): Awaitable<T> {
 
         synchronized(this) {
             if (isComplete) {
-                throw Exception("Result already set")
+                val e = Exception("Result already set")
+                if (error != null) {
+                    e.addSuppressed(error)
+                }
+                throw e
             }
             isComplete = true
             this.result = result
