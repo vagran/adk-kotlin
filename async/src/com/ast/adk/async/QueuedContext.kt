@@ -114,7 +114,7 @@ abstract class QueuedContext: Context {
             try {
                 msg!!.Invoke()
             } catch (e: Throwable) {
-                println("Exception in message handler:\n${Log.GetStackTrace(e)}")
+                System.err.println("Exception in message handler:\n${Log.GetStackTrace(e)}")
             }
         }
         return false

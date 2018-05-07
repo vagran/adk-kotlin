@@ -249,8 +249,8 @@ class Deferred<T> private constructor(): Awaitable<T> {
             try {
                 subscriber!!.invoke(result, error)
             } catch (e: Throwable) {
-                println("Exception in Deferred subscriber invocation:\n" +
-                        Log.GetStackTrace(e))
+                System.err.println("Exception in Deferred subscriber invocation:\n" +
+                                   Log.GetStackTrace(e))
             }
         }
         if (subscribers != null) {
@@ -258,8 +258,8 @@ class Deferred<T> private constructor(): Awaitable<T> {
                 try {
                     cbk(result, error)
                 } catch (e: Throwable) {
-                    println("Exception in Deferred subscriber invocation:\n" +
-                            Log.GetStackTrace(e))
+                    System.err.println("Exception in Deferred subscriber invocation:\n" +
+                                       Log.GetStackTrace(e))
                 }
             }
         }
