@@ -1,5 +1,6 @@
 package com.ast.adk.async
 
+import com.ast.adk.Log
 import kotlin.coroutines.experimental.*
 
 typealias DeferredCallback<T> = (result: T?, error: Throwable?) -> Unit
@@ -124,7 +125,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
 
     /**
      * Subscribe for result. The provided callback is called instantly if the result is already
-     * available.
+     * available (any possible exception in the provided callback may be thrown in such case).
      */
     fun Subscribe(cbk: DeferredCallback<in T>)
     {
@@ -245,11 +246,21 @@ class Deferred<T> private constructor(): Awaitable<T> {
         }
 
         if (subscriber != null) {
-            subscriber!!.invoke(result, error)
+            try {
+                subscriber!!.invoke(result, error)
+            } catch (e: Throwable) {
+                println("Exception in Deferred subscriber invocation:\n" +
+                        Log.GetStackTrace(e))
+            }
         }
         if (subscribers != null) {
             for (cbk in subscribers!!) {
-                cbk(result, error)
+                try {
+                    cbk(result, error)
+                } catch (e: Throwable) {
+                    println("Exception in Deferred subscriber invocation:\n" +
+                            Log.GetStackTrace(e))
+                }
             }
         }
     }
