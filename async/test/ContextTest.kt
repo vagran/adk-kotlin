@@ -2,9 +2,9 @@
 import com.ast.adk.Log
 import com.ast.adk.async.*
 import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.test.assertEquals
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ContextTest {

@@ -2,15 +2,11 @@
 import com.ast.adk.Log
 import com.ast.adk.async.*
 import org.apache.logging.log4j.Logger
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertSame
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -76,6 +72,14 @@ private class TaskTest {
         assertEquals(42, result!!)
 
         ctx.Stop()
+    }
+
+    @Test
+    fun UnitTaskTest_Stability()
+    {
+        for (i in 1..1000) {
+            UnitTaskTest()
+        }
     }
 
     @Test
@@ -162,6 +166,14 @@ private class TaskTest {
     }
 
     @Test
+    fun ThreadContinuationTest_Stability()
+    {
+        for (i in 1..1000) {
+            ThreadContinuationTest()
+        }
+    }
+
+    @Test
     fun ThreadContinuationErrorTest()
     {
         val ctx1 = ThreadContext("ctx1")
@@ -191,6 +203,14 @@ private class TaskTest {
 
         ctx1.Stop()
         ctx2.Stop()
+    }
+
+    @Test
+    fun ThreadContinuationErrorTest_Stability()
+    {
+        for (i in 1..1000) {
+            ThreadContinuationErrorTest()
+        }
     }
 
     @Test
