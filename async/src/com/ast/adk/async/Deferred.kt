@@ -169,7 +169,9 @@ class Deferred<T> private constructor(): Awaitable<T> {
         }
     }
 
-    /** Wait until this deferred has result set. Mostly for unit testing. */
+    /** Wait until this deferred has result set. Mostly for unit testing. Note that all subscribers
+     * may still be not yet invoked.
+     */
     fun WaitComplete(): Deferred<T>
     {
         var complete = false

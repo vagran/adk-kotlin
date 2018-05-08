@@ -23,23 +23,17 @@ private class TaskTest {
 
     private fun <T> VerifyDefResult(expected: T, def: Deferred<T>)
     {
-        var defResult: T? = null
-        def.Subscribe { result, error ->
-            assertNull(error)
-            defResult = result
-        }
-        def.WaitComplete()
-        assertEquals(expected, defResult)
+        assertEquals(expected, def.WaitComplete().Get())
     }
 
     private fun VerifyDefError(expectedMessage: String, def: Deferred<*>)
     {
-        var defError: Throwable? = null
-        def.Subscribe { result, error ->
-            assertNull(result)
-            defError = error
+        val defError: Throwable? = try {
+            def.WaitComplete().Get()
+            null
+        } catch (e: Throwable) {
+            e.cause
         }
-        def.WaitComplete()
         assertEquals(expectedMessage, defError!!.message)
     }
 

@@ -29,7 +29,7 @@ interface Context {
         try {
             funcResult = func()
         } catch (_error: Throwable) {
-            funcError = _error;
+            funcError = _error
         }
         return suspendCoroutineUninterceptedOrReturn {
             cont ->
