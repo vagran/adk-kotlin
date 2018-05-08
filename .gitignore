@@ -82,6 +82,10 @@ hs_err_pid*
 # Gradle:
 .idea/**/gradle.xml
 .idea/**/libraries
+.gradle/
+gradle/
+gradlew
+gradlew.bat
 
 # CMake
 cmake-build-debug/
