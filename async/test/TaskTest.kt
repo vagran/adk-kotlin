@@ -7,9 +7,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.thread
-import kotlin.coroutines.experimental.*
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -173,72 +170,6 @@ private class TaskTest {
     {
         for (i in 1..1000) {
             ThreadContinuationTest()
-        }
-    }
-
-    //XXX
-    suspend fun SomeAwait()
-    {
-        suspendCoroutine {
-            cont: Continuation<Unit> ->
-
-            thread {
-                cont.resume(Unit)
-            }
-        }
-    }
-
-    //XXX
-    @Test
-    fun F()
-    {
-        val lock = ReentrantLock()
-        val cond = lock.newCondition()
-        var done = false
-
-        suspend {
-            val t1 = Thread.currentThread()
-            SomeAwait()
-            val t2 = Thread.currentThread()
-            if (t1 == t2) {
-                println("t1 $t1")
-                println("t2 $t2")
-                throw Error("Threads are same")
-            }
-        }.createCoroutine(object: Continuation<Unit> {
-            override val context: CoroutineContext = EmptyCoroutineContext
-
-            override fun resume(value: Unit)
-            {
-                lock.lock()
-                done = true
-                cond.signal()
-                lock.unlock()
-            }
-
-            override fun resumeWithException(exception: Throwable)
-            {
-                lock.lock()
-                done = true
-                cond.signal()
-                lock.unlock()
-                throw exception
-            }
-        }).resume(Unit)
-
-        lock.lock()
-        while (!done) {
-            cond.await()
-        }
-        lock.unlock()
-    }
-
-    //XXX
-    @Test
-    fun Run()
-    {
-        for (i in 1..1000) {
-            F()
         }
     }
 

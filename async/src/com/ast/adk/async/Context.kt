@@ -1,7 +1,8 @@
 package com.ast.adk.async
 
 import kotlin.coroutines.experimental.Continuation
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.experimental.intrinsics.COROUTINE_SUSPENDED
+import kotlin.coroutines.experimental.intrinsics.suspendCoroutineUninterceptedOrReturn
 
 /** Execution context which receives messages. */
 interface Context {
@@ -30,7 +31,7 @@ interface Context {
         } catch (_error: Throwable) {
             funcError = _error;
         }
-        return suspendCoroutine {
+        return suspendCoroutineUninterceptedOrReturn {
             cont ->
 
             Submit(object: Message {
@@ -48,13 +49,15 @@ interface Context {
                     cont.resumeWithException(error)
                 }
             })
+
+            COROUTINE_SUSPENDED
         }
     }
 
     /** Continues execution in this context. */
     suspend fun ResumeIn()
     {
-        suspendCoroutine {
+        suspendCoroutineUninterceptedOrReturn {
             cont: Continuation<Unit> ->
 
             Submit(object: Message {
@@ -68,6 +71,8 @@ interface Context {
                     cont.resumeWithException(error)
                 }
             })
+
+            COROUTINE_SUSPENDED
         }
     }
 
