@@ -6,6 +6,9 @@
       <item index="1" class="java.lang.String" itemvalue="com.ast.di.Provides" />
     </list>
   </component>
+  <component name="JavaScriptSettings">
+    <option name="languageLevel" value="ES6" />
+  </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_9" default="true" project-jdk-name="JDK 9" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>

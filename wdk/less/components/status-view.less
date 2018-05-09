@@ -1,0 +1,29 @@
+
+.status-view details summary {
+    font-size: 70%;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.status-view details .details {
+    text-align: left;
+    font-family: monospace;
+    white-space: pre;
+}
+
+.status-view .loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #9c9c9c;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    animation: status-view-loader-spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+@keyframes status-view-loader-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

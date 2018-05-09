@@ -1,0 +1,165 @@
+/* WDK_ROOT project property should contain path to WDK sources. Typically this can be done by
+ * adding `gradle.properties` file to a project root with `WDK_ROOT=/path/to/wdk` assignment.
+ *
+ * Include this file by `apply(from: "$WDK_ROOT/wdk.gradle")` command.
+ *
+ * This script assumes `less` and `less-plugin-clean-css` NPM packages are installed locally in
+ * `node_modules` directory.
+ */
+
+private void _FileList(File dir, List<File> files)
+{
+    dir.listFiles({ file -> file.isFile() || file.isDirectory() } as FileFilter)
+        .sort()
+        .each {
+            File file ->
+            if (file.isFile()) {
+                files.add(file)
+            } else {
+                _FileList(file, files)
+            }
+        }
+}
+
+List<File> FileList(String dir)
+{
+    def result = []
+    _FileList(file(dir), result)
+    result
+}
+
+/* Get relative path in the project. */
+String GetProjectPath(File file)
+{
+    String root = projRoot.getAbsolutePath()
+    String path = file.getAbsolutePath()
+    if (!path.startsWith(root)) {
+        throw new Exception("The path is not in the project: $path")
+    }
+    path = path.substring(root.length())
+    if (path.charAt(0) == '/' as char) {
+        path = path.substring(1)
+    }
+    return path
+}
+
+task MakeOutputDir doLast {
+    new File("$buildDir/js").mkdirs()
+    new File("$buildDir/css").mkdirs()
+}
+
+Task CreateJsCompileTask(String name, List<String> srcDirsFiles, String outName, String optLevel)
+{
+    Task task = tasks.create(name: "$name-phase1", type: Exec)
+    task.dependsOn(MakeOutputDir)
+
+    task.executable "java"
+    task.args "-jar", "$WDK_ROOT/tools/closure-compiler.jar"
+    task.args "-O", optLevel
+    task.args "--language_in", "ECMASCRIPT6_STRICT"
+    task.args "--js_output_file", "$buildDir/$outName"
+    task.args "--manage_closure_dependencies"
+
+    def jsSources = []
+    srcDirsFiles.each {
+        String dirFileName ->
+        File f = file(dirFileName)
+        if (f.isFile()) {
+            jsSources.add(f.getPath())
+        } else {
+            FileList(dirFileName).each {
+                File file ->
+                jsSources.add(file.getPath())
+            }
+        }
+    }
+
+    jsSources.each {
+        String jsSrc ->
+        task.args "--js", jsSrc
+    }
+
+    return task
+}
+
+task compileAllRelease
+task compileAllDebug
+// Ancestor task for ones which not differ in debug and release build.
+task compileAllCommon
+
+compileAllRelease.dependsOn(compileAllCommon)
+compileAllDebug.dependsOn(compileAllCommon)
+
+configure(project.rootProject) {
+
+    ext {
+
+        SetupJsCompilation = {
+            String name, List<String> srcDirsFiles, String outName ->
+
+            def releaseTask = CreateJsCompileTask("$name-release",
+                                                  srcDirsFiles,
+                                                  outName,
+                                                  "SIMPLE")
+            def debugTask = CreateJsCompileTask("$name-debug",
+                                                srcDirsFiles,
+                                                outName,
+                                                "WHITESPACE_ONLY")
+
+            compileAllRelease.dependsOn(releaseTask)
+            compileAllDebug.dependsOn(debugTask)
+        }
+
+        SetupLessCompilation = {
+            String name, String src, String outName ->
+
+            Task task = tasks.create(name: name, type: Exec)
+
+            task.dependsOn(MakeOutputDir)
+
+            task.executable "node_modules/less/bin/lessc"
+            task.args "--clean-css"
+
+            task.args src
+            task.args "$buildDir/${outName}"
+
+            compileAllCommon.dependsOn(task)
+        }
+
+        SetupFileCopy = {
+            String name, String srcFileName, String dstDirName ->
+
+            Task task = tasks.create(name: name, type: Copy)
+
+            task.dependsOn(MakeOutputDir)
+
+            task.from(srcFileName)
+            task.into("$buildDir/$dstDirName")
+
+            compileAllCommon.dependsOn(task)
+        }
+
+        SetupFileListCopy = {
+            String name, List<String> srcFileNames, String dstDirName ->
+
+            Task task = tasks.create(name: name, type: Copy)
+
+            task.dependsOn(MakeOutputDir)
+
+            srcFileNames.each {
+                String srcFileName ->
+                task.from(srcFileName)
+            }
+
+            task.into("$buildDir/$dstDirName")
+
+            compileAllCommon.dependsOn(task)
+        }
+
+        SetupWdkCompilation = {
+            SetupJsCompilation("compileWdkJs", ["$WDK_ROOT/javascript"], "js/wdk.js")
+            SetupLessCompilation("compileWdkCss", "$WDK_ROOT/less/wdk.less", "css/wdk.css")
+        }
+    }
+}
+
