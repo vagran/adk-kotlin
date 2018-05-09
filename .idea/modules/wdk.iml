@@ -5,6 +5,7 @@
     <content url="file://$MODULE_DIR$/../../wdk">
       <excludeFolder url="file://$MODULE_DIR$/../../wdk/.gradle" />
       <excludeFolder url="file://$MODULE_DIR$/../../wdk/build" />
+      <excludeFolder url="file://$MODULE_DIR$/../../wdk/gradle" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
