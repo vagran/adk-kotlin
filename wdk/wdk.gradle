@@ -100,7 +100,7 @@ configure(project.rootProject) {
             def releaseTask = CreateJsCompileTask("$name-release",
                                                   srcDirsFiles,
                                                   outName,
-                                                  "SIMPLE")
+                                                  "SIMPLE_OPTIMIZATIONS")
             def debugTask = CreateJsCompileTask("$name-debug",
                                                 srcDirsFiles,
                                                 outName,

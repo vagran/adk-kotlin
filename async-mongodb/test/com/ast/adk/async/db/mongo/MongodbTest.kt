@@ -1,9 +1,9 @@
 package com.ast.adk.async.db.mongo
 
+import com.ast.adk.Log
 import com.ast.adk.async.Deferred
 import com.ast.adk.async.TaskThrottler
 import com.ast.adk.async.observable.One
-import com.ast.adk.Log
 import com.mongodb.ServerAddress
 import com.mongodb.async.client.MongoClient
 import com.mongodb.async.client.MongoClientSettings

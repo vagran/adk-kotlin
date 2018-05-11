@@ -4,7 +4,7 @@ goog.provide("wdk.components.status_view");
 
     // language=HTML
     let tpl = `
-<div v-if="hasVisibleItems" class="status-view">
+<div v-if="hasVisibleItems" class="wdk_status-view">
     <div v-for="(item, index) in items" class="alert" :class="item.alertClass" role="alert">
         <span v-if="item.inProgress" class="loader"></span>
         {{item.text}}
