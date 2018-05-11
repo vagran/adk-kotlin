@@ -7,10 +7,10 @@ goog.provide("wdk.components.object_view");
     let tpl = `        
 <div :class="{'wdk_object-view_container': true, 'wdk_object-view_container_root': isRoot}">
     <div :class="GetValueTagClass()">
-        <span v-if="!HasSingleValue()" class="expand-button" :class="GetExpandButtonClass()"
-              @click="OnExpandToggle()"></span>
-        <span v-if="name !== null" class="name">{{name}}</span>
+        <span class="type-label-outer"><span :class="GetTypeLabelClass()">{{GetTypeLabel()}}</span></span>
+        <span v-if="name !== null" class="name">{{name}}:</span>
         <span v-if="HasSingleValue()" class="single-value">{{GetSingleValue()}}</span>
+        <span v-if="!HasSingleValue()" class="elements-count" @click="OnExpandToggle()">({{GetElementsCount()}} elements)</span>
         <div v-if="!HasSingleValue()" class="collection-values" 
              :style="{display: isExpandedCur ? 'block' : 'none'}">
             <object-view v-for="(value, key) in object" :object="value" :isRoot="false" 
@@ -104,6 +104,43 @@ goog.provide("wdk.components.object_view");
                     result.collapsed = true;
                 }
                 return result;
+            },
+
+            /**
+             * @return {string} Content text for type label.
+             */
+            GetTypeLabel: function () {
+                let type = this.GetType(this.object);
+                switch (type) {
+                    case "null":
+                        /* Non-breaking space. */
+                        return "\u00a0\u00a0\u00a0";
+                    case "number":
+                        return "123";
+                    case "string":
+                        return "ABC";
+                    case "boolean":
+                        /* Checkbox symbol. */
+                        return this.object ? "\u2611" : "\u2610";
+                    case "array":
+                        return "[]";
+                    case "object":
+                        return "{}";
+                }
+                return "U";
+            },
+
+            GetTypeLabelClass: function () {
+                let classes = {"type-label": true};
+                classes["type-label-" + this.GetType(this.object)] = true;
+                return classes
+            },
+
+            /**
+             * @return {number} Number of child elements for collection type.
+             */
+            GetElementsCount: function () {
+                return Object.keys(this.object).length;
             }
         }
     });
