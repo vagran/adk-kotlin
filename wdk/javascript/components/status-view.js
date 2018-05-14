@@ -1,6 +1,6 @@
 goog.provide("wdk.components.status_view");
 
-(function(app) {
+(function(wdk) {
 
     // language=HTML
     let tpl = `
@@ -129,4 +129,4 @@ goog.provide("wdk.components.status_view");
         }
     });
 
-})(window.app || (window.app = {}));
+})(window.wdk || (window.wdk = {}));

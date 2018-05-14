@@ -1,7 +1,7 @@
 goog.provide("wdk.components.object_view");
 /* Dumps arbitrary Javascript object. Mostly for debug purposes. */
 
-(function(app) {
+(function(wdk) {
 
     // language=HTML
     let tpl = `        
@@ -108,4 +108,4 @@ goog.provide("wdk.components.object_view");
         }
     });
 
-})(window.app || (window.app = {}));
+})(window.wdk || (window.wdk = {}));

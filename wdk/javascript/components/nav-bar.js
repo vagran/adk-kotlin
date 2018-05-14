@@ -1,7 +1,7 @@
 goog.provide("wdk.components.nav_bar");
 
 
-(function(app) {
+(function(wdk) {
 
     // language=HTML
     let tpl = `
@@ -93,4 +93,4 @@ goog.provide("wdk.components.nav_bar");
         }
     });
 
-})(window.app || (window.app = {}));
+})(window.wdk || (window.wdk = {}));
