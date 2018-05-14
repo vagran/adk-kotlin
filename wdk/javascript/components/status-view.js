@@ -122,6 +122,7 @@ goog.provide("wdk.components.status_view");
                 return this.hidden.length < numItems;
             }
         },
+
         methods: {
             OnDismiss: function(index) {
                 this.hidden.push(index);

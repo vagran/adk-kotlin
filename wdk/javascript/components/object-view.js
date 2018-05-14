@@ -6,12 +6,12 @@ goog.provide("wdk.components.object_view");
     // language=HTML
     let tpl = `        
 <div :class="{'wdk_object-view_container': true, 'wdk_object-view_container_root': isRoot}">
-    <div :class="GetValueTagClass()">
-        <span class="type-label-outer"><span :class="GetTypeLabelClass()">{{GetTypeLabel()}}</span></span>
+    <div :class="valueTagClass">
+        <span class="type-label-outer"><span :class="typeLabelClass">{{typeLabel}}</span></span>
         <span v-if="name !== null" class="name">{{name}}:</span>
-        <span v-if="HasSingleValue()" class="single-value">{{GetSingleValue()}}</span>
-        <span v-if="!HasSingleValue()" class="elements-count" @click="OnExpandToggle()">({{GetElementsCount()}} elements)</span>
-        <div v-if="!HasSingleValue()" class="collection-values" 
+        <span v-if="hasSingleValue" class="single-value">{{singleValue}}</span>
+        <span v-if="!hasSingleValue" class="elements-count" @click="OnExpandToggle()">({{elementsCount}} elements)</span>
+        <div v-if="!hasSingleValue" class="collection-values" 
              :style="{display: isExpandedCur ? 'block' : 'none'}">
             <object-view v-for="(value, key) in object" :object="value" :isRoot="false" 
                          :name="key" :key="key" :isExpanded="isExpanded"></object-view>
@@ -44,72 +44,26 @@ goog.provide("wdk.components.object_view");
             }
         },
 
-        methods: {
-            GetValueTagClass: function() {
+        computed: {
+            /**
+             * @return {boolean} True if single value can be rendered.
+             */
+            hasSingleValue: function () {
+                let type = this.GetType(this.object);
+                return type === "null" || type === "number" || type === "boolean" ||
+                    type === "string";
+            },
+
+            valueTagClass: function () {
                 let classes = {value: true};
                 classes["value-" + this.GetType(this.object)] = true;
                 return classes
             },
 
             /**
-             * @return {string} Name for type of the specified object.
-             */
-            GetType: function(obj) {
-                let typeStr = typeof obj;
-                if (this.object === null) {
-                    return "null";
-                } else if (typeStr === "number" || typeStr === "boolean" || typeStr === "string") {
-                    return typeStr;
-                } else if (typeStr === "object") {
-                    if (Array.isArray(this.object)) {
-                        return "array";
-                    } else {
-                        return "object";
-                    }
-                }
-                return "unknown";
-            },
-
-            /**
-             * @return {boolean} True if single value can be rendered.
-             */
-            HasSingleValue: function () {
-                let type = this.GetType(this.object);
-                return type === "null" || type === "number" || type === "boolean" ||
-                       type === "string";
-            },
-
-            /**
-             * @return {string} String representation of single value.
-             */
-            GetSingleValue: function () {
-                let type = this.GetType(this.object);
-                if (type === "string") {
-                    return '"' + this.object + '"';
-                } else if (type === "null") {
-                    return "null";
-                }
-                return this.object;
-            },
-
-            OnExpandToggle: function () {
-                this.isExpandedCur = !this.isExpandedCur;
-            },
-
-            GetExpandButtonClass: function () {
-                let result = {};
-                if (this.isExpandedCur) {
-                    result.expanded = true;
-                } else {
-                    result.collapsed = true;
-                }
-                return result;
-            },
-
-            /**
              * @return {string} Content text for type label.
              */
-            GetTypeLabel: function () {
+            typeLabel: function () {
                 let type = this.GetType(this.object);
                 switch (type) {
                     case "null":
@@ -130,7 +84,7 @@ goog.provide("wdk.components.object_view");
                 return "U";
             },
 
-            GetTypeLabelClass: function () {
+            typeLabelClass: function () {
                 let classes = {"type-label": true};
                 classes["type-label-" + this.GetType(this.object)] = true;
                 return classes
@@ -139,9 +93,47 @@ goog.provide("wdk.components.object_view");
             /**
              * @return {number} Number of child elements for collection type.
              */
-            GetElementsCount: function () {
+            elementsCount: function () {
                 return Object.keys(this.object).length;
-            }
+            },
+
+            /**
+             * @return {string} String representation of single value.
+             */
+            singleValue: function () {
+                let type = this.GetType(this.object);
+                if (type === "string") {
+                    return '"' + this.object + '"';
+                } else if (type === "null") {
+                    return "null";
+                }
+                return this.object;
+            },
+        },
+
+        methods: {
+            /**
+             * @return {string} Name for type of the specified object.
+             */
+            GetType: function(obj) {
+                let typeStr = typeof obj;
+                if (this.object === null) {
+                    return "null";
+                } else if (typeStr === "number" || typeStr === "boolean" || typeStr === "string") {
+                    return typeStr;
+                } else if (typeStr === "object") {
+                    if (Array.isArray(this.object)) {
+                        return "array";
+                    } else {
+                        return "object";
+                    }
+                }
+                return "unknown";
+            },
+
+            OnExpandToggle: function () {
+                this.isExpandedCur = !this.isExpandedCur;
+            },
         }
     });
 
