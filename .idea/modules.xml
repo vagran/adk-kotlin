@@ -6,6 +6,7 @@
       <module fileurl="file://$PROJECT_DIR$/adk/adk.iml" filepath="$PROJECT_DIR$/adk/adk.iml" />
       <module fileurl="file://$PROJECT_DIR$/async/async.iml" filepath="$PROJECT_DIR$/async/async.iml" />
       <module fileurl="file://$PROJECT_DIR$/async-mongodb/async-mongodb.iml" filepath="$PROJECT_DIR$/async-mongodb/async-mongodb.iml" />
+      <module fileurl="file://$PROJECT_DIR$/diff/diff.iml" filepath="$PROJECT_DIR$/diff/diff.iml" />
       <module fileurl="file://$PROJECT_DIR$/tmp-sandbox/tmp-sandbox.iml" filepath="$PROJECT_DIR$/tmp-sandbox/tmp-sandbox.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/wdk.iml" filepath="$PROJECT_DIR$/.idea/modules/wdk.iml" />
     </modules>
