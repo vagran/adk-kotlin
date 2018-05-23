@@ -10,7 +10,7 @@ private class BasicTest {
     @Test
     fun Basic()
     {
-        val dc = DiffCalculator()
+        val dc = DiffCalculator(DiffCalculator.StringAccessor("ABCABBA", "CBABAC"))
     }
 
 }
