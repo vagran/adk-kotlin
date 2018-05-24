@@ -11,6 +11,7 @@ private class BasicTest {
     fun Basic()
     {
         val dc = DiffCalculator(DiffCalculator.StringAccessor("ABCABBA", "CBABAC"))
+        dc.Calculate()
     }
 
 }

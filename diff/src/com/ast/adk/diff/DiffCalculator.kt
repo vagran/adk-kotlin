@@ -6,8 +6,14 @@ class DiffCalculator(private val data: DataAccessor) {
     interface DataAccessor {
         /** Check equality of input sequences arbitrary elements at the specified indices. */
         fun CheckEqual(idx1: Int, idx2: Int): Boolean
+
+        /** First sequence length. */
+        val length1: Int
+        /** Second sequence length. */
+        val length2: Int
     }
 
+    /** Accessor for comparing strings. */
     class StringAccessor(private val string1: CharSequence, private val string2: CharSequence):
         DataAccessor {
 
@@ -15,13 +21,26 @@ class DiffCalculator(private val data: DataAccessor) {
         {
             return string1[idx1] == string2[idx2]
         }
+
+        override val length1: Int
+            get() = string1.length
+
+        override val length2: Int
+            get() = string2.length
     }
 
+    fun Calculate()
+    {
 
-    /** Step index when X maximal value is reached. */
-    private var maxDx = 0
-    /** Step index when Y maximal value is reached. */
-    private var maxDy = 0
+    }
+
+    // /////////////////////////////////////////////////////////////////////////////////////////////
+    /** Step index when X maximal value is reached. Negative until set. */
+    private var maxDx = -1
+    /** Step index when Y maximal value is reached. Negative until set. */
+    private var maxDy = -1
+
+    private val editGraph: IntVector = IntVector(32)
 
     /** Dynamic array of integer values. */
     private class IntVector(initialCapacity: Int) {
