@@ -36,14 +36,17 @@ private class BasicTest {
         assertEquals(expected, diffStr)
     }
 
-    @Test
-    fun Basic()
+    fun CheckDiff(s1: String, s2: String, expected: String)
     {
-        val s1 = "ABCABBA"
-        val s2 = "CBABAC"
         val dc = DiffCalculator(DiffCalculator.StringAccessor(s1, s2))
         val diff = dc.Calculate()
-        CheckDiff(s1, s2, diff,
+        CheckDiff(s1, s2, diff, expected)
+    }
+
+    @Test
+    fun BasicTest()
+    {
+        CheckDiff("ABCABBA", "CBABAC",
 """- AB
   C
 + B
@@ -55,35 +58,44 @@ private class BasicTest {
     }
 
     @Test
-    fun EqualStrings()
+    fun EqualStringsTest()
     {
-        val s1 = "ABCABBA"
-        val s2 = "ABCABBA"
-        val dc = DiffCalculator(DiffCalculator.StringAccessor(s1, s2))
-        val diff = dc.Calculate()
-        CheckDiff(s1, s2, diff, "  ABCABBA\n")
+        CheckDiff("ABCABBA", "ABCABBA", "  ABCABBA\n")
     }
 
     @Test
-    fun FullDeletion()
+    fun FullDeletionTest()
     {
-        val s1 = "ABCABBA"
-        val s2 = ""
-        val dc = DiffCalculator(DiffCalculator.StringAccessor(s1, s2))
-        val diff = dc.Calculate()
-        CheckDiff(s1, s2, diff, "- ABCABBA\n")
+        CheckDiff("ABCABBA", "", "- ABCABBA\n")
     }
 
     @Test
-    fun FullInsertion()
+    fun FullInsertionTest()
     {
-        val s1 = ""
-        val s2 = "ABCABBA"
-        val dc = DiffCalculator(DiffCalculator.StringAccessor(s1, s2))
-        val diff = dc.Calculate()
-        CheckDiff(s1, s2, diff, "+ ABCABBA\n")
+        CheckDiff("", "ABCABBA", "+ ABCABBA\n")
     }
 
-    //XXX check equal
+    @Test
+    fun PrependTest()
+    {
+        CheckDiff("ABCABBA", "12345ABCABBA", "+ 12345\n  ABCABBA\n")
+    }
 
+    @Test
+    fun AppendTest()
+    {
+        CheckDiff("ABCABBA", "ABCABBA12345", "  ABCABBA\n+ 12345\n")
+    }
+
+    @Test
+    fun LeadingDeletionTest()
+    {
+        CheckDiff("12345ABCABBA", "ABCABBA", "- 12345\n  ABCABBA\n")
+    }
+
+    @Test
+    fun TrailingDeletionTest()
+    {
+        CheckDiff("ABCABBA12345", "ABCABBA", "  ABCABBA\n- 12345\n")
+    }
 }

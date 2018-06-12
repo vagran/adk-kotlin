@@ -232,16 +232,24 @@ class DiffCalculator(private val data: DataAccessor) {
         /* Restore backtrace. */
         var x = data.length1
         var y = data.length2
-        for (d in curD downTo 1) {
-            val k = x - y
-            val prevK =
-                if (k == -d || (k != d && GetX(d - 1, k - 1) < GetX(d - 1, k + 1))) {
-                    k + 1
-                } else {
-                    k - 1
-                }
-            val prevX = GetX(d - 1, prevK)
-            val prevY = prevX - prevK
+        for (d in curD downTo 0) {
+            val prevX: Int
+            val prevY: Int
+            if (d == 0) {
+                prevX = 0
+                prevY = 0
+            } else {
+                val k = x - y
+                val prevK =
+                    if (k == -d || (k != d && GetX(d - 1, k - 1) < GetX(d - 1, k + 1))) {
+                        k + 1
+                    } else {
+                        k - 1
+                    }
+                prevX = GetX(d - 1, prevK)
+                prevY = prevX - prevK
+            }
+
             /* Diagonal move. */
             while (x > prevX && y > prevY) {
                 db.Move(x - 1, y - 1, x, y)
@@ -249,7 +257,9 @@ class DiffCalculator(private val data: DataAccessor) {
                 y--
             }
             /* Downward or rightward move. */
-            db.Move(prevX, prevY, x, y)
+            if (d > 0) {
+                db.Move(prevX, prevY, x, y)
+            }
             x = prevX
             y = prevY
         }
@@ -288,7 +298,7 @@ class DiffCalculator(private val data: DataAccessor) {
                 idx += (maxDx + 1 + (maxK - minK) / 2) * (d - maxDy - 1) / 2
             }
 
-        } else if (maxDx > maxDy) {
+        } else if (maxDx < 0 || (maxDy >= 0 && maxDx > maxDy)) {
             minK = -maxDy + (d - maxDy)
             maxK = d
 
