@@ -1,5 +1,10 @@
 package com.ast.adk.diff
 
+import java.util.*
+
+typealias Diff = Collection<DiffCalculator.DiffEntry>
+
+/** Calculates difference between two sequences using Myers algorithm. */
 class DiffCalculator(private val data: DataAccessor) {
 
     /** Provides random access to input data sequences being compared. */
@@ -29,7 +34,30 @@ class DiffCalculator(private val data: DataAccessor) {
             get() = string2.length
     }
 
-    fun Calculate()
+    /**
+     * Entry of the calculated difference. Indices define sub-sequences in the input sequences.
+     * Insertion is performed into the first sequence (both indices are pointing to insertion
+     * position) from the second one (indices are the first and past the last inserted element, i.e.
+     * exclusive range).
+     * Deletion is performed from the first sequence, indices are the first and past the last
+     * inserted element (exclusive range). The second sequence indices are pointing to current
+     * position in it.
+     * Copy is defining equal preserved sub-sequences, indices define range exclusively in both
+     * sequences.
+     */
+    data class DiffEntry(val type: Type,
+                         val idx1Start: Int,
+                         val idx1End: Int,
+                         val idx2Start: Int,
+                         val idx2End: Int) {
+        enum class Type {
+            INSERTION,
+            DELETION,
+            COPY
+        }
+    }
+
+    fun Calculate(): Diff
     {
         /* Initialize the first node in the edit graph. Perform diagonal traverse if possible. */
         val n = data.length1
@@ -51,8 +79,7 @@ class DiffCalculator(private val data: DataAccessor) {
         }
         if (x == data.length1 && x == data.length2) {
             /* Input sequences are equal. */
-            Finalize()
-            return
+            return Finalize()
         }
 
         steps@ for (d in 1 .. n + m) {
@@ -70,6 +97,7 @@ class DiffCalculator(private val data: DataAccessor) {
                     maxDx - (d - maxDx)
                 }
             for (k in minK .. maxK step 2) {
+                curK = k
                 x =
                     if (k == -d || (k != d && GetX(d - 1, k -1) < GetX(d - 1, k + 1))) {
                         GetX(d - 1, k + 1)
@@ -94,7 +122,7 @@ class DiffCalculator(private val data: DataAccessor) {
             }
         }
 
-        Finalize()
+        return Finalize()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,6 +131,7 @@ class DiffCalculator(private val data: DataAccessor) {
     /** Step index when Y maximal value is reached. Negative until set. */
     private var maxDy = -1
     private var curD = 0
+    private var curK = 0
 
     private val editGraph: IntVector = IntVector(32)
 
@@ -132,6 +161,14 @@ class DiffCalculator(private val data: DataAccessor) {
             data[index] = value
         }
 
+        fun Clear()
+        {
+            if (data.size > alignment) {
+                data = IntArray(alignment)
+            }
+            size = 0
+        }
+
         private var data: IntArray = IntArray(initialCapacity)
         private var size = 0
         private val factor = 1.618033988749895
@@ -150,10 +187,77 @@ class DiffCalculator(private val data: DataAccessor) {
         }
     }
 
-    private fun Finalize()
-    {
+    private class DiffBuilder {
+        private val diff = ArrayDeque<DiffEntry>()
+        private var lastEntry: DiffEntry? = null
 
+        /** Accept single element moves on edit graph in reverse order. */
+        fun Move(prevX: Int, prevY: Int, newX: Int, newY: Int)
+        {
+            val type = when {
+                newX == prevX -> DiffEntry.Type.INSERTION
+                newY == prevY -> DiffEntry.Type.DELETION
+                else -> DiffEntry.Type.COPY
+            }
+            val e = DiffEntry(type, prevX, newX, prevY, newY)
+            if (lastEntry == null) {
+                lastEntry = e
+            } else if (e.type != lastEntry!!.type) {
+                diff.addFirst(lastEntry)
+                lastEntry = e
+            } else {
+                lastEntry = FoldEntries(e, lastEntry!!)
+            }
+        }
+
+        fun FoldEntries(e1: DiffEntry, e2: DiffEntry): DiffEntry
+        {
+            return DiffEntry(e1.type, e1.idx1Start, e2.idx1End, e1.idx2Start, e2.idx2End)
+        }
+
+        fun Finalize(): Diff
+        {
+            if (lastEntry != null) {
+                diff.addFirst(lastEntry)
+                lastEntry = null
+            }
+            return diff
+        }
     }
+
+    private fun Finalize(): Diff
+    {
+        val db = DiffBuilder()
+
+        /* Restore backtrace. */
+        var x = data.length1
+        var y = data.length2
+        for (d in curD downTo 1) {
+            val k = x - y
+            val prevK =
+                if (k == -d || (k != d && GetX(d - 1, k - 1) < GetX(d - 1, k + 1))) {
+                    k + 1
+                } else {
+                    k - 1
+                }
+            val prevX = GetX(d - 1, prevK)
+            val prevY = prevX - prevK
+            /* Diagonal move. */
+            while (x > prevX && y > prevY) {
+                db.Move(x - 1, y - 1, x, y)
+                x--
+                y--
+            }
+            /* Downward or rightward move. */
+            db.Move(prevX, prevY, x, y)
+            x = prevX
+            y = prevY
+        }
+
+        editGraph.Clear()
+        return db.Finalize()
+    }
+
 
     private fun GetX(d: Int, k: Int): Int
     {

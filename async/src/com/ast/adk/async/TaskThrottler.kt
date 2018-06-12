@@ -72,8 +72,7 @@ class TaskThrottler(private val maxParallel: Int,
         }
     }
 
-    /** Atomically check if new task needed to be spawn (quota is acquired in such case). Also
-     * detects if scheduler is terminated and calls appropriate handler.
+    /** Atomically check if new task needed to be spawn (quota is acquired in such case).
      * @return True to spawn new task.
      */
     private fun GetTaskQuota(): Boolean
