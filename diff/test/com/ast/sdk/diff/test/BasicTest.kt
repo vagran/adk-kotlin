@@ -58,6 +58,12 @@ private class BasicTest {
     }
 
     @Test
+    fun EmptyStringsTest()
+    {
+        CheckDiff("", "", "")
+    }
+
+    @Test
     fun EqualStringsTest()
     {
         CheckDiff("ABCABBA", "ABCABBA", "  ABCABBA\n")
@@ -97,5 +103,17 @@ private class BasicTest {
     fun TrailingDeletionTest()
     {
         CheckDiff("ABCABBA12345", "ABCABBA", "  ABCABBA\n- 12345\n")
+    }
+
+    @Test
+    fun PrependAppendTest()
+    {
+        CheckDiff("ABCABBA", "12345ABCABBA67890", "+ 12345\n  ABCABBA\n+ 67890\n")
+    }
+
+    @Test
+    fun LeadingTrailingDeletionTest()
+    {
+        CheckDiff("12345ABCABBA67890", "ABCABBA", "- 12345\n  ABCABBA\n- 67890\n")
     }
 }
