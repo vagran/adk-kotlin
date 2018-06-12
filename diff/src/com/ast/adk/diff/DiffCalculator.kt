@@ -157,7 +157,7 @@ class DiffCalculator(private val data: DataAccessor) {
 
     private fun GetX(d: Int, k: Int): Int
     {
-        if (d % 2 != k % 2) {
+        if (d % 2 != (if (k >= 0) k % 2 else -k % 2)) {
             throw Error("Oddity does not match")
         }
         var idx: Int
