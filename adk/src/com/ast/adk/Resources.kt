@@ -39,25 +39,21 @@ object Resources {
      */
     fun GetProperties(path: String): Properties?
     {
-        var props: Properties? = null
         synchronized(propsCache) {
-            props = propsCache[path]
-        }
-        if (props != null) {
+            var props = propsCache[path]
+            if (props != null) {
+                return props
+            }
+            val s = GetAsset(path) ?: return null
+            props = Properties()
+            try {
+                props.load(s)
+            } catch (e: IOException) {
+                throw RuntimeException("Failed to load properties: $path", e)
+            }
+            propsCache.put(path, props)
             return props
         }
-        val s = GetAsset(path) ?: return null
-        props = Properties()
-        try {
-            props!!.load(s)
-        } catch (e: IOException) {
-            throw RuntimeException("Failed to load properties: $path", e)
-        }
-
-        synchronized(propsCache) {
-            propsCache.put(path, props!!)
-        }
-        return props
     }
 
     /** Class loader for base class.  */
