@@ -4,7 +4,7 @@ goog.provide("wdk.components.object_view");
 (function(wdk) {
 
     // language=HTML
-    let tpl = `        
+    let tpl = `
 <div :class="{'wdk_object-view_container': true, 'wdk_object-view_container_root': isRoot}">
     <div :class="valueTagClass">
         <span class="type-label-outer"><span :class="typeLabelClass">{{typeLabel}}</span></span>
