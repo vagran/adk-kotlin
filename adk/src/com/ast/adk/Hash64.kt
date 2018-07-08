@@ -80,7 +80,7 @@ class Hash64(private val seed: Int = -0x68b84d74) {
         h1 += h2
         h2 += h1
 
-        val result = (h2.toLong() shl 32) or h1.toLong()
+        val result = (h2.toLong() shl 32) or (h1.toLong() and 0xffffffff)
         h1 = seed
         h2 = seed
         totalCount = 0
