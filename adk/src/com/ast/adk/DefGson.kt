@@ -16,10 +16,6 @@ import java.util.*
 /** Fabric method for Gson instance creation.  */
 object DefGson {
 
-    // /////////////////////////////////////////////////////////////////////////////////////////////////
-
-    private val cachedGsons = ThreadLocal.withInitial<Gson>({ Create() })
-
     /** Get builder with default parameters applied.  */
     fun Builder(): GsonBuilder
     {
@@ -57,9 +53,19 @@ object DefGson {
         return cachedGsons.get().fromJson(json, cls)
     }
 
+    inline fun <reified T> FromJson(json: String): T
+    {
+        return FromJson(json, T::class.java)
+    }
+
     fun <T> FromJson(json: Reader, cls: Class<T>): T
     {
         return cachedGsons.get().fromJson(json, cls)
+    }
+
+    inline fun <reified T> FromJson(json: Reader): T
+    {
+        return FromJson(json, T::class.java)
     }
 
     fun <T> FromJson(json: JsonElement, cls: Class<T>): T
@@ -67,6 +73,14 @@ object DefGson {
         return cachedGsons.get().fromJson(json, cls)
     }
 
+    inline fun <reified T> FromJson(json: JsonElement): T
+    {
+        return FromJson(json, T::class.java)
+    }
+
+    // /////////////////////////////////////////////////////////////////////////////////////////////////
+
+    private val cachedGsons = ThreadLocal.withInitial<Gson> { Create() }
 
     private class BitSetAdapter: TypeAdapter<BitSet>() {
 
