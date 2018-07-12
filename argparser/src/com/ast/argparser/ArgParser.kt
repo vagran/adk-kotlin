@@ -364,6 +364,9 @@ class ArgParser(args: Array<String>) {
             if (!hasArg) {
                 throw Error("Option has no argument")
             }
+            if (isCollection) {
+                return "List"
+            }
             return prop.returnType.jvmErasure.simpleName!!
         }
     }
