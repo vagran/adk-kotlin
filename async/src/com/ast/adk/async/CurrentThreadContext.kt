@@ -6,6 +6,7 @@ class CurrentThreadContext: QueuedContext() {
     fun Run()
     {
         Start()
+        Context.current = this
         while (!WaitAndProcess()) {}
     }
 }
