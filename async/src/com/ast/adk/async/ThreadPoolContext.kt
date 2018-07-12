@@ -6,7 +6,9 @@ import java.util.*
 
 
 class ThreadPoolContext(val name: String,
-                        numThreads: Int): QueuedContext() {
+                        numThreads: Int,
+                        enableLogging: Boolean = true):
+    QueuedContext() {
 
     override fun Start()
     {
@@ -22,7 +24,7 @@ class ThreadPoolContext(val name: String,
 
     override fun Stop()
     {
-        log.info("Context stop requested")
+        log?.info("Context stop requested")
         super.Stop()
         /* Wait until all submitted messages are processed by workers. */
         LockQueue {
@@ -47,11 +49,11 @@ class ThreadPoolContext(val name: String,
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    private val log: Logger = Log.GetLogger("Ctx{$name}")
+    private val log: Logger? = if (enableLogging) Log.GetLogger("Ctx{$name}") else null
 
     private val threads: Array<ThreadContext> = Array(numThreads) {
         idx ->
-        ThreadContext("$name-$idx")
+        ThreadContext("$name-$idx", enableLogging = enableLogging)
     }
     /** Threads waiting for work. Use LIFO order to localize execution if possible. */
     private val freeThreads: ArrayDeque<ThreadContext> = ArrayDeque(numThreads)
@@ -88,7 +90,7 @@ class ThreadPoolContext(val name: String,
                 try {
                     message.Invoke()
                 } catch (e: Throwable) {
-                    log.error("Exception in message handler", e)
+                    Error("Exception in message handler", e)
                 } finally {
                     OnWorkerFreed(ctx)
                 }
@@ -99,7 +101,7 @@ class ThreadPoolContext(val name: String,
                 try {
                     message.Reject(error)
                 } catch (e: Throwable) {
-                    log.error("Exception in message reject handler", e)
+                    Error("Exception in message reject handler", e)
                 } finally {
                     OnWorkerFreed(ctx)
                 }
@@ -114,5 +116,14 @@ class ThreadPoolContext(val name: String,
             freeThreads.addLast(ctx)
         }
         Schedule()
+    }
+
+    private fun Error(message: String, e: Throwable)
+    {
+        if (log != null) {
+            log.error(message, e)
+        } else {
+            System.err.println(Log.GetStackTrace(e))
+        }
     }
 }

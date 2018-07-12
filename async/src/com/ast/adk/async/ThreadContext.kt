@@ -3,7 +3,9 @@ package com.ast.adk.async
 import com.ast.adk.Log
 import org.apache.logging.log4j.Logger
 
-open class ThreadContext(val name: String): QueuedContext() {
+open class ThreadContext(val name: String,
+                         enableLogging: Boolean = true):
+    QueuedContext() {
 
     val thread: Thread = Thread(this::Run)
 
@@ -20,24 +22,24 @@ open class ThreadContext(val name: String): QueuedContext() {
 
     override fun Stop()
     {
-        log.info("Context stop requested")
+        log?.info("Context stop requested")
         super.Stop()
         thread.join()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    protected val log: Logger = Log.GetLogger("Ctx{$name}")
+    protected val log: Logger? = if (enableLogging) Log.GetLogger("Ctx{$name}") else null
 
     private var isStarting = false
     private var isRunning = false
 
     private fun Run()
     {
-        log.info("Context started")
+        log?.info("Context started")
         try {
             OnStarted()
         } catch (e: Exception) {
-            log.error("Context start handler failed, start aborted", e)
+            Error("Context start handler failed, start aborted", e)
             LockQueue {
                 isStarting = false
                 NotifyQueue()
@@ -56,7 +58,7 @@ open class ThreadContext(val name: String): QueuedContext() {
         try {
             while (!WaitAndProcess()) {}
         } catch (e: Exception) {
-            log.fatal("Exception in context main loop", e)
+            Error("Exception in context main loop", e)
             LockQueue {
                 isRunning = false;
                 NotifyQueue()
@@ -69,10 +71,10 @@ open class ThreadContext(val name: String): QueuedContext() {
         try {
             OnStopped()
         } catch (e: Exception) {
-            log.error("Context stop handler failed", e)
+            Error("Context stop handler failed", e)
         }
 
-        log.info("Context terminated")
+        log?.info("Context terminated")
 
         LockQueue {
             isRunning = false
@@ -86,6 +88,15 @@ open class ThreadContext(val name: String): QueuedContext() {
             while (isStarting) {
                 WaitQueue()
             }
+        }
+    }
+
+    private fun Error(message: String, e: Throwable)
+    {
+        if (log != null) {
+            log.error(message, e)
+        } else {
+            System.err.println(Log.GetStackTrace(e))
         }
     }
 }
