@@ -123,7 +123,7 @@ class ThreadPoolContext(val name: String,
         if (log != null) {
             log.error(message, e)
         } else {
-            System.err.println(Log.GetStackTrace(e))
+            System.err.println("$name: ${Log.GetStackTrace(e)}")
         }
     }
 }
