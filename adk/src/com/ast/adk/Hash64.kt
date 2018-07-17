@@ -1,8 +1,9 @@
 package com.ast.adk
 
 /** Hash calculator. Algorithm based on MurMurHash. */
+// XXX Negative literals should be replaced when the Kotlin will allow hexadecimal overflow
 @Suppress("NOTHING_TO_INLINE")
-class Hash64(private val seed: Int = -0x68b84d74) {
+class Hash64(private val seed: Int = -0x68b84d74 /*0x9747b28c*/) {
 
     fun Feed(data: String)
     {
@@ -68,14 +69,14 @@ class Hash64(private val seed: Int = -0x68b84d74) {
         h2 += h1
 
         h1 = h1 xor (h1 ushr 16)
-        h1 *= -0x7a143595
+        h1 *= -0x7a143595 //0x85ebca6b
         h1 = h1 xor (h1 ushr 13)
-        h1 *= -0x3d4d51cb
+        h1 *= -0x3d4d51cb //0xc2b2ae35
 
         h2 = h2 xor (h2 ushr 16)
-        h2 *= -0x7a143595
+        h2 *= -0x7a143595 //0x85ebca6b
         h2 = h2 xor (h2 ushr 13)
-        h2 *= -0x3d4d51cb
+        h2 *= -0x3d4d51cb //0xc2b2ae35
 
         h1 += h2
         h2 += h1
@@ -95,7 +96,7 @@ class Hash64(private val seed: Int = -0x68b84d74) {
 
     private companion object {
         const val C1: Int = 0x239b961b
-        const val C2: Int = -0x54f16877
+        const val C2: Int = -0x54f16877 //0xab0e9789
         const val C3: Int = 0x38b34ae5
     }
 
@@ -106,10 +107,10 @@ class Hash64(private val seed: Int = -0x68b84d74) {
 
     private inline fun GetBlock(data: ByteArray, offset: Int): Int
     {
-        return (data[offset    ].toInt() and 0xff) +
-            ((data[offset + 1].toInt() and 0xff) shl 8) +
-            ((data[offset + 2].toInt() and 0xff) shl 16) +
-            ((data[offset + 3].toInt() and 0xff) shl 24)
+        return (data[offset    ].toInt() and 0xff) or
+               ((data[offset + 1].toInt() and 0xff) shl 8) or
+               ((data[offset + 2].toInt() and 0xff) shl 16) or
+               ((data[offset + 3].toInt() and 0xff) shl 24)
     }
 
     private inline fun ApplyBlock(block1: Int, block2: Int)

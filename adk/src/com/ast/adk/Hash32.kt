@@ -1,8 +1,9 @@
 package com.ast.adk
 
 /** Hash calculator. Algorithm based on MurMurHash. */
+// XXX Negative literals should be replaced when the Kotlin will allow hexadecimal overflow
 @Suppress("NOTHING_TO_INLINE")
-class Hash32(private val seed: Int = -0x68b84d74) {
+class Hash32(private val seed: Int = -0x68b84d74/* 0x9747b28c */) {
 
     fun Feed(data: String)
     {
@@ -64,9 +65,9 @@ class Hash32(private val seed: Int = -0x68b84d74) {
 
         h = h xor totalCount
         h = h xor (h ushr 16)
-        h *= -0x7a143595
+        h *= -0x7a143595// 0x85ebca6b
         h = h xor (h ushr 13)
-        h *= -0x3d4d51cb
+        h *= -0x3d4d51cb//0xc2b2ae35
 
         val result = h
         h = seed
@@ -80,7 +81,7 @@ class Hash32(private val seed: Int = -0x68b84d74) {
     private var totalCount = 0
 
     private companion object {
-        const val C1: Int = -0x3361d2af
+        const val C1: Int = -0x3361d2af//0xcc9e2d51
         const val C2: Int = 0x1b873593
     }
 
@@ -91,9 +92,9 @@ class Hash32(private val seed: Int = -0x68b84d74) {
 
     private inline fun GetBlock(data: ByteArray, offset: Int): Int
     {
-        return (data[offset    ].toInt() and 0xff) +
-              ((data[offset + 1].toInt() and 0xff) shl 8) +
-              ((data[offset + 2].toInt() and 0xff) shl 16) +
+        return (data[offset    ].toInt() and 0xff) or
+              ((data[offset + 1].toInt() and 0xff) shl 8) or
+              ((data[offset + 2].toInt() and 0xff) shl 16) or
               ((data[offset + 3].toInt() and 0xff) shl 24)
     }
 
@@ -104,6 +105,6 @@ class Hash32(private val seed: Int = -0x68b84d74) {
         k1 *= C2
         h = h xor k1
         h = Rotate(h, 13)
-        h = h * 5 - 0x19ab949c
+        h = h * 5 - 0x19ab949c//+0xe6546b64
     }
 }
