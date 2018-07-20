@@ -238,12 +238,22 @@ class ArgParserTest {
 
     class Options9 {
         var a: Options8? = null
+        var b: Int = 0
     }
 
     @Test
     fun UnsupportedTypeTest()
     {
         val parser = ArgParser("--a 42")
+        assertThrows<Error> {
+            parser.MapOptions<Options9>()
+        }
+    }
+
+    @Test
+    fun UnsupportedTypeNoArgTest()
+    {
+        val parser = ArgParser("--b 42")
         assertThrows<Error> {
             parser.MapOptions<Options9>()
         }
@@ -271,5 +281,31 @@ class ArgParserTest {
         val parser = ArgParser("--a abc")
         val opt = parser.MapOptions<Options11>()
         assertEquals("abc", opt.a)
+    }
+
+    class Option12 {
+        var a: Int = 0
+    }
+
+    class Options13 {
+        var b: String? = null
+        @CliOption(aggregated = true)
+        lateinit var nested: Option12
+    }
+
+    class Options14 {
+        var c: String? = null
+        @CliOption(aggregated = true)
+        lateinit var nested: Options13
+    }
+
+    @Test
+    fun AggregationTest()
+    {
+        val parser = ArgParser("--a 42 --b abc --c def")
+        val opt = parser.MapOptions<Options14>()
+        assertEquals(opt.c, "def")
+        assertEquals(opt.nested.b, "abc")
+        assertEquals(42, opt.nested.nested.a)
     }
 }

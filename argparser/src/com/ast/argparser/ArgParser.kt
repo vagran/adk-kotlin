@@ -5,6 +5,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KVisibility
@@ -37,6 +38,11 @@ class ArgParser(args: Array<String>) {
                         cls.simpleName)
         }
         for (option in Option.ForClass(cls)) {
+            if (option.isAggregated) {
+                option.SetAggregated(obj, MapOptions(option.prop.returnType.jvmErasure))
+                continue
+            }
+
             val args = PopOptions(option)
 
             if (option.ann != null && option.ann.required && !option.hasArg) {
@@ -122,6 +128,11 @@ class ArgParser(args: Array<String>) {
         {
             //XXX
             for (option in Option.ForClass(cls)) {
+                if (option.isAggregated) {
+                    Options(option.prop.returnType.jvmErasure)
+                    continue
+                }
+
                 buf.append(option.GetName())
                 buf.append(' ')
                 if (option.hasArg) {
@@ -190,8 +201,90 @@ class ArgParser(args: Array<String>) {
         val hasArg: Boolean
         val ann: CliOption? = prop.findAnnotation()
         val isCollection = prop.returnType.jvmErasure.isSubclassOf(MutableCollection::class)
+        val setters: MutableMap<KClass<*>, Option.(obj: Any, value: String) -> Unit> = HashMap()
+        val isAggregated = ann != null && ann.aggregated
 
         init {
+            setters.apply {
+                put(String::class) {
+                    obj, value ->
+                    prop.set(obj, value)
+                }
+
+                put(Path::class) {
+                    obj, value ->
+                    prop.set(obj, Paths.get(value))
+                }
+
+                put(Byte::class) {
+                    obj, value ->
+                    prop.set(obj, try {
+                        value.toByte()
+                    } catch (e: Exception) {
+                        throw UsageError("Cannot convert argument value to byte for option ${GetName()}", e)
+                    })
+                }
+
+                put(Short::class) {
+                    obj, value ->
+                    prop.set(obj, try {
+                        value.toShort()
+                    } catch (e: Exception) {
+                        throw UsageError("Cannot convert argument value to short for option ${GetName()}", e)
+                    })
+                }
+
+                put(Int::class) {
+                    obj, value ->
+                    prop.set(obj, try {
+                        value.toInt()
+                    } catch (e: Exception) {
+                        throw UsageError("Cannot convert argument value to integer for option ${GetName()}", e)
+                    })
+                }
+
+                put(Long::class) {
+                    obj, value ->
+                    prop.set(obj, try {
+                        value.toLong()
+                    } catch (e: Exception) {
+                        throw UsageError("Cannot convert argument value to long for option ${GetName()}", e)
+                    })
+                }
+
+                put(Float::class) {
+                    obj, value ->
+                    prop.set(obj, try {
+                        value.toFloat()
+                    } catch (e: Exception) {
+                        throw UsageError("Cannot convert argument value to float for option ${GetName()}", e)
+                    })
+                }
+
+                put(Double::class) {
+                    obj, value ->
+                    prop.set(obj, try {
+                        value.toDouble()
+                    } catch (e: Exception) {
+                        throw UsageError("Cannot convert argument value to double for option ${GetName()}", e)
+                    })
+                }
+
+                put(Boolean::class) {
+                    obj, value ->
+                    val bVal = when (value.toLowerCase()) {
+                        "0", "false", "off", "no" -> false
+                        "1", "true", "on", "yes" -> true
+                        else -> throw UsageError("Invalid value for boolean option ${GetName()}: $value")
+                    }
+                    prop.set(obj, bVal)
+                }
+            }
+
+            if (!isAggregated && !isCollection && prop.returnType.jvmErasure !in setters) {
+                throw Error("Unsupported property type: $propName: ${prop.returnType}")
+            }
+
             val isBoolean = prop.returnType.jvmErasure.isSubclassOf(Boolean::class)
             if (ann == null) {
                 shortName = null
@@ -261,7 +354,7 @@ class ArgParser(args: Array<String>) {
         fun SetFlag(obj: Any, value: Boolean)
         {
             if (!prop.returnType.isSubtypeOf(Boolean::class.createType())) {
-                Error("Boolean property type expected for flag option: $propName")
+                throw Error("Boolean property type expected for flag option: $propName")
             }
             prop.set(obj, value)
         }
@@ -269,86 +362,25 @@ class ArgParser(args: Array<String>) {
         fun SetCount(obj: Any, value: Int)
         {
             if (prop.returnType.jvmErasure != Int::class) {
-                Error("Count option specified for non-integer property: $propName")
+                throw Error("Count option specified for non-integer property: $propName")
             }
             if (ann!!.required) {
-                Error("Count option should not be required: $propName")
+                throw Error("Count option should not be required: $propName")
             }
             prop.set(obj, value)
         }
 
         fun SetValue(obj: Any, value: String)
         {
-            when {
-                prop.returnType.jvmErasure == String::class -> {
-                    prop.set(obj, value)
-                }
+            setters[prop.returnType.jvmErasure]!!(obj, value)
+        }
 
-                prop.returnType.jvmErasure == Path::class -> {
-                    prop.set(obj, Paths.get(value))
-                }
-
-                prop.returnType.jvmErasure == Byte::class -> {
-                    prop.set(obj, try {
-                        value.toByte()
-                    } catch (e: Exception) {
-                        throw UsageError("Cannot convert argument value to byte for option ${GetName()}", e)
-                    })
-                }
-
-                prop.returnType.jvmErasure == Short::class -> {
-                    prop.set(obj, try {
-                        value.toShort()
-                    } catch (e: Exception) {
-                        throw UsageError("Cannot convert argument value to short for option ${GetName()}", e)
-                    })
-                }
-
-                prop.returnType.jvmErasure == Int::class -> {
-                    prop.set(obj, try {
-                        value.toInt()
-                    } catch (e: Exception) {
-                        throw UsageError("Cannot convert argument value to integer for option ${GetName()}", e)
-                    })
-                }
-
-                prop.returnType.jvmErasure == Long::class -> {
-                    prop.set(obj, try {
-                        value.toLong()
-                    } catch (e: Exception) {
-                        throw UsageError("Cannot convert argument value to long for option ${GetName()}", e)
-                    })
-                }
-
-                prop.returnType.jvmErasure == Float::class -> {
-                    prop.set(obj, try {
-                        value.toFloat()
-                    } catch (e: Exception) {
-                        throw UsageError("Cannot convert argument value to float for option ${GetName()}", e)
-                    })
-                }
-
-                prop.returnType.jvmErasure == Double::class -> {
-                    prop.set(obj, try {
-                        value.toDouble()
-                    } catch (e: Exception) {
-                        throw UsageError("Cannot convert argument value to double for option ${GetName()}", e)
-                    })
-                }
-
-                prop.returnType.jvmErasure == Boolean::class -> {
-                    val bVal = when (value.toLowerCase()) {
-                        "0", "false", "off", "no" -> false
-                        "1", "true", "on", "yes" -> true
-                        else -> throw UsageError("Invalid value for boolean option ${GetName()}: $value")
-                    }
-                    prop.set(obj, bVal)
-                }
-
-                else -> {
-                    throw Error("Unsupported property type: $propName: ${prop.returnType}")
-                }
+        fun SetAggregated(obj: Any, value: Any)
+        {
+            if (!isAggregated) {
+                throw Error("Aggregated set for non-aggregation property: $propName")
             }
+            prop.set(obj, value)
         }
 
         @Suppress("UNCHECKED_CAST")

@@ -14,5 +14,7 @@ annotation class CliOption(
     /** Description to show in help text. */
     val description: String = "",
     /** Argument name to show in help text. */
-    val argName: String = ""
+    val argName: String = "",
+    /** Treat the annotated field as mapped nested options. */
+    val aggregated: Boolean = false
 )
