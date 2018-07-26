@@ -8,6 +8,7 @@ object SizeFormat {
     /** Format size to display limited number of significant digits and magnitude suffix.  */
     operator fun invoke(size: Long): String
     {
+        @Suppress("NAME_SHADOWING")
         var size = size
         if (size == 0L) {
             return "0"
