@@ -37,6 +37,9 @@ abstract class QueuedContext: Context {
     override fun Submit(message: Message)
     {
         LockQueue {
+            if (!isStarted) {
+                throw Message.RejectedError("Context is not yet started")
+            }
             if (stopRequested) {
                 throw Message.RejectedError("Context is already stopped")
             }

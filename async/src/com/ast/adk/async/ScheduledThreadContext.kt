@@ -112,30 +112,25 @@ class ScheduledThreadContext(name: String,
     {
         super.Stop()
         while (true) {
-            val tokens = LockQueue {
-                val tokens = scheduledMessages.firstEntry()
-                if (tokens == null) {
-                    return@LockQueue null
-                }
-                scheduledMessages.remove(tokens.key)
-                var t: Token? = tokens.value
-                while (t != null) {
-                    t!!.isScheduled = false
-                    t = t!!.next
-                }
-                return@LockQueue tokens.value
-            }
-            if (tokens == null) {
-                break;
-            }
-            var t = tokens
-            while (t != null) {
+            var tokens: Token? =
+                LockQueue {
+                    val tokens = scheduledMessages.firstEntry() ?: return@LockQueue null
+                    scheduledMessages.remove(tokens.key)
+                    var t: Token? = tokens.value
+                    while (t != null) {
+                        t.isScheduled = false
+                        t = t.next
+                    }
+                    return@LockQueue tokens.value
+                } ?: break
+
+            while (tokens != null) {
                 try {
-                    t!!.message.Reject(Message.RejectedError("Context terminated"))
+                    tokens.message.Reject(Message.RejectedError("Context terminated"))
                 } catch (e: Throwable) {
                     log?.error("Exception in message reject handler", e)
                 }
-                t = t!!.next
+                tokens = tokens.next
             }
         }
     }

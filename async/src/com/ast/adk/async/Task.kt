@@ -8,7 +8,7 @@ import kotlin.coroutines.experimental.createCoroutine
 /**
  * Once submitted to the target context the task execution begins.
  */
-class Task<T>: Message, Awaitable<T?> {
+class Task<T>: Message, Awaitable<T> {
 
     /** Task result provided by the task handler when complete. */
     val result: Deferred<T> = Deferred.Create()
@@ -24,38 +24,6 @@ class Task<T>: Message, Awaitable<T?> {
         fun <T> CreateDef(handler: suspend () -> T): Task<T>
         {
             return Task(handler)
-        }
-    }
-
-    /** @param handler Handler which is invoked in the target context and provides task result. */
-    constructor(handler: () -> T)
-    {
-        this.handler = {
-            try {
-                result.SetResult(handler())
-            } catch (e: Throwable) {
-                result.SetError(e)
-            }
-        }
-    }
-
-    /** @param handler Handler which is invoked in the target context and provides task result. */
-    constructor(handler: suspend () -> T)
-    {
-        this.handler = {
-            handler.createCoroutine(object: Continuation<T> {
-                override val context: CoroutineContext = EmptyCoroutineContext
-
-                override fun resume(value: T)
-                {
-                    result.SetResult(value)
-                }
-
-                override fun resumeWithException(exception: Throwable)
-                {
-                    result.SetError(exception)
-                }
-            }).resume(Unit)
         }
     }
 
@@ -75,11 +43,43 @@ class Task<T>: Message, Awaitable<T?> {
         return this
     }
 
-    override suspend fun Await(): T?
+    override suspend fun Await(): T
     {
         return result.Await()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val handler: () -> Unit
+
+    /** @param handler Handler which is invoked in the target context and provides task result. */
+    private constructor(handler: () -> T)
+    {
+        this.handler = {
+            try {
+                result.SetResult(handler())
+            } catch (e: Throwable) {
+                result.SetError(e)
+            }
+        }
+    }
+
+    /** @param handler Handler which is invoked in the target context and provides task result. */
+    private constructor(handler: suspend () -> T)
+    {
+        this.handler = {
+            handler.createCoroutine(object: Continuation<T> {
+                override val context: CoroutineContext = EmptyCoroutineContext
+
+                override fun resume(value: T)
+                {
+                    result.SetResult(value)
+                }
+
+                override fun resumeWithException(exception: Throwable)
+                {
+                    result.SetError(exception)
+                }
+            }).resume(Unit)
+        }
+    }
 }

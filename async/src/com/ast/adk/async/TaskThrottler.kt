@@ -107,10 +107,11 @@ class TaskThrottler(private val maxParallel: Int,
     private fun OnTaskComplete(terminate: Boolean, error: Throwable?)
     {
         if (error != null) {
-            /* Only the first error is stored. */
             synchronized(this) {
                 if (this.error == null) {
                     this.error = error
+                } else {
+                    this.error!!.addSuppressed(error)
                 }
             }
         }

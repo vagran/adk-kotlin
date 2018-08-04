@@ -12,13 +12,13 @@ interface Awaitable<T> {
     }
 
     /** Asynchronous wait for result. Continuation is bound to the current context if any.
-     * Arbitrary context if no current context set.
+     * Error is thrown if no current context set.
      */
     suspend fun AwaitCurrent(): T
     {
         val ctx = Context.current
         if (ctx == null) {
-            throw Exception("No current context")
+            throw Error("No current context")
         } else {
             return Await(ctx)
         }

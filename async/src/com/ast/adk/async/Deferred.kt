@@ -90,8 +90,12 @@ class Deferred<T> private constructor(): Awaitable<T> {
                 {
                     synchronized(this) {
                         numComplete++
-                        if (error != null && this.error == null) {
-                            this.error = error
+                        if (error != null) {
+                            if (this.error == null) {
+                                this.error = error
+                            } else {
+                                this.error!!.addSuppressed(error)
+                            }
                         }
                         CheckComplete()
                     }

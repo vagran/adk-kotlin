@@ -35,12 +35,13 @@ interface Context {
             cont ->
 
             Submit(object: Message {
+                @Suppress("UNCHECKED_CAST")
                 override fun Invoke()
                 {
                     if (funcError != null) {
                         cont.resumeWithException(funcError)
                     } else {
-                        cont.resume(funcResult!!)
+                        cont.resume(funcResult as T)
                     }
                 }
 
@@ -77,7 +78,7 @@ interface Context {
     }
 
     /** Wrap the provided function so that the call is forwarded to the context. Result is ignored
-     * as well as any exception. Use Task when result is needed.
+     * as well as any exception. Use Task when the result is needed.
      */
     fun Wrap(func: () -> Any?): () -> Unit
     {
@@ -155,8 +156,8 @@ interface Context {
         }
     }
 
-    /** Run the provided function in the context. Result is ignored s well as any exception.
-     * Use Task when result is needed.
+    /** Run the provided function in the context. Result is ignored as well as any exception.
+     * Use Task when the result is needed.
      */
     fun <T> Run(func: () -> T)
     {
