@@ -108,7 +108,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
                         if (error == null) {
                             result.SetResult(Unit)
                         } else {
-                            result.SetError(error!!)
+                            result.SetError(error as Throwable)
                         }
                     }
                 }
