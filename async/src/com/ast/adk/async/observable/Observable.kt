@@ -117,11 +117,11 @@ interface Observable<out T> {
 
     fun SubscribeVoid(subscriber: ObservableSubscriberVoidFunc<T>): Subscription
     {
-        return Subscribe({
+        return Subscribe {
             value, error ->
             subscriber(value, error)
             null
-        })
+        }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

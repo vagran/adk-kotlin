@@ -1,6 +1,7 @@
 package com.ast.adk.async
 
 import com.ast.adk.Log
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.experimental.*
 
 typealias DeferredCallback<T> = (result: T?, error: Throwable?) -> Unit
@@ -115,6 +116,15 @@ class Deferred<T> private constructor(): Awaitable<T> {
 
             return Aggregator().result
         }
+
+        /** Waiting for result. */
+        private const val STATE_WAITING = 0
+        /** Modifying subscribers list. */
+        private const val STATE_SUBSCRIBING = 1
+        /** Setting result. */
+        private const val STATE_SETTING = 2
+        /** Result set. */
+        private const val STATE_READY = 3
     }
 
     fun SetResult(result: T)
@@ -133,15 +143,12 @@ class Deferred<T> private constructor(): Awaitable<T> {
      */
     fun Subscribe(cbk: DeferredCallback<in T>)
     {
-        var result: T? = null
-        var error: Throwable? = null
-        var isComplete = false
-
-        synchronized(this) {
-            result = this.result
-            error = this.error
-            isComplete = this.isComplete
-            if (!isComplete) {
+        while (true) {
+            val curState = state.get()
+            if (curState == STATE_WAITING) {
+                if (!state.compareAndSet(STATE_WAITING,  STATE_SUBSCRIBING)) {
+                    continue
+                }
                 if (subscriber == null) {
                     subscriber = cbk
                 } else {
@@ -150,10 +157,13 @@ class Deferred<T> private constructor(): Awaitable<T> {
                     }
                     subscribers!!.add(cbk)
                 }
+                state.set(STATE_WAITING)
+                break
             }
-        }
-        if (isComplete) {
-            cbk(result, error)
+            if (curState == STATE_READY) {
+                cbk(result, error)
+                break
+            }
         }
     }
 
@@ -200,55 +210,53 @@ class Deferred<T> private constructor(): Awaitable<T> {
     @Suppress("UNCHECKED_CAST")
     fun Get(): T
     {
-        synchronized(this) {
-            if (!isComplete) {
-                throw IllegalStateException("Deferred is not yet complete")
-            }
-            if (error != null) {
-                throw Exception("Deferred complete with error", error)
-            }
-            return result as T
+        if (state.get() != STATE_READY) {
+            throw IllegalStateException("Deferred is not yet complete")
         }
+        if (error != null) {
+            throw Exception("Deferred complete with error", error)
+        }
+        return result as T
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     /** Either result value or error. Result may be null as well. */
-    private var result: T? = null
-    private var error: Throwable? = null
-    private var isComplete: Boolean = false
+    @Volatile private var result: T? = null
+    @Volatile private var error: Throwable? = null
+    private val state = AtomicInteger(STATE_WAITING)
 
     /** Most common case is just one subscriber so do not allocate list if possible. */
-    private var subscriber: DeferredCallback<in T>? = null
+    @Volatile private var subscriber: DeferredCallback<in T>? = null
     /** List for a case there are more than one subscriber. */
-    private var subscribers: MutableList<DeferredCallback<in T>>? = null
+    @Volatile private var subscribers: MutableList<DeferredCallback<in T>>? = null
 
     private constructor(result: T?, error: Throwable?): this()
     {
         this.result = result
         this.error = error
-        isComplete = true
+        state.set(STATE_READY)
     }
 
     private fun SetResult(result: T?, error: Throwable?)
     {
-        var subscriber: DeferredCallback<in T>? = null
-        var subscribers: MutableList<DeferredCallback<in T>>? = null
-
-        synchronized(this) {
-            if (isComplete) {
+        while (true) {
+            val curState = state.get()
+            if (curState == STATE_READY) {
                 val e = Exception("Result already set")
                 if (error != null) {
                     e.addSuppressed(error)
                 }
                 throw e
             }
-            isComplete = true
-            this.result = result
-            this.error = error
-            subscriber = this.subscriber
-            this.subscriber = null
-            subscribers = this.subscribers
-            this.subscribers = null
+            if (curState == STATE_WAITING) {
+                if (!state.compareAndSet(STATE_WAITING, STATE_SETTING)) {
+                    continue
+                }
+                this.result = result
+                this.error = error
+                state.set(STATE_READY)
+                break
+            }
         }
 
         if (subscriber != null) {
@@ -256,8 +264,9 @@ class Deferred<T> private constructor(): Awaitable<T> {
                 subscriber!!.invoke(result, error)
             } catch (e: Throwable) {
                 System.err.println("Exception in Deferred subscriber invocation:\n" +
-                                   Log.GetStackTrace(e))
+                                       Log.GetStackTrace(e))
             }
+            subscriber = null
         }
         if (subscribers != null) {
             for (cbk in subscribers!!) {
@@ -265,9 +274,10 @@ class Deferred<T> private constructor(): Awaitable<T> {
                     cbk(result, error)
                 } catch (e: Throwable) {
                     System.err.println("Exception in Deferred subscriber invocation:\n" +
-                                       Log.GetStackTrace(e))
+                                           Log.GetStackTrace(e))
                 }
             }
+            subscribers = null
         }
     }
 }
