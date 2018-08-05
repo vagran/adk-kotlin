@@ -5,6 +5,7 @@ module com.ast.adk.async.mongodb {
     requires mongodb.driver.core;
     requires bson;
     requires mongodb.driver.async;
+    requires kotlin.reflect;
 
     exports com.ast.adk.async.db.mongo;
 }
