@@ -1,4 +1,5 @@
 import com.ast.adk.async.Deferred
+import com.ast.adk.async.Map
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -180,5 +181,37 @@ private class DeferredTest {
         def.SetResult(null)
         assertTrue(done)
         assertNull(res)
+    }
+
+    @Test
+    fun MapTest()
+    {
+        val def = Deferred.ForResult(42)
+        var cbkRes: String? = null
+        def.Map { x -> (x + 10).toString() }
+            .Subscribe {
+            r, e ->
+            cbkRes = r
+            assertNull(e)
+        }
+        assertEquals("52", cbkRes)
+    }
+
+    @Test
+    fun MapErrorTest()
+    {
+        val def = Deferred.ForError<Int>(Error("test"))
+        var cbkRes: String? = null
+        def.Map {
+            _, e ->
+            assertNotNull(e)
+            return@Map e?.message
+        }
+            .Subscribe {
+                r, e ->
+                cbkRes = r
+                assertNull(e)
+            }
+        assertEquals("test", cbkRes)
     }
 }
