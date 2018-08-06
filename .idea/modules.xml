@@ -5,12 +5,15 @@
       <module fileurl="file://$PROJECT_DIR$/../adk-java/src/DI/DI.iml" filepath="$PROJECT_DIR$/../adk-java/src/DI/DI.iml" />
       <module fileurl="file://$PROJECT_DIR$/adk/adk.iml" filepath="$PROJECT_DIR$/adk/adk.iml" />
       <module fileurl="file://$PROJECT_DIR$/argparser/argparser.iml" filepath="$PROJECT_DIR$/argparser/argparser.iml" />
+      <module fileurl="file://$PROJECT_DIR$/argparser/test/argparser.test.iml" filepath="$PROJECT_DIR$/argparser/test/argparser.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/async/async.iml" filepath="$PROJECT_DIR$/async/async.iml" />
       <module fileurl="file://$PROJECT_DIR$/async-mongodb/async-mongodb.iml" filepath="$PROJECT_DIR$/async-mongodb/async-mongodb.iml" />
+      <module fileurl="file://$PROJECT_DIR$/async-mongodb/test/async-mongodb.test.iml" filepath="$PROJECT_DIR$/async-mongodb/test/async-mongodb.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/async/test/async.test.iml" filepath="$PROJECT_DIR$/async/test/async.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/diff/diff.iml" filepath="$PROJECT_DIR$/diff/diff.iml" />
+      <module fileurl="file://$PROJECT_DIR$/diff/test/diff.test.iml" filepath="$PROJECT_DIR$/diff/test/diff.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/log.iml" filepath="$PROJECT_DIR$/log/log.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/test/log.test.iml" filepath="$PROJECT_DIR$/log/test/log.test.iml" />
-      <module fileurl="file://$PROJECT_DIR$/tmp-sandbox/tmp-sandbox.iml" filepath="$PROJECT_DIR$/tmp-sandbox/tmp-sandbox.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/wdk.iml" filepath="$PROJECT_DIR$/.idea/modules/wdk.iml" />
     </modules>
   </component>

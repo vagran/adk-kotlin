@@ -1,4 +1,4 @@
-module com.ast.adk.log {
+module tmp {
     requires kotlin.stdlib;
     requires kotlin.stdlib.jdk8;
 

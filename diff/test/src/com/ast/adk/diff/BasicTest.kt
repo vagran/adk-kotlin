@@ -1,7 +1,5 @@
-package com.ast.sdk.diff.test
+package com.ast.adk.diff
 
-import com.ast.adk.diff.Diff
-import com.ast.adk.diff.DiffCalculator
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
