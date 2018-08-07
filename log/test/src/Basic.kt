@@ -1,10 +1,8 @@
-import com.ast.adk.log.Configuration
-import com.ast.adk.log.Logger
-import com.ast.adk.log.ParseDuration
-import com.ast.adk.log.ParseSize
+import com.ast.adk.log.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import kotlin.test.assertEquals
+import kotlin.concurrent.thread
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -68,5 +66,44 @@ class Basic {
         assertEquals(42L * 1024L, ParseSize("42k"))
         assertEquals(42L * 1024L * 1024L, ParseSize("42M"))
         assertEquals(42L * 1024L * 1024L * 1024, ParseSize("42G"))
+    }
+
+    @Test
+    fun LogQueueTest()
+    {
+        val queue = LogQueue<Int>(1000, true)
+
+        val totalMessages = 1_000_000
+
+        var consumerError: Throwable? = null
+        val consumer = thread(name = "consumer") {
+            try {
+                for (i in 1..totalMessages) {
+                    val msg = queue.Pop()
+                    assertEquals(i, msg)
+                }
+                assertNull(queue.Pop())
+            } catch (e: Throwable) {
+                consumerError = e
+            }
+        }
+
+        var producerError: Throwable? = null
+        val producer = thread(name = "producer") {
+            try {
+                for (i in 1..totalMessages) {
+                    assertTrue(queue.Push(i))
+                }
+            } catch (e: Throwable) {
+                producerError = e
+            }
+        }
+
+        producer.join()
+        queue.Stop()
+        consumer.join()
+
+        assertNull(producerError)
+        assertNull(consumerError)
     }
 }

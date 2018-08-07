@@ -30,7 +30,10 @@ class LogQueue<T>(private val maxSize: Int,
                 continue
             }
 
-            if (curState != STATE_READY && curState != STATE_WAIT_EMPTY) {
+            if (curState != STATE_READY &&
+                curState != STATE_WAIT_EMPTY &&
+                curState != STATE_WAIT_EMPTY_FILLED) {
+
                 continue
             }
 
@@ -50,9 +53,16 @@ class LogQueue<T>(private val maxSize: Int,
                 return false
             }
 
-            val doNotify = curState == STATE_WAIT_EMPTY && size >= maxSize / 2
+            val doNotify = curState == STATE_WAIT_EMPTY_FILLED && size >= maxSize / 2
             queue.addLast(msg)
-            state.set(STATE_READY)
+
+            state.set(
+                if (curState == STATE_WAIT_EMPTY || curState == STATE_WAIT_EMPTY_FILLED) {
+                    STATE_WAIT_EMPTY_FILLED
+                } else {
+                    STATE_READY
+                })
+
             if (doNotify) {
                 Notify()
             }
@@ -78,7 +88,10 @@ class LogQueue<T>(private val maxSize: Int,
                 continue
             }
 
-            if (curState != STATE_READY && curState != STATE_WAIT_FULL) {
+            if (curState != STATE_READY &&
+                curState != STATE_WAIT_FULL &&
+                curState != STATE_WAIT_EMPTY_FILLED) {
+
                 continue
             }
 
@@ -116,7 +129,8 @@ class LogQueue<T>(private val maxSize: Int,
 
             if (curState != STATE_READY &&
                 curState != STATE_WAIT_EMPTY &&
-                curState != STATE_WAIT_FULL) {
+                curState != STATE_WAIT_FULL &&
+                curState != STATE_WAIT_EMPTY_FILLED) {
 
                 continue
             }
@@ -174,7 +188,8 @@ private const val STATE_PUSH =1
 private const val STATE_POP = 2
 private const val STATE_WAIT_FULL = 3
 private const val STATE_WAIT_EMPTY = 4
-private const val STATE_STOPPED = 5
+private const val STATE_WAIT_EMPTY_FILLED = 5
+private const val STATE_STOPPED = 6
 
 /** Interval in ms for checking if queue is not empty on consumer side. */
 private const val EMPTY_CHECK_INTERVAL = 100L
