@@ -1,6 +1,5 @@
 package com.ast.adk.log
 
-import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -54,7 +53,7 @@ class LogQueue<T>(private val maxSize: Int,
             }
 
             val doNotify = curState == STATE_WAIT_EMPTY_FILLED && size >= maxSize / 2
-            queue.addLast(msg)
+            queue.Push(msg)
 
             state.set(
                 if (curState == STATE_WAIT_EMPTY || curState == STATE_WAIT_EMPTY_FILLED) {
@@ -79,7 +78,7 @@ class LogQueue<T>(private val maxSize: Int,
             val curState = state.get()
 
             if (curState == STATE_STOPPED) {
-                return queue.pollFirst()
+                return queue.Poll()
             }
 
             if (curState == STATE_WAIT_EMPTY) {
@@ -99,7 +98,7 @@ class LogQueue<T>(private val maxSize: Int,
                 continue
             }
 
-            val msg = queue.pollFirst()
+            val msg = queue.Poll()
 
             if (msg == null) {
                 state.set(STATE_WAIT_EMPTY)
@@ -145,7 +144,7 @@ class LogQueue<T>(private val maxSize: Int,
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    private val queue = ArrayDeque<T>(maxSize)
+    private val queue = VolatileQueue<T>(maxSize)
     private val state = AtomicInteger(STATE_READY)
 
     init {

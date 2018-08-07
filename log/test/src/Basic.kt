@@ -70,51 +70,27 @@ class Basic {
     }
 
     @Test
-    fun LogQueueTest()
+    fun VolatileQueueTest()
     {
-        val queue = LogQueue<Int>(1000, true)
-
-        val totalMessages = 1_000_000
-
-        var consumerError: Throwable? = null
-        val consumer = thread(name = "consumer") {
-            try {
-                for (i in 1..totalMessages) {
-                    val msg = queue.Pop()
-                    assertEquals(i, msg)
-                }
-                assertNull(queue.Pop())
-            } catch (e: Throwable) {
-                consumerError = e
+        val queue = VolatileQueue<Int>(100)
+        assertEquals(0, queue.size)
+        for (j in 1..3) {
+            for (i in 1..100) {
+                queue.Push(i)
+                assertEquals(i, queue.size)
+            }
+            for (i in 1..100) {
+                val item = queue.Pop()
+                assertEquals(i, item)
+                assertEquals(100 - i, queue.size)
             }
         }
-
-        var producerError: Throwable? = null
-        val producer = thread(name = "producer") {
-            try {
-                for (i in 1..totalMessages) {
-                    assertTrue(queue.Push(i))
-                }
-            } catch (e: Throwable) {
-                producerError = e
-            }
-        }
-
-        producer.join()
-        queue.Stop()
-        consumer.join()
-
-        assertNull(producerError)
-        assertNull(consumerError)
     }
 
-    @Test
-    fun LogQueueConcurrentTest()
+    private fun TestQueue(queueSize: Int, numThreads: Int, totalMessages: Int)
     {
-        val queue = LogQueue<Int>(1000, true)
+        val queue = LogQueue<Int>(queueSize, true)
 
-        val totalMessages = 10_000_000
-        val numThreads = 4
         val numProduced = AtomicInteger()
         var producerError: Throwable? = null
         val producers = Array(numThreads) {
@@ -158,8 +134,41 @@ class Basic {
             consumers[i].join()
         }
 
+        println("numProduced: ${numProduced.get()}")
+        if (producerError != null) {
+            System.err.println("Producer error:")
+            producerError!!.printStackTrace()
+        }
+        if (consumerError != null) {
+            System.err.println("Consumer error:")
+            producerError!!.printStackTrace()
+        }
         assertEquals(totalMessages, numConsumed.get())
         assertNull(producerError)
         assertNull(consumerError)
+    }
+
+    @Test
+    fun LogQueueTest()
+    {
+        TestQueue(1000, 1, 1_000_000)
+    }
+
+    @Test
+    fun LogQueueConcurrentTest()
+    {
+        TestQueue(1000, 4, 10_000_000)
+    }
+
+    @Test
+    fun LogQueuePartialTest()
+    {
+        TestQueue(1_000_000, 1, 900_000)
+    }
+
+    @Test
+    fun LogQueuePartialConcurrentTest()
+    {
+        TestQueue(10_000_000, 4, 9_900_000)
     }
 }
