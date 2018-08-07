@@ -1,4 +1,5 @@
 import com.ast.adk.log.Configuration
+import com.ast.adk.log.Logger
 import com.ast.adk.log.ParseDuration
 import com.ast.adk.log.ParseSize
 import org.junit.jupiter.api.Test
@@ -46,6 +47,8 @@ class Basic {
         """
         val config = Configuration.FromJson(configStr)
 
+        val log = Logger()
+        log.Info("%d %f", 42, 13.0)
     }
 
     @Test
