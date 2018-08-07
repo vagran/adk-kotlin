@@ -26,7 +26,7 @@ class LogQueue<T>(private val maxSize: Int,
             }
 
             if (curState == STATE_WAIT_FULL) {
-                Wait(STATE_WAIT_FULL)
+                WaitFull()
                 continue
             }
 
@@ -42,7 +42,7 @@ class LogQueue<T>(private val maxSize: Int,
             if (size >= maxSize) {
                 if (isBlocking) {
                     state.set(STATE_WAIT_FULL)
-                    Wait(STATE_WAIT_FULL)
+                    WaitFull()
                     continue
                 }
                 /* Discard the message. */
@@ -74,7 +74,7 @@ class LogQueue<T>(private val maxSize: Int,
 
             if (curState == STATE_WAIT_EMPTY) {
                 /* Multiple consumers supported. */
-                Wait(STATE_WAIT_EMPTY)
+                WaitEmpty()
                 continue
             }
 
@@ -90,11 +90,15 @@ class LogQueue<T>(private val maxSize: Int,
 
             if (msg == null) {
                 state.set(STATE_WAIT_EMPTY)
-                Wait(STATE_WAIT_EMPTY)
+                WaitEmpty()
                 continue
             }
 
             state.set(STATE_READY)
+
+            if (curState == STATE_WAIT_FULL) {
+                Notify()
+            }
 
             return msg
         }
@@ -130,12 +134,28 @@ class LogQueue<T>(private val maxSize: Int,
     private val queue = ArrayDeque<T>(maxSize)
     private val state = AtomicInteger(STATE_READY)
 
+    init {
+        if (maxSize < 2) {
+            throw IllegalArgumentException("maxSize should be at least 2: $maxSize")
+        }
+    }
+
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
-    private fun Wait(whileState: Int)
+    private fun WaitFull()
     {
         synchronized(queue) {
-            while (state.get() == whileState) {
+            while (state.get() == STATE_WAIT_FULL) {
                 (queue as java.lang.Object).wait()
+            }
+        }
+    }
+
+    @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
+    private fun WaitEmpty()
+    {
+        synchronized(queue) {
+            while (state.get() == STATE_WAIT_EMPTY) {
+                (queue as java.lang.Object).wait(EMPTY_CHECK_INTERVAL)
             }
         }
     }
@@ -155,3 +175,6 @@ private const val STATE_POP = 2
 private const val STATE_WAIT_FULL = 3
 private const val STATE_WAIT_EMPTY = 4
 private const val STATE_STOPPED = 5
+
+/** Interval in ms for checking if queue is not empty on consumer side. */
+private const val EMPTY_CHECK_INTERVAL = 100L
