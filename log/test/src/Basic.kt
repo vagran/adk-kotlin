@@ -1,5 +1,6 @@
 import com.ast.adk.log.Configuration
 import com.ast.adk.log.ParseDuration
+import com.ast.adk.log.ParseSize
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import kotlin.test.assertEquals
@@ -55,5 +56,14 @@ class Basic {
         assertEquals(2, d.toHoursPart())
         assertEquals(3, d.toMinutesPart())
         assertEquals(4, d.toSecondsPart())
+    }
+
+    @Test
+    fun ParseSizeTest()
+    {
+        assertEquals(42L, ParseSize("42"))
+        assertEquals(42L * 1024L, ParseSize("42k"))
+        assertEquals(42L * 1024L * 1024L, ParseSize("42M"))
+        assertEquals(42L * 1024L * 1024L * 1024, ParseSize("42G"))
     }
 }
