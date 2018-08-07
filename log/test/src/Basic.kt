@@ -2,6 +2,7 @@ import com.ast.adk.log.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
 
@@ -103,6 +104,61 @@ class Basic {
         queue.Stop()
         consumer.join()
 
+        assertNull(producerError)
+        assertNull(consumerError)
+    }
+
+    @Test
+    fun LogQueueConcurrentTest()
+    {
+        val queue = LogQueue<Int>(1000, true)
+
+        val totalMessages = 10_000_000
+        val numThreads = 4
+        val numProduced = AtomicInteger()
+        var producerError: Throwable? = null
+        val producers = Array(numThreads) {
+            idx ->
+            thread(name = "producer-$idx") {
+                try {
+                    while (true) {
+                        val msg = numProduced.incrementAndGet()
+                        if (msg > totalMessages) {
+                            break
+                        }
+                        queue.Push(msg)
+                    }
+                } catch (e: Throwable) {
+                    producerError = e
+                }
+            }
+        }
+
+        var consumerError: Throwable? = null
+        val numConsumed = AtomicInteger()
+        val consumers = Array(numThreads) {
+            idx ->
+            thread(name = "consumer-$idx") {
+                try {
+                    while (true) {
+                        queue.Pop() ?: break
+                        numConsumed.incrementAndGet()
+                    }
+                } catch (e: Throwable) {
+                    consumerError = e
+                }
+            }
+        }
+
+        for (i in 0 until numThreads) {
+            producers[i].join()
+        }
+        queue.Stop()
+        for (i in 0 until numThreads) {
+            consumers[i].join()
+        }
+
+        assertEquals(totalMessages, numConsumed.get())
         assertNull(producerError)
         assertNull(consumerError)
     }
