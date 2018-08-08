@@ -15,6 +15,11 @@ class Basic {
         //language=JSON5
         val configStr = """
 {
+    "settings": {
+        "queueSize": 10000,
+        "queueCheckInterval": 100,
+        "overflowBlocks": true
+    },
     "appenders": {
         "myConsoleAppender": {
             "type": "console",
@@ -36,7 +41,9 @@ class Basic {
             "appenders": ["myConsoleAppender", "myFileAppender"]
         },
         "my.test.logger": {
-            "level": "warning"
+            "level": "warning",
+            "appenders": ["myConsoleAppender"],
+            "additiveAppenders": false
         },
         "my.test": {
             "level": "info"
@@ -45,9 +52,11 @@ class Basic {
 }
         """
         val config = Configuration.FromJson(configStr)
-
-        val log = Logger()
+        val logManager = LogManager()
+        logManager.Initialize(config)
+        val log = logManager.GetLogger("my.test.aaa")
         log.Info("%d %f", 42, 13.0)
+        logManager.Shutdown()
     }
 
     @Test
@@ -166,5 +175,24 @@ class Basic {
     fun LogQueuePartialConcurrentTest()
     {
         TestQueue(10_000_000, 4, 9_900_000, 100)
+    }
+
+    @Test
+    fun LoggerNameTest()
+    {
+        assertEquals(0, LoggerName("").components.size)
+        assertEquals(listOf("test"), LoggerName("test").components)
+        assertEquals(listOf("test"), LoggerName("...test...").components)
+        assertEquals(listOf("test", "comp1", "comp2"),
+                     LoggerName("test.comp1.comp2").components)
+        assertEquals(listOf("test", "comp1", "comp2"),
+                     LoggerName(".test..comp1.comp2.").components)
+    }
+
+    @Test
+    fun PatternTest()
+    {
+        val pat = Pattern("%{time:HH:mm:ss.SSS} [%thread] %{level:-5} %logger - %msg%n")
+
     }
 }

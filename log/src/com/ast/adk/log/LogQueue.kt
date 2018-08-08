@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Queue for transferring log messages asynchronously to appenders. Should work mostly lock-less.
- * Supports multiple concurrent producers and single consumer.
+ * Supports multiple concurrent producers and a single consumer.
  * @param maxSize Maximal queue size. When the limit is reached the push method either block or new
  *      message is discarded depending on isBlocking parameter.
  * @param emptyCheckInterval Interval in ms for checking if queue is not empty on consumer side.

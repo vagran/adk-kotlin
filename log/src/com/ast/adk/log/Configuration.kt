@@ -11,10 +11,31 @@ import java.util.*
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 
-class Configuration(val appenders: List<Configuration.Appender>,
-                    val loggers: List<Configuration.Logger>) {
+class Configuration(val settings: Settings,
+                    val appenders: List<Configuration.Appender>,
+                    val loggers: Map<LoggerName, Configuration.Logger>) {
 
     companion object {
+        fun Default(): Configuration
+        {
+            val appender = Appender("console").apply {
+                type = Appender.Type.CONSOLE
+                pattern = "%{time:HH:mm:ss.SSS} [%thread] %{level:-5} %logger - %msg"
+                level = LogLevel.TRACE
+                consoleParams = Appender.ConsoleParams().apply {
+                    target = Appender.ConsoleParams.Target.STDERR
+                }
+            }
+            val appenders = listOf(appender)
+
+            val logger = Logger(LoggerName.ROOT).apply {
+                level = LogLevel.TRACE
+                this.appenders = appenders
+            }
+
+            return Configuration(Settings(), appenders, mapOf(logger.name to logger))
+        }
+
         fun FromJson(json: String): Configuration
         {
             val gson = GsonBuilder().create()
@@ -40,8 +61,15 @@ class Configuration(val appenders: List<Configuration.Appender>,
             if (obj !is Map<*, *>) {
                 throw Exception("Invalid configuration")
             }
+
+            val settings = Settings()
+            if ("settings" in obj) {
+                val settingsObj = obj["settings"] as? Map<String, Any?>
+                    ?: throw Exception("Invalid settings configuration")
+                settings.FromJsonObj(settingsObj)
+            }
+
             val appenders = TreeMap<String, Appender>()
-            val loggers = TreeMap<String, Logger>()
             if ("appenders" in obj) {
                 val appendersObj = obj["appenders"] as? Map<String, Map<String, Any?>>
                     ?: throw Exception("Invalid appenders configuration")
@@ -52,17 +80,44 @@ class Configuration(val appenders: List<Configuration.Appender>,
                     appenders[name] = Appender(name).also { it.FromJsonObj(config) }
                 }
             }
+
+            val loggers = TreeMap<LoggerName, Logger>()
             if ("loggers" in obj) {
                 val loggersObj = obj["loggers"] as? Map<String, Map<String, Any?>>
                     ?: throw Exception("Invalid loggers configuration")
                 for ((name, config) in loggersObj) {
-                    if (name in loggers) {
+                    val loggerName = if (name == "root") {
+                        LoggerName.ROOT
+                    } else {
+                        LoggerName(name)
+                    }
+                    if (loggerName in loggers) {
                         throw Exception("Duplicated logger name: $name")
                     }
-                    loggers[name] = Logger(name).also { it.FromJsonObj(config, appenders) }
+                    loggers[loggerName] = Logger(loggerName).also { it.FromJsonObj(config, appenders) }
                 }
             }
-            return Configuration(ArrayList(appenders.values), ArrayList(loggers.values))
+
+            return Configuration(settings, ArrayList(appenders.values), loggers)
+        }
+    }
+
+    class Settings {
+        var queueSize = 10000
+        var queueCheckInterval = 100L
+        var overflowBlocks = true
+
+        fun FromJsonObj(obj: Map<String, Any?>)
+        {
+            if ("queueSize" in obj) {
+                queueSize = (obj["queueSize"] as Double).toInt()
+            }
+            if ("queueCheckInterval" in obj) {
+                queueCheckInterval = (obj["queueCheckInterval"] as Double).toLong()
+            }
+            if ("overflowBlocks" in obj) {
+                overflowBlocks = obj["overflowBlocks"] as Boolean
+            }
         }
     }
 
@@ -164,9 +219,10 @@ class Configuration(val appenders: List<Configuration.Appender>,
         }
     }
 
-    class Logger(val name: String) {
+    class Logger(val name: LoggerName) {
         var level: LogLevel? = null
         lateinit var appenders: List<Appender>
+        var additiveAppenders = true
 
         @Suppress("UNCHECKED_CAST")
         fun FromJsonObj(obj: Map<String, Any?>, knownAppenders: Map<String, Appender>)
@@ -187,7 +243,41 @@ class Configuration(val appenders: List<Configuration.Appender>,
                     _appenders.add(knownAppenders[appName]!!)
                 }
             }
+            if ("additiveAppenders" in obj) {
+                additiveAppenders = obj["additiveAppenders"] as Boolean
+            } else {
+                additiveAppenders = true
+            }
             appenders = _appenders
+        }
+    }
+
+    class LoggerParams {
+        lateinit var level: LogLevel
+        lateinit var appenders: List<Appender>
+    }
+
+    /** Check the specified logger name against the configuration and infer its parameters. */
+    fun ConfigureLogger(name: String): LoggerParams
+    {
+        val loggerName = LoggerName(name)
+        val appenders = ArrayList<Appender>()
+        var level = LogLevel.TRACE
+
+        for (i in 0..loggerName.length) {
+            val logger = loggers[loggerName.Prefix(i)] ?: continue
+            if (logger.level != null) {
+                level = logger.level!!
+            }
+            if (!logger.additiveAppenders) {
+                appenders.clear()
+            }
+            appenders.addAll(logger.appenders)
+        }
+
+        return LoggerParams().apply {
+            this.level = level
+            this.appenders = appenders
         }
     }
 }

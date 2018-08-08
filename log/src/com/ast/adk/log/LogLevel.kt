@@ -1,13 +1,16 @@
 package com.ast.adk.log
 
-enum class LogLevel {
-    TRACE,
-    DEBUG,
-    INFO,
-    WARNING,
-    ERROR;
+enum class LogLevel(val displayName: String) {
+    TRACE("TRACE"),
+    DEBUG("DEBUG"),
+    INFO("INFO"),
+    WARNING("WARN"),
+    ERROR("ERROR");
 
     companion object {
+        val MIN = TRACE
+        val MAX = ERROR
+
         fun ByName(name: String): LogLevel
         {
             try {

@@ -2,10 +2,10 @@ package com.ast.adk.log
 
 import java.util.concurrent.atomic.AtomicReferenceArray
 
-/** Volatile queue to use in log messages queue. This class is not supposed to be used as thread-safe
- * out of the box. It just provides volatile access to queue data so that it can be used by lock-less
- * algorithms. It is up to the caller to ensure the capacity is not exceeded otherwise an exception
- * is thrown.
+/** Volatile queue to use in log messages queue. This class is not supposed to be used as
+ * thread-safe out of the box. It just provides volatile access to queue data so that it can be used
+ * by lock-less algorithms. It is up to the caller to ensure that the capacity is not exceeded
+ * otherwise an exception is thrown.
  */
 class VolatileQueue<T>(val capacity: Int) {
 
