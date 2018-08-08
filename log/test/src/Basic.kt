@@ -87,9 +87,10 @@ class Basic {
         }
     }
 
-    private fun TestQueue(queueSize: Int, numThreads: Int, totalMessages: Int)
+    private fun TestQueue(queueSize: Int, numThreads: Int, totalMessages: Int,
+                          emptyCheckInterval: Long)
     {
-        val queue = LogQueue<Int>(queueSize, true)
+        val queue = LogQueue<Int>(queueSize, true, emptyCheckInterval)
 
         val numProduced = AtomicInteger()
         var producerError: Throwable? = null
@@ -102,7 +103,7 @@ class Basic {
                         if (msg > totalMessages) {
                             break
                         }
-                        queue.Push(msg)
+                        assertTrue(queue.Push(msg))
                     }
                 } catch (e: Throwable) {
                     producerError = e
@@ -112,17 +113,14 @@ class Basic {
 
         var consumerError: Throwable? = null
         val numConsumed = AtomicInteger()
-        val consumers = Array(numThreads) {
-            idx ->
-            thread(name = "consumer-$idx") {
-                try {
-                    while (true) {
-                        queue.Pop() ?: break
-                        numConsumed.incrementAndGet()
-                    }
-                } catch (e: Throwable) {
-                    consumerError = e
+        val consumer = thread(name = "consumer") {
+            try {
+                while (true) {
+                    queue.Pop() ?: break
+                    numConsumed.incrementAndGet()
                 }
+            } catch (e: Throwable) {
+                consumerError = e
             }
         }
 
@@ -130,9 +128,7 @@ class Basic {
             producers[i].join()
         }
         queue.Stop()
-        for (i in 0 until numThreads) {
-            consumers[i].join()
-        }
+        consumer.join()
 
         println("numProduced: ${numProduced.get()}")
         if (producerError != null) {
@@ -151,24 +147,24 @@ class Basic {
     @Test
     fun LogQueueTest()
     {
-        TestQueue(1000, 1, 1_000_000)
+        TestQueue(1000, 1, 1_000_000, 100)
     }
 
     @Test
     fun LogQueueConcurrentTest()
     {
-        TestQueue(1000, 4, 10_000_000)
+        TestQueue(1000, 4, 10_000_000, 100)
     }
 
     @Test
     fun LogQueuePartialTest()
     {
-        TestQueue(1_000_000, 1, 900_000)
+        TestQueue(1_000_000, 1, 900_000, 100)
     }
 
     @Test
     fun LogQueuePartialConcurrentTest()
     {
-        TestQueue(10_000_000, 4, 9_900_000)
+        TestQueue(10_000_000, 4, 9_900_000, 100)
     }
 }

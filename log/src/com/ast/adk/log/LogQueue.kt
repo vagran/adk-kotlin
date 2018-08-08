@@ -4,11 +4,17 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Queue for transferring log messages asynchronously to appenders. Should work mostly lock-less.
+ * Supports multiple concurrent producers and single consumer.
  * @param maxSize Maximal queue size. When the limit is reached the push method either block or new
  *      message is discarded depending on isBlocking parameter.
+ * @param emptyCheckInterval Interval in ms for checking if queue is not empty on consumer side.
+ *      Consumer is periodically waken up to check if queue is not empty to minimize synchronization
+ *      on the producers side. If the queue is filled above a threshold level, a producer will wake
+ *      up the consumer if it missed this.
  */
 class LogQueue<T>(private val maxSize: Int,
-                  private val isBlocking: Boolean) {
+                  private val isBlocking: Boolean,
+                  private val emptyCheckInterval: Long) {
 
     /** Push message into the queue. May block if the queue is full and isBlocking parameter is set.
      * The message is instantly discarded if the queue stopped.
@@ -52,7 +58,7 @@ class LogQueue<T>(private val maxSize: Int,
                 return false
             }
 
-            val doNotify = curState == STATE_WAIT_EMPTY_FILLED && size >= maxSize / 2
+            val doNotify = curState == STATE_WAIT_EMPTY_FILLED && size >= wakeThreshold
             queue.Push(msg)
 
             state.set(
@@ -82,9 +88,7 @@ class LogQueue<T>(private val maxSize: Int,
             }
 
             if (curState == STATE_WAIT_EMPTY) {
-                /* Multiple consumers supported. */
-                WaitEmpty()
-                continue
+                throw Error("Multiple consumers not supported")
             }
 
             if (curState != STATE_READY &&
@@ -146,6 +150,7 @@ class LogQueue<T>(private val maxSize: Int,
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val queue = VolatileQueue<T>(maxSize)
     private val state = AtomicInteger(STATE_READY)
+    private val wakeThreshold = maxSize / 2
 
     init {
         if (maxSize < 2) {
@@ -168,7 +173,7 @@ class LogQueue<T>(private val maxSize: Int,
     {
         synchronized(queue) {
             while (state.get() == STATE_WAIT_EMPTY) {
-                (queue as java.lang.Object).wait(EMPTY_CHECK_INTERVAL)
+                (queue as java.lang.Object).wait(emptyCheckInterval)
             }
         }
     }
@@ -190,5 +195,3 @@ private const val STATE_WAIT_EMPTY = 4
 private const val STATE_WAIT_EMPTY_FILLED = 5
 private const val STATE_STOPPED = 6
 
-/** Interval in ms for checking if queue is not empty on consumer side. */
-private const val EMPTY_CHECK_INTERVAL = 100L
