@@ -175,5 +175,5 @@ abstract class Logger(private var thresholdLevel: LogLevel) {
         WriteLog(level, msg, exception)
     }
 
-    protected abstract fun WriteLog(level: LogLevel, msg: String, exception: Throwable?)
+    protected abstract fun WriteLog(level: LogLevel, msgText: String, exception: Throwable?)
 }

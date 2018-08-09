@@ -16,11 +16,13 @@ class Configuration(val settings: Settings,
                     val loggers: Map<LoggerName, Configuration.Logger>) {
 
     companion object {
+        const val DEFAULT_PATTERN = "%{time:HH:mm:ss.SSS} [%thread] %{level:-5} %logger - %msg"
+
         fun Default(): Configuration
         {
             val appender = Appender("console").apply {
                 type = Appender.Type.CONSOLE
-                pattern = "%{time:HH:mm:ss.SSS} [%thread] %{level:-5} %logger - %msg"
+                pattern = DEFAULT_PATTERN
                 level = LogLevel.TRACE
                 consoleParams = Appender.ConsoleParams().apply {
                     target = Appender.ConsoleParams.Target.STDERR

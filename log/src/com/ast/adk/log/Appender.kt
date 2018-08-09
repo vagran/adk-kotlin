@@ -1,7 +1,17 @@
 package com.ast.adk.log
 
-abstract class Appender(protected val pattern: Pattern,
-                        protected val level: LogLevel) {
+abstract class Appender(protected val pattern: Pattern?,
+                        protected val level: LogLevel?) {
 
-    abstract fun AppendMessage(msg: LogMessage)
+    open val envMask: EnvMask
+        get() = pattern?.envMask ?: EnvMask()
+
+    fun AppendMessage(msg: LogMessage)
+    {
+        if (level != null && msg.level >= level) {
+            AppendMessageImpl(msg)
+        }
+    }
+
+    abstract fun AppendMessageImpl(msg: LogMessage)
 }

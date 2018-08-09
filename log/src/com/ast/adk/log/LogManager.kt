@@ -15,11 +15,14 @@ class LogManager {
         for (appenderConfig in config.appenders) {
             appenders[appenderConfig.name] = CreateAppender(appenderConfig)
         }
+
+        appenderThread.start()
     }
 
     fun Shutdown()
     {
         queue.Stop()
+        appenderThread.join()
     }
 
     fun GetLogger(name: String): Logger
@@ -43,29 +46,59 @@ class LogManager {
             }
         }
 
-        //XXX
-        return LoggerImpl(level, appenders)
+        return LoggerImpl(level, appenders, name)
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private lateinit var config: Configuration
     private lateinit var queue: LogQueue<LogMessage>
     private val appenders = TreeMap<String, Appender>()
+    private val appenderThread = Thread(this::AppenderThreadFunc)
 
     inner class LoggerImpl(thresholdLevel: LogLevel,
-                           private val appenders: List<Appender>):
+                           private val appenders: List<Appender>,
+                           private val loggerName: String):
         Logger(thresholdLevel) {
 
-        override fun WriteLog(level: LogLevel, msg: String, exception: Throwable?)
+        override fun WriteLog(level: LogLevel, msgText: String, exception: Throwable?)
         {
-
-            TODO("not implemented") //XXX
+            val msg = LogMessage()
+            msg.SetTimestampNow()
+            msg.level = level
+            msg.msg = msgText
+            msg.exception = exception
+            msg.loggerName = loggerName
+            msg.appenders = appenders
+            if (envMask.IsSet(EnvMask.Resource.THREAD_NAME)) {
+                msg.threadName = Thread.currentThread().name
+            }
+            queue.Push(msg)
         }
 
+        private val envMask = EnvMask()
+
+        init {
+            for (appender in appenders) {
+                envMask.Merge(appender.envMask)
+            }
+        }
     }
 
     private fun CreateAppender(appenderConfig: Configuration.Appender): Appender
     {
-        TODO()
+        return when (appenderConfig.type) {
+            Configuration.Appender.Type.CONSOLE -> ConsoleAppender(appenderConfig)
+            Configuration.Appender.Type.FILE -> FileAppender(appenderConfig)
+        }
+    }
+
+    private fun AppenderThreadFunc()
+    {
+        while (true) {
+            val msg = queue.Pop() ?: break
+            for (appender in msg.appenders) {
+                appender.AppendMessage(msg)
+            }
+        }
     }
 }

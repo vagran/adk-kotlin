@@ -8,8 +8,9 @@ class LogMessage {
     lateinit var msg: String
     var exception: Throwable? = null
     lateinit var loggerName: String
-    var threadName: String? = null
     lateinit var appenders: List<Appender>
+    /* Fields below initialized depending on requested environment mask. */
+    var threadName: String? = null
 
     val localTime get() = LocalDateTime.ofInstant(timestamp, ZoneId.systemDefault())
 
