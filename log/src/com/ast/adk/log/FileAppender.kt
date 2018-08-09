@@ -2,6 +2,7 @@ package com.ast.adk.log
 
 import java.io.BufferedWriter
 import java.io.PrintWriter
+import java.nio.file.FileVisitOption
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
@@ -11,6 +12,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.*
 import java.util.zip.GZIPOutputStream
 import kotlin.concurrent.thread
 
@@ -51,6 +53,7 @@ class FileAppender(private val config: Configuration.Appender):
     private var nextCheck: Instant? = null
     private var creationTime = GetCreationTime(config.fileParams!!.path)
     private var compressThread: Thread? = null
+    private val oldFilesPat = GetOldPattern(config.fileParams!!)
 
     private companion object {
         val ROLL_CHECK_INTERVAL: Duration = Duration.ofSeconds(30)
@@ -76,6 +79,29 @@ class FileAppender(private val config: Configuration.Appender):
                                            StandardOpenOption.WRITE,
                                            StandardOpenOption.APPEND,
                                            StandardOpenOption.CREATE)
+        }
+
+        fun GetOldPattern(config: Configuration.Appender.FileParams): RegExp
+        {
+            val pat = StringBuilder()
+            pat.append("\\d{4}\\-\\d{2}\\-\\d{2}_\\d{2}\\-\\d{2}\\-\\d{2}_")
+            pat.append(EscapeRegExp(config.path.fileName.toString()))
+            if (config.compressOld) {
+                pat.append("\\.gz")
+            }
+            return RegExp.compile(pat.toString())
+        }
+
+        fun EscapeRegExp(s: String): String
+        {
+            val sb = StringBuilder()
+            for (c in s) {
+                if (c in "-.?*+{}()[]\\") {
+                    sb.append('\\')
+                }
+                sb.append(c)
+            }
+            return sb.toString()
         }
     }
 
@@ -117,6 +143,10 @@ class FileAppender(private val config: Configuration.Appender):
             CompressInThread(newPath)
         }
 
+        if (config.fileParams!!.preserveNum != null && !config.fileParams!!.compressOld) {
+            PreserveOld(config.fileParams!!.preserveNum!!)
+        }
+
         file = OpenFile(path)
         printWriter = PrintWriter(file)
         creationTime = GetCreationTime(path)
@@ -141,6 +171,34 @@ class FileAppender(private val config: Configuration.Appender):
     {
         /* Block if previous compression still in progress. */
         compressThread?.join()
-        compressThread = thread { Compress(path) }
+        compressThread = thread {
+            Compress(path)
+            config.fileParams!!.preserveNum?.also {
+                PreserveOld(it)
+            }
+        }
+    }
+
+    private fun PreserveOld(preserveNum: Int)
+    {
+        val dirPath = config.fileParams!!.path.parent
+        val foundFiles = TreeMap<Instant, Path>()
+        Files.walk(dirPath, 1, FileVisitOption.FOLLOW_LINKS).forEach {
+            path ->
+            if (path == dirPath) {
+                return@forEach
+            }
+            val fileName = path.fileName.toString()
+            val matcher = oldFilesPat.matcher(fileName)
+            if (matcher.matches()) {
+                foundFiles[GetCreationTime(path)] = path
+            }
+        }
+
+        val it = foundFiles.iterator()
+        while (foundFiles.size > preserveNum) {
+            Files.delete(it.next().value)
+            it.remove()
+        }
     }
 }

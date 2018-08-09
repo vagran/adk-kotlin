@@ -179,6 +179,7 @@ class Configuration(val settings: Settings,
             var maxSize: Long? = null
             var maxTime: Duration? = null
             var compressOld = false
+            var preserveNum: Int? = null
 
             fun FromJsonObj(name: String, obj: Map<String, Any?>)
             {
@@ -200,6 +201,11 @@ class Configuration(val settings: Settings,
                     obj["compressOld"] as Boolean
                 } else {
                     false
+                }
+                preserveNum = if ("preserveNum" in obj) {
+                    (obj["preserveNum"] as Double).toInt()
+                } else {
+                    null
                 }
             }
         }

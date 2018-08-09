@@ -41,7 +41,8 @@ class Basic {
             "type": "file",
             "path": "/tmp/adk-log-test-rolling-time.log",
             "maxTime": "10s",
-            "compressOld": true
+            "compressOld": true,
+            "preserveNum": 3
         }
     },
     "loggers": {
