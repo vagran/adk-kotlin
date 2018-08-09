@@ -31,26 +31,9 @@ class LogManager {
 
     fun GetLogger(name: String): Logger
     {
-        val loggerParams = config.ConfigureLogger(name)
-
-        var level = LogLevel.MAX
-        for (appender in loggerParams.appenders) {
-            if (appender.level != null && appender.level!! < level) {
-                level = appender.level!!
-            }
+        return synchronized(loggers) {
+            loggers.computeIfAbsent(name) { CreateLogger(name) }
         }
-        if (loggerParams.level > level) {
-            level = loggerParams.level
-        }
-
-        val appenders = ArrayList<Appender>()
-        synchronized(this.appenders) {
-            for (appenderConfig in loggerParams.appenders) {
-                appenders.add(this.appenders[appenderConfig.name]!!)
-            }
-        }
-
-        return LoggerImpl(level, appenders, name)
     }
 
     fun RedirectStderr(loggerName: String = "STDERR", level: LogLevel = LogLevel.ERROR)
@@ -63,6 +46,7 @@ class LogManager {
     private lateinit var queue: LogQueue<LogMessage>
     private val appenders = TreeMap<String, Appender>()
     private val appenderThread = Thread(this::AppenderThreadFunc)
+    private val loggers = HashMap<String, Logger>()
 
     inner class LoggerImpl(thresholdLevel: LogLevel,
                            private val appenders: List<Appender>,
@@ -109,5 +93,27 @@ class LogManager {
                 appender.AppendMessage(msg)
             }
         }
+    }
+
+    private fun CreateLogger(name: String): Logger
+    {
+        val loggerParams = config.ConfigureLogger(name)
+
+        var level = LogLevel.MAX
+        for (appender in loggerParams.appenders) {
+            if (appender.level != null && appender.level!! < level) {
+                level = appender.level!!
+            }
+        }
+        if (loggerParams.level > level) {
+            level = loggerParams.level
+        }
+
+        val appenders = ArrayList<Appender>()
+        for (appenderConfig in loggerParams.appenders) {
+            appenders.add(this.appenders[appenderConfig.name]!!)
+        }
+
+        return LoggerImpl(level, appenders, name)
     }
 }
