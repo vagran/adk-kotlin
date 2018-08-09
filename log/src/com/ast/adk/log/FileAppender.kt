@@ -60,11 +60,7 @@ class FileAppender(private val config: Configuration.Appender):
 
         fun GetPattern(config: Configuration.Appender): Pattern
         {
-            return if (config.pattern == null) {
-                Pattern(Configuration.DEFAULT_PATTERN)
-            } else {
-                Pattern(config.pattern!!)
-            }
+            return Pattern(config.pattern ?: Configuration.DEFAULT_PATTERN)
         }
 
         fun GetCreationTime(path: Path): Instant
@@ -173,7 +169,7 @@ class FileAppender(private val config: Configuration.Appender):
         compressThread?.join()
         compressThread = thread {
             Compress(path)
-            config.fileParams!!.preserveNum?.also {
+            config.fileParams?.preserveNum?.also {
                 PreserveOld(it)
             }
         }
