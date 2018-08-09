@@ -1,6 +1,5 @@
 package com.ast.adk.async.db.mongo
 
-import com.ast.adk.Log
 import com.ast.adk.async.Deferred
 import com.ast.adk.async.TaskThrottler
 import com.ast.adk.async.observable.One
@@ -11,9 +10,6 @@ import com.mongodb.async.client.MongoClients
 import com.mongodb.async.client.MongoDatabase
 import com.mongodb.connection.ClusterSettings
 import com.mongodb.connection.ConnectionPoolSettings
-import org.apache.logging.log4j.Level
-import org.apache.logging.log4j.Logger
-import org.apache.logging.log4j.core.config.LoggerConfig
 import org.bson.*
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.*
@@ -27,13 +23,11 @@ private class MongodbTest {
     private val numCores = Runtime.getRuntime().availableProcessors()
     private lateinit var client: MongoClient
     private lateinit var database: MongoDatabase
-    private lateinit var log: Logger
 
     @BeforeAll
     fun Setup()
     {
-        Log.InitTestLogging(LoggerConfig("org.mongodb.driver.protocol", Level.INFO, true))
-        log = Log.GetLogger("MongodbTest")
+        //XXX "org.mongodb.driver.protocol", Level.INFO
 
         client = MongoClients.create(
             MongoClientSettings.builder()
@@ -101,7 +95,8 @@ private class MongodbTest {
         val verified = TreeSet<Int>()
         docs.SubscribeVoid { doc, error ->
             if (error != null) {
-                log.error("Collection iteration error: %s", Log.GetStackTrace(error))
+                System.err.format("Collection iteration error:%n")
+                error.printStackTrace(System.err)
                 throw Error("Unexpected error: $error")
             }
             if (!doc.isSet) {
@@ -139,7 +134,7 @@ private class MongodbTest {
     {
         val codecs = MongoMapper.ForClasses(A::class)
         val doc = MongoMapper.EncodeObject(codecs, A())
-        log.debug(doc.toJson())
+        println(doc.toJson())
     }
 
     class Valid {

@@ -1,9 +1,6 @@
 
-import com.ast.adk.Log
 import com.ast.adk.async.*
-import org.apache.logging.log4j.Logger
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
@@ -11,15 +8,6 @@ import org.junit.jupiter.api.assertThrows
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class TaskTest {
-
-    lateinit var log: Logger
-
-    @BeforeAll
-    fun Setup()
-    {
-        Log.InitTestLogging()
-        log = Log.GetLogger("TaskTest")
-    }
 
     private fun <T> VerifyDefResult(expected: T, def: Deferred<T>)
     {
@@ -136,19 +124,19 @@ private class TaskTest {
         ctx2.Start()
 
         val def1 = Task.Create({
-            log.info("in task 1")
+            println("in task 1")
             assertSame(ctx1.thread, Thread.currentThread())
             42
         }).Submit(ctx1).result
 
         val def2 = Task.CreateDef({
-            log.info("in task 2, before suspend")
+            println("in task 2, before suspend")
             assertSame(ctx1.thread, Thread.currentThread())
             val x = def1.Await(ctx2)
-            log.info("in task 2, after suspend")
+            println("in task 2, after suspend")
             assertSame(ctx2.thread, Thread.currentThread())
             ctx1.ResumeIn()
-            log.info("in task 2, after context switch")
+            println("in task 2, after context switch")
             assertSame(ctx1.thread, Thread.currentThread())
             x
         }).Submit(ctx1).result
@@ -176,18 +164,18 @@ private class TaskTest {
         ctx2.Start()
 
         val def1 = Task.Create({
-            log.info("in task 1")
+            println("in task 1")
             assertSame(ctx1.thread, Thread.currentThread())
             throw Exception("test")
         }).Submit(ctx1).result
 
         val def2 = Task.CreateDef({
-            log.info("in task 2, before suspend")
+            println("in task 2, before suspend")
             assertSame(ctx1.thread, Thread.currentThread())
             try {
                 def1.Await(ctx2)
             } catch (e: Exception) {
-                log.info("in task 2, after suspend")
+                println("in task 2, after suspend")
                 assertSame(ctx2.thread, Thread.currentThread())
                 throw e
             }

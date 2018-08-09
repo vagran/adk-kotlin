@@ -1,13 +1,11 @@
 package com.ast.adk.async
 
-import com.ast.adk.Log
-import org.apache.logging.log4j.Logger
 import java.util.*
 
 
 class ThreadPoolContext(val name: String,
                         numThreads: Int,
-                        enableLogging: Boolean = true):
+                        private val failHandler: ContextFailHandler? = null):
     QueuedContext() {
 
     override fun Start()
@@ -24,7 +22,6 @@ class ThreadPoolContext(val name: String,
 
     override fun Stop()
     {
-        log?.info("Context stop requested")
         super.Stop()
         /* Wait until all submitted messages are processed by workers. */
         LockQueue {
@@ -49,11 +46,10 @@ class ThreadPoolContext(val name: String,
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    private val log: Logger? = if (enableLogging) Log.GetLogger("Ctx{$name}") else null
 
     private val threads: Array<ThreadContext> = Array(numThreads) {
         idx ->
-        ThreadContext("$name-$idx", enableLogging = enableLogging)
+        ThreadContext("$name-$idx", failHandler)
     }
     /** Threads waiting for work. Use LIFO order to localize execution if possible. */
     private val freeThreads: ArrayDeque<ThreadContext> = ArrayDeque(numThreads)
@@ -120,10 +116,11 @@ class ThreadPoolContext(val name: String,
 
     private fun Error(message: String, e: Throwable)
     {
-        if (log != null) {
-            log.error(message, e)
+        if (failHandler != null) {
+            failHandler.invoke(message, e)
         } else {
-            System.err.println("$name: ${Log.GetStackTrace(e)}")
+            System.err.println("Error in $name:")
+            e.printStackTrace(System.err)
         }
     }
 }

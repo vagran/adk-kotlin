@@ -4,8 +4,6 @@ import com.ast.adk.async.Deferred
 import com.ast.adk.async.ScheduledThreadContext
 import com.ast.adk.async.Task
 import com.ast.adk.async.observable.*
-import com.ast.adk.Log
-import org.apache.logging.log4j.Logger
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import java.util.stream.Stream
@@ -13,15 +11,7 @@ import java.util.stream.Stream
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ObservableTest {
 
-    lateinit var log: Logger
     lateinit var ctx: ScheduledThreadContext
-
-    @BeforeAll
-    fun Setup()
-    {
-        Log.InitTestLogging()
-        log = Log.GetLogger("ObservableTest")
-    }
 
     @BeforeEach
     fun SetupEach()
@@ -82,24 +72,24 @@ private class ObservableTest {
         override fun OnNext(value: Observable.Value<Int?>): Deferred<Boolean>?
         {
             if (isComplete) {
-                log.error("Unexpected value after completed: %d", value.value)
+                System.err.format("Unexpected value after completed: %d%n", value.value)
                 isFailed = true
                 return null
             }
             if (!HasNextExpected()) {
-                log.error("Unexpected value after end of expected data")
+                System.err.format("Unexpected value after end of expected data%n")
                 isFailed = true
                 return null
             }
             val expected = NextExpected()
             if (expected != null) {
                 if (expected != value.value) {
-                    log.error("Unexpected value: %d/%d", value.value, expected)
+                    System.err.format("Unexpected value: %d/%d%n", value.value, expected)
                     isFailed = true
                     return null
                 }
             } else if (value.value != null) {
-                log.error("Unexpected value: %d/null", value.value)
+                System.err.format("Unexpected value: %d/null%n", value.value)
                 isFailed = true
                 return null
             }
@@ -109,17 +99,17 @@ private class ObservableTest {
         override fun OnComplete()
         {
             if (isComplete) {
-                log.error("Double completion")
+                System.err.format("Double completion%n")
                 isFailed = true
                 return
             }
             if (HasNextExpected()) {
-                log.error("Too few values seen: %d", curPos)
+                System.err.format("Too few values seen: %d%n", curPos)
                 isFailed = true
                 return
             }
             if (isErrorExpected) {
-                log.error("Normal completion when error expected")
+                System.err.format("Normal completion when error expected%n")
                 isFailed = true
                 return
             }
@@ -130,17 +120,18 @@ private class ObservableTest {
         override fun OnError(error: Throwable)
         {
             if (isComplete) {
-                log.error("Unexpected error after completed", error)
+                System.err.format("Unexpected error after completed%n", error)
                 isFailed = true
                 return
             }
             if (!isErrorExpected) {
-                log.error("Unexpected error", error)
+                System.err.format("Unexpected error%n", error)
                 isFailed = true
                 return
             }
             if (HasNextExpected()) {
-                log.error("Error at unexpected index: %d\n%s", curPos, Log.GetStackTrace(error))
+                System.err.format("Error at unexpected index: %d%n", curPos)
+                error.printStackTrace(System.err)
                 isFailed = true
                 return
             }
@@ -179,7 +170,7 @@ private class ObservableTest {
         override fun Get(): Deferred<Observable.Value<Int?>>
         {
             if (complete) {
-                log.error("Get() called after completed")
+                System.err.format("Get() called after completed%n")
                 failed = true
                 return Deferred.ForResult(Observable.Value.None())
             }

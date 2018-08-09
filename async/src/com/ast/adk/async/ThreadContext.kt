@@ -1,10 +1,9 @@
 package com.ast.adk.async
 
-import com.ast.adk.Log
-import org.apache.logging.log4j.Logger
+typealias ContextFailHandler = (msg: String, error: Throwable?) -> Unit
 
 open class ThreadContext(val name: String,
-                         enableLogging: Boolean = true):
+                         private val failHandler: ContextFailHandler? = null):
     QueuedContext() {
 
     val thread: Thread = Thread(this::Run)
@@ -22,20 +21,17 @@ open class ThreadContext(val name: String,
 
     override fun Stop()
     {
-        log?.info("Context stop requested")
         super.Stop()
         thread.join()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    protected val log: Logger? = if (enableLogging) Log.GetLogger("Ctx{$name}") else null
 
     private var isStarting = false
     private var isRunning = false
 
     private fun Run()
     {
-        log?.info("Context started")
         try {
             OnStarted()
         } catch (e: Exception) {
@@ -74,8 +70,6 @@ open class ThreadContext(val name: String,
             Error("Context stop handler failed", e)
         }
 
-        log?.info("Context terminated")
-
         LockQueue {
             isRunning = false
             NotifyQueue()
@@ -91,12 +85,13 @@ open class ThreadContext(val name: String,
         }
     }
 
-    private fun Error(message: String, e: Throwable)
+    protected fun Error(message: String, e: Throwable)
     {
-        if (log != null) {
-            log.error(message, e)
+        if (failHandler != null) {
+            failHandler.invoke(message, e)
         } else {
-            System.err.println("$name: ${Log.GetStackTrace(e)}")
+            System.err.println("Error in $name:")
+            e.printStackTrace(System.err)
         }
     }
 }

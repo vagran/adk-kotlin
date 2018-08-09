@@ -5,8 +5,8 @@ import kotlin.coroutines.experimental.suspendCoroutine
 
 /** Allows timed scheduling of submitted messages via SubmitScheduled() method. */
 class ScheduledThreadContext(name: String,
-                             enableLogging: Boolean = true):
-    ThreadContext(name, enableLogging = enableLogging) {
+                             failHandler: ContextFailHandler? = null):
+    ThreadContext(name, failHandler) {
 
     /** Token which can be used for scheduled message cancellation.
      * @param fireTime Firing time as returned by System.nanoTime().
@@ -128,7 +128,7 @@ class ScheduledThreadContext(name: String,
                 try {
                     tokens.message.Reject(Message.RejectedError("Context terminated"))
                 } catch (e: Throwable) {
-                    log?.error("Exception in message reject handler", e)
+                    Error("Exception in message reject handler", e)
                 }
                 tokens = tokens.next
             }
@@ -191,7 +191,7 @@ class ScheduledThreadContext(name: String,
                     try {
                         tokens!!.message.Reject(e)
                     } catch (_e: Throwable) {
-                        log?.error("Exception in message reject handler", _e)
+                        Error("Exception in message reject handler", _e)
                     }
                 }
                 tokens = tokens!!.next

@@ -98,33 +98,33 @@ class Basic {
         logManager.Shutdown()
     }
 
-    @Test
-    fun RollBySizeTest()
-    {
-        val config = Configuration.FromJson(testConfigStr)
-        val logManager = LogManager()
-        logManager.Initialize(config)
-        val log = logManager.GetLogger("logger.fastRollSize")
-        for (i in 1..140) {
-            log.Info(Throwable("aaa"), "%d %f", 42, 13.0)
-            Thread.sleep(1000)
-        }
-        logManager.Shutdown()
-    }
-
-    @Test
-    fun RollByTimeTest()
-    {
-        val config = Configuration.FromJson(testConfigStr)
-        val logManager = LogManager()
-        logManager.Initialize(config)
-        val log = logManager.GetLogger("logger.fastRollTime")
-        for (i in 1..140) {
-            log.Info(Throwable("aaa"), "%d %f", 42, 13.0)
-            Thread.sleep(1000)
-        }
-        logManager.Shutdown()
-    }
+//    @Test
+//    fun RollBySizeTest()
+//    {
+//        val config = Configuration.FromJson(testConfigStr)
+//        val logManager = LogManager()
+//        logManager.Initialize(config)
+//        val log = logManager.GetLogger("logger.fastRollSize")
+//        for (i in 1..140) {
+//            log.Info(Throwable("aaa"), "%d %f", 42, 13.0)
+//            Thread.sleep(1000)
+//        }
+//        logManager.Shutdown()
+//    }
+//
+//    @Test
+//    fun RollByTimeTest()
+//    {
+//        val config = Configuration.FromJson(testConfigStr)
+//        val logManager = LogManager()
+//        logManager.Initialize(config)
+//        val log = logManager.GetLogger("logger.fastRollTime")
+//        for (i in 1..140) {
+//            log.Info(Throwable("aaa"), "%d %f", 42, 13.0)
+//            Thread.sleep(1000)
+//        }
+//        logManager.Shutdown()
+//    }
 
     @Test
     fun RedirectStderrTest()

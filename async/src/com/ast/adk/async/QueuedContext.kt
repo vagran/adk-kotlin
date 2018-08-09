@@ -1,6 +1,5 @@
 package com.ast.adk.async
 
-import com.ast.adk.Log
 import java.util.*
 
 /**
@@ -117,7 +116,8 @@ abstract class QueuedContext: Context {
             try {
                 msg!!.Invoke()
             } catch (e: Throwable) {
-                System.err.println("Exception in message handler:\n${Log.GetStackTrace(e)}")
+                System.err.println("Exception in message handler:")
+                e.printStackTrace(System.err)
             }
         }
         return false

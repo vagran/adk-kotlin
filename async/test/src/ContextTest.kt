@@ -1,5 +1,4 @@
 
-import com.ast.adk.Log
 import com.ast.adk.async.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -8,12 +7,6 @@ import java.util.concurrent.atomic.AtomicLong
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ContextTest {
-
-    @BeforeAll
-    fun Setup()
-    {
-        Log.InitTestLogging()
-    }
 
     @Test
     fun ThreadContextTest()

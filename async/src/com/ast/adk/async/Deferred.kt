@@ -1,6 +1,5 @@
 package com.ast.adk.async
 
-import com.ast.adk.Log
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.experimental.*
 
@@ -263,8 +262,8 @@ class Deferred<T> private constructor(): Awaitable<T> {
             try {
                 subscriber!!.invoke(result, error)
             } catch (e: Throwable) {
-                System.err.println("Exception in Deferred subscriber invocation:\n" +
-                                       Log.GetStackTrace(e))
+                System.err.println("Exception in Deferred subscriber invocation:")
+                e.printStackTrace(System.err)
             }
             subscriber = null
         }
@@ -273,8 +272,8 @@ class Deferred<T> private constructor(): Awaitable<T> {
                 try {
                     cbk(result, error)
                 } catch (e: Throwable) {
-                    System.err.println("Exception in Deferred subscriber invocation:\n" +
-                                           Log.GetStackTrace(e))
+                    System.err.println("Exception in Deferred subscriber invocation:")
+                    e.printStackTrace(System.err)
                 }
             }
             subscribers = null
