@@ -11,6 +11,8 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.zip.GZIPOutputStream
+import kotlin.concurrent.thread
 
 
 class FileAppender(private val config: Configuration.Appender):
@@ -38,6 +40,7 @@ class FileAppender(private val config: Configuration.Appender):
             CheckRoll(config.fileParams!!, Instant.now())
         }
         file.close()
+        compressThread?.join()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,6 +50,7 @@ class FileAppender(private val config: Configuration.Appender):
     private val checkRolling = config.fileParams!!.maxSize != null || config.fileParams!!.maxTime != null
     private var nextCheck: Instant? = null
     private var creationTime = GetCreationTime(config.fileParams!!.path)
+    private var compressThread: Thread? = null
 
     private companion object {
         val ROLL_CHECK_INTERVAL: Duration = Duration.ofSeconds(30)
@@ -109,8 +113,34 @@ class FileAppender(private val config: Configuration.Appender):
         val newPath = path.resolveSibling(newName)
         Files.move(path, newPath)
 
+        if (config.fileParams!!.compressOld) {
+            CompressInThread(newPath)
+        }
+
         file = OpenFile(path)
         printWriter = PrintWriter(file)
         creationTime = GetCreationTime(path)
+    }
+
+    private fun Compress(path: Path)
+    {
+        val outPath = path.resolveSibling(path.fileName.toString() + ".gz")
+        Files.newInputStream(path).use {
+            ins ->
+            Files.newOutputStream(outPath).use {
+                GZIPOutputStream(it).use {
+                    outs ->
+                    ins.transferTo(outs)
+                }
+            }
+        }
+        Files.delete(path)
+    }
+
+    private fun CompressInThread(path: Path)
+    {
+        /* Block if previous compression still in progress. */
+        compressThread?.join()
+        compressThread = thread { Compress(path) }
     }
 }

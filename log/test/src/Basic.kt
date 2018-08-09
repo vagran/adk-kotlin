@@ -40,7 +40,8 @@ class Basic {
         "fastRollTime": {
             "type": "file",
             "path": "/tmp/adk-log-test-rolling-time.log",
-            "maxTime": "10s"
+            "maxTime": "10s",
+            "compressOld": true
         }
     },
     "loggers": {

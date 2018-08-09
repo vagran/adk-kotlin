@@ -178,6 +178,7 @@ class Configuration(val settings: Settings,
             lateinit var path: Path
             var maxSize: Long? = null
             var maxTime: Duration? = null
+            var compressOld = false
 
             fun FromJsonObj(name: String, obj: Map<String, Any?>)
             {
@@ -194,6 +195,11 @@ class Configuration(val settings: Settings,
                     ParseDuration(obj["maxTime"] as String)
                 } else {
                     null
+                }
+                compressOld = if ("compressOld" in obj) {
+                    obj["compressOld"] as Boolean
+                } else {
+                    false
                 }
             }
         }
