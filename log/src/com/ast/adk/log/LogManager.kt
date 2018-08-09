@@ -24,6 +24,9 @@ class LogManager {
     {
         queue.Stop()
         appenderThread.join()
+        for (appender in appenders.values) {
+            appender.Close()
+        }
     }
 
     fun GetLogger(name: String): Logger

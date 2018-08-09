@@ -14,4 +14,6 @@ abstract class Appender(protected val pattern: Pattern?,
     }
 
     abstract fun AppendMessageImpl(msg: LogMessage)
+
+    open fun Close() {}
 }
