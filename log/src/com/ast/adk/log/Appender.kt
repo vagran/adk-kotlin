@@ -8,7 +8,7 @@ abstract class Appender(protected val pattern: Pattern?,
 
     fun AppendMessage(msg: LogMessage)
     {
-        if (level != null && msg.level >= level) {
+        if (level == null || msg.level >= level) {
             AppendMessageImpl(msg)
         }
     }

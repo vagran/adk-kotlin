@@ -35,7 +35,7 @@ class Pattern(str: String) {
         LOGGER("logger", true, null, null),
         LEVEL("level", true, null, null),
         MESSAGE("msg", true, null, null),
-        NEW_LINE("n", false, "\n", null);
+        NEW_LINE("n", false, "%n", null);
 
         companion object {
             fun ByRefName(name: String): Reference

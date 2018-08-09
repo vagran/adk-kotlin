@@ -31,6 +31,16 @@ class Basic {
             "maxSize": "100M",
             "maxTime": "1d",
             "level": "info"
+        },
+        "fastRollSize": {
+            "type": "file",
+            "path": "/tmp/adk-log-test-rolling-size.log",
+            "maxSize": "10k"
+        },
+        "fastRollTime": {
+            "type": "file",
+            "path": "/tmp/adk-log-test-rolling-time.log",
+            "maxTime": "10s"
         }
     },
     "loggers": {
@@ -49,6 +59,16 @@ class Basic {
         "logger.console": {
             "level": "trace",
             "appenders": ["myConsoleAppender"],
+            "additiveAppenders": false
+        },
+        "logger.fastRollSize": {
+            "level": "trace",
+            "appenders": ["myConsoleAppender", "fastRollSize"],
+            "additiveAppenders": false
+        },
+        "logger.fastRollTime": {
+            "level": "trace",
+            "appenders": ["myConsoleAppender", "fastRollTime"],
             "additiveAppenders": false
         }
     }
@@ -73,6 +93,34 @@ class Basic {
         logManager.Initialize(Configuration.Default())
         val log = logManager.GetLogger("my.test.aaa")
         log.Info("%d %f", 42, 13.0)
+        logManager.Shutdown()
+    }
+
+    @Test
+    fun RollBySizeTest()
+    {
+        val config = Configuration.FromJson(testConfigStr)
+        val logManager = LogManager()
+        logManager.Initialize(config)
+        val log = logManager.GetLogger("logger.fastRollSize")
+        for (i in 1..140) {
+            log.Info(Throwable("aaa"), "%d %f", 42, 13.0)
+            Thread.sleep(1000)
+        }
+        logManager.Shutdown()
+    }
+
+    @Test
+    fun RollByTimeTest()
+    {
+        val config = Configuration.FromJson(testConfigStr)
+        val logManager = LogManager()
+        logManager.Initialize(config)
+        val log = logManager.GetLogger("logger.fastRollTime")
+        for (i in 1..140) {
+            log.Info(Throwable("aaa"), "%d %f", 42, 13.0)
+            Thread.sleep(1000)
+        }
         logManager.Shutdown()
     }
 
