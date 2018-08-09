@@ -11,13 +11,10 @@ class LogMessage {
     var threadName: String? = null
     lateinit var appenders: List<Appender>
 
+    val localTime get() = LocalDateTime.ofInstant(timestamp, ZoneId.systemDefault())
+
     fun SetTimestampNow()
     {
         timestamp = OffsetDateTime.now(ZoneOffset.UTC).toInstant()
-    }
-
-    fun LocalTime(): LocalDateTime
-    {
-        return LocalDateTime.ofInstant(timestamp, ZoneId.systemDefault())
     }
 }

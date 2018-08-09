@@ -1,5 +1,8 @@
 package com.ast.adk.log
 
+import java.time.format.DateTimeFormatter
+import java.util.*
+
 typealias RegExp = java.util.regex.Pattern
 
 class Pattern(str: String) {
@@ -50,10 +53,29 @@ class Pattern(str: String) {
     private class ParamDesc {
         lateinit var ref: Reference
         var format: String? = null
+        var timeFormatter: DateTimeFormatter? = null
+
+        fun Initialize()
+        {
+            if (ref == Reference.TIME) {
+                if (format != null) {
+                    timeFormatter = DateTimeFormatter.ofPattern(format)
+                } else {
+                    timeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+                }
+            }
+        }
 
         fun Extract(msg: LogMessage): String
         {
-            TODO()
+            return when (ref) {
+                Reference.TIME -> timeFormatter!!.format(msg.localTime)
+                Reference.THREAD -> msg.threadName!!
+                Reference.LOGGER -> msg.loggerName
+                Reference.LEVEL -> msg.level.displayName
+                Reference.MESSAGE -> msg.msg
+                else -> throw Error("Unexpected reference type: $ref")
+            }
         }
     }
 
@@ -89,8 +111,9 @@ class Pattern(str: String) {
                     msgFormat.append(desc.format)
                 }
                 msgFormat.append('s')
+                desc.Initialize()
+                params.add(desc)
             }
-            params.add(desc)
             curPos = matcher.end(0)
         }
         msgFormat.append(str.substring(curPos))

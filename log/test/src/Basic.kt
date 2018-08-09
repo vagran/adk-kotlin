@@ -2,6 +2,7 @@ import com.ast.adk.log.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.time.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
@@ -193,6 +194,17 @@ class Basic {
     fun PatternTest()
     {
         val pat = Pattern("%{time:HH:mm:ss.SSS} [%thread] %{level:-5} %logger - %msg%n")
+        val msg = LogMessage()
+        val time = OffsetDateTime.of(
+            LocalDateTime.of(LocalDate.of(2000, 2, 5), LocalTime.of(15, 20, 30, 423_444_444)),
+            ZoneOffset.ofHours(2))
+        msg.timestamp = time.toInstant()
+        msg.level = LogLevel.WARNING
+        msg.msg = "Test message"
+        msg.loggerName = "TestLogger"
+        msg.threadName = "TestThread"
 
+        assertEquals("15:20:30.423 [TestThread] WARN  TestLogger - Test message\n",
+                     pat.FormatMessage(msg))
     }
 }

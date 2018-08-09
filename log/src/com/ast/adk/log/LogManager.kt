@@ -44,7 +44,7 @@ class LogManager {
         }
 
         //XXX
-        return LoggerImpl(level)
+        return LoggerImpl(level, appenders)
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,7 +52,8 @@ class LogManager {
     private lateinit var queue: LogQueue<LogMessage>
     private val appenders = TreeMap<String, Appender>()
 
-    inner class LoggerImpl(thresholdLevel: LogLevel):
+    inner class LoggerImpl(thresholdLevel: LogLevel,
+                           private val appenders: List<Appender>):
         Logger(thresholdLevel) {
 
         override fun WriteLog(level: LogLevel, msg: String, exception: Throwable?)
