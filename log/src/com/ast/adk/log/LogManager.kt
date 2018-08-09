@@ -1,5 +1,6 @@
 package com.ast.adk.log
 
+import java.io.PrintStream
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -47,6 +48,11 @@ class LogManager {
         }
 
         return LoggerImpl(level, appenders, name)
+    }
+
+    fun RedirectStderr(loggerName: String = "STDERR", level: LogLevel = LogLevel.ERROR)
+    {
+        System.setErr(PrintStream(LoggingOutputStream(GetLogger(loggerName), level), true))
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

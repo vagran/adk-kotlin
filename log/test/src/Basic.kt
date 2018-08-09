@@ -10,11 +10,8 @@ import kotlin.concurrent.thread
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class Basic {
 
-    @Test
-    fun BasicTest()
-    {
-        //language=JSON5
-        val configStr = """
+    //language=JSON5
+    private val testConfigStr = """
 {
     "settings": {
         "queueSize": 10000,
@@ -25,7 +22,7 @@ class Basic {
         "myConsoleAppender": {
             "type": "console",
             "target": "stdout",
-            "pattern": "%{time:HH:mm:ss.SSS} [%thread] %{level:-5} %logger - %msg%n",
+            "pattern": "%{time:HH:mm:ss.SSS} [%thread] %{level:-5} %logger - %msg",
             "level": "trace"
         },
         "myFileAppender": {
@@ -48,15 +45,44 @@ class Basic {
         },
         "my.test": {
             "level": "info"
+        },
+        "logger.console": {
+            "level": "trace",
+            "appenders": ["myConsoleAppender"],
+            "additiveAppenders": false
         }
     }
 }
-        """
-        val config = Configuration.FromJson(configStr)
+"""
+
+    @Test
+    fun BasicTest()
+    {
+        val config = Configuration.FromJson(testConfigStr)
         val logManager = LogManager()
         logManager.Initialize(config)
         val log = logManager.GetLogger("my.test.aaa")
+        log.Info(Throwable("aaa"), "%d %f", 42, 13.0)
+        logManager.Shutdown()
+    }
+
+    @Test
+    fun DefaultLogTest()
+    {
+        val logManager = LogManager()
+        logManager.Initialize(Configuration.Default())
+        val log = logManager.GetLogger("my.test.aaa")
         log.Info("%d %f", 42, 13.0)
+        logManager.Shutdown()
+    }
+
+    @Test
+    fun RedirectStderrTest()
+    {
+        val logManager = LogManager()
+        logManager.Initialize(Configuration.Default())
+        logManager.RedirectStderr("logger.console")
+        System.err.println("Test stderr message")
         logManager.Shutdown()
     }
 
