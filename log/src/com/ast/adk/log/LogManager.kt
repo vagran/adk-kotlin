@@ -105,13 +105,13 @@ class LogManager {
         }
         val loggerParams = config.ConfigureLogger(name)
 
-        var level = LogLevel.MAX
+        var level: LogLevel? = null
         for (appender in loggerParams.appenders) {
-            if (appender.level != null && appender.level!! < level) {
-                level = appender.level!!
+            if (level == null || (appender.level != null && appender.level!! < level)) {
+                level = appender.level
             }
         }
-        if (loggerParams.level > level) {
+        if (level == null || loggerParams.level > level) {
             level = loggerParams.level
         }
 
