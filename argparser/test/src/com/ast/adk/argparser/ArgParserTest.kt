@@ -1,4 +1,4 @@
-package com.ast.argparser
+package com.ast.adk.argparser
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

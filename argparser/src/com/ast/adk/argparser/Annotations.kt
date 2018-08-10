@@ -1,4 +1,4 @@
-package com.ast.argparser
+package com.ast.adk.argparser
 
 @Target(AnnotationTarget.PROPERTY)
 @Retention(AnnotationRetention.RUNTIME)

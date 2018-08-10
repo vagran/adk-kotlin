@@ -1,6 +1,6 @@
-package com.ast.argparser
+package com.ast.adk.argparser
 
-import com.ast.argparser.ArgParser.Option.Companion.SplitString
+import com.ast.adk.argparser.ArgParser.Option.Companion.SplitString
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
