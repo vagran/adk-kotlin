@@ -18,6 +18,8 @@ class LogManager {
         }
 
         appenderThread.start()
+
+        isInitialized = true
     }
 
     fun Shutdown()
@@ -42,6 +44,7 @@ class LogManager {
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
+    private var isInitialized = false
     private lateinit var config: Configuration
     private lateinit var queue: LogQueue<LogMessage>
     private val appenders = TreeMap<String, Appender>()
@@ -97,6 +100,9 @@ class LogManager {
 
     private fun CreateLogger(name: String): Logger
     {
+        if (!isInitialized) {
+            throw Error("Attempting to get logger before initialized: $name")
+        }
         val loggerParams = config.ConfigureLogger(name)
 
         var level = LogLevel.MAX
