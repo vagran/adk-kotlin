@@ -294,7 +294,7 @@ class Configuration(val settings: Settings,
     {
         val loggerName = LoggerName(name)
         val appenders = ArrayList<Appender>()
-        var level = LogLevel.TRACE
+        var level = LogLevel.MIN
 
         for (i in 0..loggerName.length) {
             val logger = loggers[loggerName.Prefix(i)] ?: continue
