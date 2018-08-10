@@ -1,10 +1,11 @@
 package com.ast.adk.async.observable
 
 import com.ast.adk.async.Deferred
-import kotlin.coroutines.experimental.Continuation
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
-import kotlin.coroutines.experimental.createCoroutine
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.createCoroutine
+import kotlin.coroutines.resume
 
 typealias FilterOperatorFunc<T> = suspend (T) -> Boolean
 
@@ -36,19 +37,19 @@ class FilterOperator<T>(input: Observable<T>,
 
             override val context: CoroutineContext = EmptyCoroutineContext
 
-            @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
-            override fun resume(isPassed: Boolean)
+            override fun resumeWith(result: SuccessOrFailure<Boolean>)
             {
-                if (isPassed) {
-                    SetResult(value, null)
-                } else {
-                    ValueProcessed()
-                }
-            }
-
-            override fun resumeWithException(exception: Throwable)
-            {
-                SetResult(null, exception)
+                result.fold({
+                    isPassed ->
+                    if (isPassed) {
+                        SetResult(value, null)
+                    } else {
+                        ValueProcessed()
+                    }
+                }, {
+                    exception ->
+                    SetResult(null, exception)
+                })
             }
         }).resume(Unit)
     }

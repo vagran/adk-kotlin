@@ -1,10 +1,7 @@
 package com.ast.adk.async.observable
 
 import com.ast.adk.async.Deferred
-import kotlin.coroutines.experimental.Continuation
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
-import kotlin.coroutines.experimental.createCoroutine
+import kotlin.coroutines.*
 
 typealias MapOperatorFunc<T, U> = suspend (T) -> U
 
@@ -36,14 +33,10 @@ class MapOperator<T, U>(input: Observable<T>,
 
             override val context: CoroutineContext = EmptyCoroutineContext
 
-            override fun resume(value: U)
+            override fun resumeWith(result: SuccessOrFailure<U>)
             {
-                SetResult(Observable.Value.Of(value), null)
-            }
-
-            override fun resumeWithException(exception: Throwable)
-            {
-                SetResult(null, exception)
+                result.fold({ SetResult(Observable.Value.Of(it), null) },
+                            { SetResult(null, it) })
             }
         }).resume(Unit)
     }

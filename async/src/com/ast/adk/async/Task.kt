@@ -1,9 +1,6 @@
 package com.ast.adk.async
 
-import kotlin.coroutines.experimental.Continuation
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
-import kotlin.coroutines.experimental.createCoroutine
+import kotlin.coroutines.*
 
 /**
  * Once submitted to the target context the task execution begins.
@@ -68,16 +65,13 @@ class Task<T>: Message, Awaitable<T> {
     {
         this.handler = {
             handler.createCoroutine(object: Continuation<T> {
+
                 override val context: CoroutineContext = EmptyCoroutineContext
 
-                override fun resume(value: T)
+                override fun resumeWith(result: SuccessOrFailure<T>)
                 {
-                    result.SetResult(value)
-                }
-
-                override fun resumeWithException(exception: Throwable)
-                {
-                    result.SetError(exception)
+                    result.fold({ this@Task.result.SetResult(it) },
+                                { this@Task.result.SetError(it) })
                 }
             }).resume(Unit)
         }

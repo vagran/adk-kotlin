@@ -4,10 +4,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.fail
-import kotlin.coroutines.experimental.Continuation
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
-import kotlin.coroutines.experimental.createCoroutine
+import kotlin.coroutines.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class DeferredTest {
@@ -102,17 +99,11 @@ private class DeferredTest {
         suspend {
             res = def.Await()
         }.createCoroutine(object: Continuation<Unit> {
-            override val context: CoroutineContext
-                get() = EmptyCoroutineContext
+            override val context = EmptyCoroutineContext
 
-            override fun resume(value: Unit)
+            override fun resumeWith(result: SuccessOrFailure<Unit>)
             {
-                done = true
-            }
-
-            override fun resumeWithException(exception: Throwable)
-            {
-                fail(exception)
+                result.fold({ done = true }, { fail(it) })
             }
         }).resume(Unit)
         assertFalse(done)
@@ -132,18 +123,12 @@ private class DeferredTest {
         suspend {
             res = def.Await()
         }.createCoroutine(object: Continuation<Unit> {
-            override val context: CoroutineContext
-                get() = EmptyCoroutineContext
+            override val context = EmptyCoroutineContext
 
-            override fun resume(value: Unit)
+            override fun resumeWith(result: SuccessOrFailure<Unit>)
             {
-                done = true
-            }
-
-            override fun resumeWithException(exception: Throwable)
-            {
-                resError = exception
-                done = true
+                result.fold({ done = true },
+                            { resError = it; done = true })
             }
         }).resume(Unit)
         assertFalse(done)
@@ -163,17 +148,11 @@ private class DeferredTest {
         suspend {
             res = def.Await()
         }.createCoroutine(object: Continuation<Unit> {
-            override val context: CoroutineContext
-                get() = EmptyCoroutineContext
+            override val context = EmptyCoroutineContext
 
-            override fun resume(value: Unit)
+            override fun resumeWith(result: SuccessOrFailure<Unit>)
             {
-                done = true
-            }
-
-            override fun resumeWithException(exception: Throwable)
-            {
-                fail(exception)
+                result.fold({ done = true }, { fail(it) })
             }
         }).resume(Unit)
         assertFalse(done)

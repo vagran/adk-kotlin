@@ -1,7 +1,7 @@
 package com.ast.adk.async
 
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.coroutines.experimental.*
+import kotlin.coroutines.*
 
 typealias DeferredCallback<T> = (result: T?, error: Throwable?) -> Unit
 
@@ -30,21 +30,17 @@ class Deferred<T> private constructor(): Awaitable<T> {
 
         fun <T> ForFunc(func: suspend () -> T): Deferred<T>
         {
-            val result = Create<T>()
+            val defResult = Create<T>()
             func.createCoroutine(object: Continuation<T> {
+
                 override val context: CoroutineContext = EmptyCoroutineContext
 
-                override fun resume(value: T)
+                override fun resumeWith(result: SuccessOrFailure<T>)
                 {
-                    result.SetResult(value)
-                }
-
-                override fun resumeWithException(exception: Throwable)
-                {
-                    result.SetError(exception)
+                    result.fold({ defResult.SetResult(it) }, { defResult.SetError(it) })
                 }
             }).resume(Unit)
-            return result
+            return defResult
         }
 
         /** Create deferred which completes when all the specified deferred results are completed.

@@ -2,8 +2,10 @@ package com.ast.adk.async.observable
 
 import com.ast.adk.async.Awaitable
 import com.ast.adk.async.Deferred
-import kotlin.coroutines.experimental.Continuation
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 /** Each call to Await() returns next value, empty value if complete, throws error on failure.
  * Await() calls should not be called in parallel, it is intended for one client only. Create
