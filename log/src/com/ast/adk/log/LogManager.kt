@@ -56,7 +56,7 @@ class LogManager {
                            private val appenders: List<Appender>):
         Logger(name, thresholdLevel) {
 
-        override fun WriteLog(level: LogLevel, msgText: String, exception: Throwable?)
+        override fun WriteLog(level: LogLevel, exception: Throwable?, msgText: String)
         {
             val msg = LogMessage()
             msg.SetTimestampNow()

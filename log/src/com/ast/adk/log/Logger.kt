@@ -8,7 +8,7 @@ abstract class Logger(val name: String,
         if (LogLevel.TRACE < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.TRACE, msg, null)
+        WriteLog(LogLevel.TRACE, null, msg)
     }
 
     fun Trace(msg: String, vararg params: Any?)
@@ -16,7 +16,7 @@ abstract class Logger(val name: String,
         if (LogLevel.TRACE < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.TRACE, java.lang.String.format(msg, *params), null)
+        WriteLog(LogLevel.TRACE, null, java.lang.String.format(msg, *params))
     }
 
     fun Trace(e: Throwable?, msg: String)
@@ -24,7 +24,7 @@ abstract class Logger(val name: String,
         if (LogLevel.TRACE < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.TRACE, msg, e)
+        WriteLog(LogLevel.TRACE, e, msg)
     }
 
     fun Trace(e: Throwable?, msg: String, vararg params: Any?)
@@ -32,7 +32,23 @@ abstract class Logger(val name: String,
         if (LogLevel.TRACE < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.TRACE, java.lang.String.format(msg, *params), e)
+        WriteLog(LogLevel.TRACE, e, java.lang.String.format(msg, *params))
+    }
+
+    fun Trace(msgFunc: () -> String)
+    {
+        if (LogLevel.TRACE < thresholdLevel) {
+            return
+        }
+        WriteLog(LogLevel.TRACE, null, msgFunc())
+    }
+
+    fun Trace(e: Throwable?, msgFunc: () -> String)
+    {
+        if (LogLevel.TRACE < thresholdLevel) {
+            return
+        }
+        WriteLog(LogLevel.TRACE, e, msgFunc())
     }
 
 
@@ -41,7 +57,7 @@ abstract class Logger(val name: String,
         if (LogLevel.DEBUG < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.DEBUG, msg, null)
+        WriteLog(LogLevel.DEBUG, null, msg)
     }
 
     fun Debug(msg: String, vararg params: Any?)
@@ -49,7 +65,7 @@ abstract class Logger(val name: String,
         if (LogLevel.DEBUG < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.DEBUG, java.lang.String.format(msg, *params), null)
+        WriteLog(LogLevel.DEBUG, null, java.lang.String.format(msg, *params))
     }
 
     fun Debug(e: Throwable?, msg: String)
@@ -57,7 +73,7 @@ abstract class Logger(val name: String,
         if (LogLevel.DEBUG < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.DEBUG, msg, e)
+        WriteLog(LogLevel.DEBUG, e, msg)
     }
 
     fun Debug(e: Throwable?, msg: String, vararg params: Any?)
@@ -65,7 +81,23 @@ abstract class Logger(val name: String,
         if (LogLevel.DEBUG < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.DEBUG, java.lang.String.format(msg, *params), e)
+        WriteLog(LogLevel.DEBUG, e, java.lang.String.format(msg, *params))
+    }
+
+    fun Debug(msgFunc: () -> String)
+    {
+        if (LogLevel.DEBUG < thresholdLevel) {
+            return
+        }
+        WriteLog(LogLevel.DEBUG, null, msgFunc())
+    }
+
+    fun Debug(e: Throwable?, msgFunc: () -> String)
+    {
+        if (LogLevel.DEBUG < thresholdLevel) {
+            return
+        }
+        WriteLog(LogLevel.DEBUG, e, msgFunc())
     }
 
 
@@ -74,7 +106,7 @@ abstract class Logger(val name: String,
         if (LogLevel.INFO < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.INFO, msg, null)
+        WriteLog(LogLevel.INFO, null, msg)
     }
 
     fun Info(msg: String, vararg params: Any?)
@@ -82,7 +114,7 @@ abstract class Logger(val name: String,
         if (LogLevel.INFO < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.INFO, java.lang.String.format(msg, *params), null)
+        WriteLog(LogLevel.INFO, null, java.lang.String.format(msg, *params))
     }
 
     fun Info(e: Throwable?, msg: String)
@@ -90,7 +122,7 @@ abstract class Logger(val name: String,
         if (LogLevel.INFO < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.INFO, msg, e)
+        WriteLog(LogLevel.INFO, e, msg)
     }
 
     fun Info(e: Throwable?, msg: String, vararg params: Any?)
@@ -98,7 +130,23 @@ abstract class Logger(val name: String,
         if (LogLevel.INFO < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.INFO, java.lang.String.format(msg, *params), e)
+        WriteLog(LogLevel.INFO, e, java.lang.String.format(msg, *params))
+    }
+
+    fun Info(msgFunc: () -> String)
+    {
+        if (LogLevel.INFO < thresholdLevel) {
+            return
+        }
+        WriteLog(LogLevel.INFO, null, msgFunc())
+    }
+
+    fun Info(e: Throwable?, msgFunc: () -> String)
+    {
+        if (LogLevel.INFO < thresholdLevel) {
+            return
+        }
+        WriteLog(LogLevel.INFO, e, msgFunc())
     }
 
 
@@ -107,7 +155,7 @@ abstract class Logger(val name: String,
         if (LogLevel.WARNING < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.WARNING, msg, null)
+        WriteLog(LogLevel.WARNING, null, msg)
     }
 
     fun Warning(msg: String, vararg params: Any?)
@@ -115,7 +163,7 @@ abstract class Logger(val name: String,
         if (LogLevel.WARNING < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.WARNING, java.lang.String.format(msg, *params), null)
+        WriteLog(LogLevel.WARNING, null, java.lang.String.format(msg, *params))
     }
 
     fun Warning(e: Throwable?, msg: String)
@@ -123,7 +171,7 @@ abstract class Logger(val name: String,
         if (LogLevel.WARNING < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.WARNING, msg, e)
+        WriteLog(LogLevel.WARNING, e, msg)
     }
 
     fun Warning(e: Throwable?, msg: String, vararg params: Any?)
@@ -131,7 +179,23 @@ abstract class Logger(val name: String,
         if (LogLevel.WARNING < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.WARNING, java.lang.String.format(msg, *params), e)
+        WriteLog(LogLevel.WARNING, e, java.lang.String.format(msg, *params))
+    }
+
+    fun Warning(msgFunc: () -> String)
+    {
+        if (LogLevel.WARNING < thresholdLevel) {
+            return
+        }
+        WriteLog(LogLevel.WARNING, null, msgFunc())
+    }
+
+    fun Warning(e: Throwable?, msgFunc: () -> String)
+    {
+        if (LogLevel.WARNING < thresholdLevel) {
+            return
+        }
+        WriteLog(LogLevel.WARNING, e, msgFunc())
     }
 
 
@@ -140,7 +204,7 @@ abstract class Logger(val name: String,
         if (LogLevel.ERROR < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.ERROR, msg, null)
+        WriteLog(LogLevel.ERROR, null, msg)
     }
 
     fun Error(msg: String, vararg params: Any?)
@@ -148,7 +212,7 @@ abstract class Logger(val name: String,
         if (LogLevel.ERROR < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.ERROR, java.lang.String.format(msg, *params), null)
+        WriteLog(LogLevel.ERROR, null, java.lang.String.format(msg, *params))
     }
 
     fun Error(e: Throwable?, msg: String)
@@ -156,7 +220,7 @@ abstract class Logger(val name: String,
         if (LogLevel.ERROR < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.ERROR, msg, e)
+        WriteLog(LogLevel.ERROR, e, msg)
     }
 
     fun Error(e: Throwable?, msg: String, vararg params: Any?)
@@ -164,17 +228,41 @@ abstract class Logger(val name: String,
         if (LogLevel.ERROR < thresholdLevel) {
             return
         }
-        WriteLog(LogLevel.ERROR, java.lang.String.format(msg, *params), e)
+        WriteLog(LogLevel.ERROR, e, java.lang.String.format(msg, *params))
+    }
+
+    fun Error(msgFunc: () -> String)
+    {
+        if (LogLevel.ERROR < thresholdLevel) {
+            return
+        }
+        WriteLog(LogLevel.ERROR, null, msgFunc())
+    }
+
+    fun Error(e: Throwable?, msgFunc: () -> String)
+    {
+        if (LogLevel.ERROR < thresholdLevel) {
+            return
+        }
+        WriteLog(LogLevel.ERROR, e, msgFunc())
     }
 
 
-    fun Log(level: LogLevel, msg: String, exception: Throwable?)
+    fun Log(level: LogLevel, exception: Throwable?, msg: String)
     {
         if (level < thresholdLevel) {
             return
         }
-        WriteLog(level, msg, exception)
+        WriteLog(level, exception, msg)
     }
 
-    protected abstract fun WriteLog(level: LogLevel, msgText: String, exception: Throwable?)
+    fun Log(level: LogLevel, exception: Throwable?, msgFunc: () -> String)
+    {
+        if (level < thresholdLevel) {
+            return
+        }
+        WriteLog(level, exception, msgFunc())
+    }
+
+    protected abstract fun WriteLog(level: LogLevel, exception: Throwable?, msgText: String)
 }

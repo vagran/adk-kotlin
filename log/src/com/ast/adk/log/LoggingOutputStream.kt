@@ -22,7 +22,7 @@ class LoggingOutputStream(private val logger: Logger, private val level: LogLeve
                 return
             }
 
-            logger.Log(level, record, null)
+            logger.Log(level, null, record)
         }
     }
 }
