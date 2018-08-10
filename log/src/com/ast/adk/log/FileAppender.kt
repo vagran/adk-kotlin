@@ -24,6 +24,7 @@ class FileAppender(private val config: Configuration.Appender):
     {
         file.write(pattern!!.FormatMessage(msg))
         file.newLine()
+        file.flush()
         msg.exception?.also {
             it.printStackTrace(printWriter)
         }
@@ -74,7 +75,8 @@ class FileAppender(private val config: Configuration.Appender):
             return Files.newBufferedWriter(path,
                                            StandardOpenOption.WRITE,
                                            StandardOpenOption.APPEND,
-                                           StandardOpenOption.CREATE)
+                                           StandardOpenOption.CREATE,
+                                           StandardOpenOption.DSYNC)
         }
 
         fun GetOldPattern(config: Configuration.Appender.FileParams): RegExp
