@@ -3,6 +3,12 @@ package com.ast.adk.async.db.mongo
 import com.ast.adk.async.Deferred
 import com.ast.adk.async.TaskThrottler
 import com.ast.adk.async.observable.One
+import com.ast.adk.log.Configuration
+import com.ast.adk.log.Configuration.Companion.DEFAULT_PATTERN
+import com.ast.adk.log.LogLevel
+import com.ast.adk.log.LogManager
+import com.ast.adk.log.LoggerName
+import com.ast.adk.log.slf4j.api.Slf4jLogManager
 import com.mongodb.ServerAddress
 import com.mongodb.async.client.MongoClient
 import com.mongodb.async.client.MongoClientSettings
@@ -27,7 +33,29 @@ private class MongodbTest {
     @BeforeAll
     fun Setup()
     {
-        //XXX "org.mongodb.driver.protocol", Level.INFO
+        val appender = Configuration.Appender("console").apply {
+            type = Configuration.Appender.Type.CONSOLE
+            pattern = DEFAULT_PATTERN
+            level = LogLevel.TRACE
+            consoleParams = Configuration.Appender.ConsoleParams().apply {
+                target = Configuration.Appender.ConsoleParams.Target.STDOUT
+            }
+        }
+        val appenders = listOf(appender)
+
+        val rootLogger = Configuration.Logger(LoggerName.ROOT).apply {
+            this.level = LogLevel.TRACE
+            this.appenders = appenders
+        }
+
+        val mongoProtocolLogger = Configuration.Logger("org.mongodb.driver").apply {
+            this.level = LogLevel.INFO
+            this.appenders = appenders
+        }
+
+        val logConfig = Configuration(Configuration.Settings(), appenders,
+                                      listOf(rootLogger, mongoProtocolLogger))
+        Slf4jLogManager.logManager = LogManager().apply { Initialize(logConfig) }
 
         client = MongoClients.create(
             MongoClientSettings.builder()
@@ -50,6 +78,7 @@ private class MongodbTest {
     fun Teardown()
     {
         client.close()
+        Slf4jLogManager.Shutdown()
     }
 
     @Test

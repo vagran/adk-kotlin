@@ -12,5 +12,7 @@
     <orderEntry type="module" module-name="async-mongodb" />
     <orderEntry type="module" module-name="adk" />
     <orderEntry type="module" module-name="async" />
+    <orderEntry type="module" module-name="log.slf4j" />
+    <orderEntry type="module" module-name="log" />
   </component>
 </module>
