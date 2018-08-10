@@ -10,28 +10,35 @@ import java.time.Duration
 import java.util.*
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class Configuration(val settings: Settings,
                     val appenders: List<Appender>,
                     val loggers: Map<LoggerName, Logger>) {
 
+    constructor(settings: Settings,
+                appenders: List<Appender>,
+                loggers: List<Logger>): this(settings, appenders, LoggersListToMap(loggers))
+
     companion object {
         const val DEFAULT_PATTERN = "%{time:HH:mm:ss.SSS} [%thread] %{level:-5} %logger - %msg"
 
-        fun Default(): Configuration
+        fun Default(consoleTarget: Appender.ConsoleParams.Target =
+                        Appender.ConsoleParams.Target.STDERR,
+                    thresholdLevel: LogLevel = LogLevel.TRACE): Configuration
         {
             val appender = Appender("console").apply {
                 type = Appender.Type.CONSOLE
                 pattern = DEFAULT_PATTERN
-                level = LogLevel.TRACE
+                level = thresholdLevel
                 consoleParams = Appender.ConsoleParams().apply {
-                    target = Appender.ConsoleParams.Target.STDERR
+                    target = consoleTarget
                 }
             }
             val appenders = listOf(appender)
 
             val logger = Logger(LoggerName.ROOT).apply {
-                level = LogLevel.TRACE
+                this.level = thresholdLevel
                 this.appenders = appenders
             }
 
@@ -101,6 +108,15 @@ class Configuration(val settings: Settings,
             }
 
             return Configuration(settings, ArrayList(appenders.values), loggers)
+        }
+
+        private fun LoggersListToMap(loggers: List<Logger>): Map<LoggerName, Logger>
+        {
+            val result = TreeMap<LoggerName, Logger>()
+            for (logger in loggers) {
+                result[logger.name] = logger
+            }
+            return result
         }
     }
 
@@ -237,6 +253,8 @@ class Configuration(val settings: Settings,
         var level: LogLevel? = null
         lateinit var appenders: List<Appender>
         var additiveAppenders = true
+
+        constructor(name: String): this(LoggerName(name))
 
         @Suppress("UNCHECKED_CAST")
         fun FromJsonObj(obj: Map<String, Any?>, knownAppenders: Map<String, Appender>)
