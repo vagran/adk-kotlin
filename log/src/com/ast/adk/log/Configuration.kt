@@ -12,8 +12,8 @@ import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 
 class Configuration(val settings: Settings,
-                    val appenders: List<Configuration.Appender>,
-                    val loggers: Map<LoggerName, Configuration.Logger>) {
+                    val appenders: List<Appender>,
+                    val loggers: Map<LoggerName, Logger>) {
 
     companion object {
         const val DEFAULT_PATTERN = "%{time:HH:mm:ss.SSS} [%thread] %{level:-5} %logger - %msg"

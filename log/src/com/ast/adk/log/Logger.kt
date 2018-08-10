@@ -1,6 +1,7 @@
 package com.ast.adk.log
 
-abstract class Logger(private var thresholdLevel: LogLevel) {
+abstract class Logger(val name: String,
+                      val thresholdLevel: LogLevel) {
 
     fun Trace(msg: String)
     {

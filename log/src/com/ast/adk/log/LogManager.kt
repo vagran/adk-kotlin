@@ -48,10 +48,10 @@ class LogManager {
     private val appenderThread = Thread(this::AppenderThreadFunc)
     private val loggers = HashMap<String, Logger>()
 
-    inner class LoggerImpl(thresholdLevel: LogLevel,
-                           private val appenders: List<Appender>,
-                           private val loggerName: String):
-        Logger(thresholdLevel) {
+    inner class LoggerImpl(name: String,
+                           thresholdLevel: LogLevel,
+                           private val appenders: List<Appender>):
+        Logger(name, thresholdLevel) {
 
         override fun WriteLog(level: LogLevel, msgText: String, exception: Throwable?)
         {
@@ -60,7 +60,7 @@ class LogManager {
             msg.level = level
             msg.msg = msgText
             msg.exception = exception
-            msg.loggerName = loggerName
+            msg.loggerName = name
             msg.appenders = appenders
             if (envMask.IsSet(EnvMask.Resource.THREAD_NAME)) {
                 msg.threadName = Thread.currentThread().name
@@ -114,6 +114,6 @@ class LogManager {
             appenders.add(this.appenders[appenderConfig.name]!!)
         }
 
-        return LoggerImpl(level, appenders, name)
+        return LoggerImpl(name, level, appenders)
     }
 }
