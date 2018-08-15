@@ -119,6 +119,62 @@ private class BasicTest {
         """.trimIndent(), result)
     }
 
+    @Test
+    fun ObjectArrayWrite()
+    {
+        val json = Json(true)
+        val result = json.ToJson(arrayOf("a", "b", "c"))
+        assertEquals("""
+            [
+              "a",
+              "b",
+              "c"
+            ]
+        """.trimIndent(), result)
+    }
+
+    @Test
+    fun IntArrayWrite()
+    {
+        val json = Json(true)
+        val result = json.ToJson(intArrayOf(1, 2, 3))
+        assertEquals("""
+            [
+              1,
+              2,
+              3
+            ]
+        """.trimIndent(), result)
+    }
+
+    @Test
+    fun LongArrayWrite()
+    {
+        val json = Json(true)
+        val result = json.ToJson(longArrayOf(1, 2, 3))
+        assertEquals("""
+            [
+              1,
+              2,
+              3
+            ]
+        """.trimIndent(), result)
+    }
+
+    @Test
+    fun DoubleArrayWrite()
+    {
+        val json = Json(true)
+        val result = json.ToJson(doubleArrayOf(1.0, 2.5, 3.0))
+        assertEquals("""
+            [
+              1.0,
+              2.5,
+              3.0
+            ]
+        """.trimIndent(), result)
+    }
+
     //XXX check nullable/non-nullable list elements
 
     @Test

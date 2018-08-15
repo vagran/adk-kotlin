@@ -4,9 +4,7 @@ package com.ast.adk.json
 import com.ast.adk.json.internal.AppendableWriter
 import com.ast.adk.json.internal.TextJsonReader
 import com.ast.adk.json.internal.TextJsonWriter
-import com.ast.adk.json.internal.codecs.ListCodec
-import com.ast.adk.json.internal.codecs.MapCodec
-import com.ast.adk.json.internal.codecs.StringCodec
+import com.ast.adk.json.internal.codecs.*
 import java.io.*
 import java.nio.charset.StandardCharsets
 import kotlin.reflect.KClass
@@ -166,6 +164,18 @@ class Json(val prettyPrint: Boolean = false,
         }
         if (type.jvmErasure.isSubclassOf(String::class)) {
             return StringCodec()
+        }
+        if (type.jvmErasure.isSubclassOf(Array<Any>::class)) {
+            return ArrayCodec(type)
+        }
+        if (type.jvmErasure.isSubclassOf(IntArray::class)) {
+            return IntArrayCodec()
+        }
+        if (type.jvmErasure.isSubclassOf(LongArray::class)) {
+            return LongArrayCodec()
+        }
+        if (type.jvmErasure.isSubclassOf(DoubleArray::class)) {
+            return DoubleArrayCodec()
         }
         TODO()
     }
