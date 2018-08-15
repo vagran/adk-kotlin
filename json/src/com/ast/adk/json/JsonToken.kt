@@ -69,7 +69,13 @@ class JsonToken(val type: Type, val value: String) {
 
     fun AssertValue()
     {
-        if (type != Type.NULL && type != Type.STRING && type != Type.NUMBER && type != Type.SYMBOL) {
+        if (type != Type.NULL &&
+            type != Type.STRING &&
+            type != Type.NUMBER &&
+            type != Type.SYMBOL &&
+            type != Type.BEGIN_OBJECT &&
+            type != Type.BEGIN_ARRAY) {
+
             throw JsonReadError("Expected value, have $this")
         }
     }

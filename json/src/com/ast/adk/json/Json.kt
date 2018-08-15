@@ -11,12 +11,14 @@ import kotlin.reflect.KType
 
 /** Encapsulates encoding/decoding parameters and codecs registry. */
 class Json(val prettyPrint: Boolean = false,
-           val escapeHtml: Boolean = false,
-           val serializeNulls: Boolean = false) {
+           val serializeNulls: Boolean = true,
+           val prettyPrintIndent: Int = 2,
+           additionalCodecs: Map<KType, JsonCodec<*>> = emptyMap()) {
 
     fun <T> GetCodec(type: KType): JsonCodec<T>
     {
-        TODO()
+        @Suppress("UNCHECKED_CAST")
+        return codecs.computeIfAbsent(type, this::CreateCodec) as JsonCodec<T>
     }
 
     fun <T> GetCodec(type: TypeToken<T>): JsonCodec<T>
@@ -105,6 +107,7 @@ class Json(val prettyPrint: Boolean = false,
         }
         @Suppress("UNCHECKED_CAST")
         (GetCodec(obj::class) as JsonCodec<Any>).Write(obj, output, this)
+        output.AssertComplete()
     }
 
 
@@ -133,4 +136,16 @@ class Json(val prettyPrint: Boolean = false,
     inline fun <reified T> FromJson(input: Reader): T? = FromJson(input, TypeToken.Create<T>().type)
 
     inline fun <reified T> FromJson(input: InputStream): T? = FromJson(input, TypeToken.Create<T>().type)
+
+    // /////////////////////////////////////////////////////////////////////////////////////////////
+    private val codecs = HashMap<KType, JsonCodec<*>>()
+
+    init {
+        codecs.putAll(additionalCodecs)
+    }
+
+    private fun CreateCodec(type: KType): JsonCodec<*>
+    {
+        TODO()
+    }
 }

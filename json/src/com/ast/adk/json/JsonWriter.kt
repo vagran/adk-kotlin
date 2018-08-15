@@ -2,7 +2,7 @@ package com.ast.adk.json
 
 interface JsonWriter {
 
-    fun WriteName()
+    fun WriteName(name: String)
     fun BeginObject()
     fun EndObject()
     fun BeginArray()
@@ -12,4 +12,6 @@ interface JsonWriter {
     fun Write(value: Long)
     fun Write(value: Double)
     fun Write(value: String)
+
+    fun AssertComplete()
 }

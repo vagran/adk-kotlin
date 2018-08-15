@@ -1,15 +1,46 @@
 
-import com.ast.adk.json.Json
-import com.ast.adk.json.TypeToken
+import com.ast.adk.json.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import kotlin.reflect.full.createType
 import kotlin.reflect.jvm.jvmErasure
 
+data class Custom(val i: Int)
+
+class CustomCodec: JsonCodec<Custom> {
+    override fun WriteNonNull(obj: Custom, writer: JsonWriter, json: Json)
+    {
+        writer.BeginObject()
+        writer.WriteName("value")
+        writer.Write(Integer.toHexString(obj.i))
+    }
+
+    override fun ReadNonNull(reader: JsonReader, json: Json): Custom
+    {
+        reader.BeginObject()
+        val name = reader.ReadName()
+        if (name != "value") {
+            throw JsonReadError("Value field expected, have $name")
+        }
+        val value = Integer.parseInt(reader.ReadString(), 16)
+        reader.EndObject()
+        return Custom(value)
+    }
+}
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class BasicTest {
+
+    @Test
+    fun CustomWrite()
+    {
+        val json = Json(true, additionalCodecs = mapOf(Custom::class.createType() to CustomCodec()))
+        val value = Custom(42)
+        val result = json.ToJson(value)
+        println(result)
+    }
 
     @Test
     fun Basic()
