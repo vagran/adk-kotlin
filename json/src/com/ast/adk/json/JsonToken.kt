@@ -3,6 +3,16 @@ package com.ast.adk.json
 import java.lang.NumberFormatException
 
 class JsonToken(val type: Type, val value: String) {
+
+    companion object {
+        val EOF = JsonToken(Type.EOF, "")
+        val NULL = JsonToken(Type.NULL, "")
+        val BEGIN_OBJECT = JsonToken(Type.BEGIN_OBJECT, "")
+        val END_OBJECT = JsonToken(Type.END_OBJECT, "")
+        val BEGIN_ARRAY = JsonToken(Type.BEGIN_ARRAY, "")
+        val END_ARRAY = JsonToken(Type.END_ARRAY, "")
+    }
+
     enum class Type {
         EOF,
         NAME,

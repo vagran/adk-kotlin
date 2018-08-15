@@ -15,9 +15,12 @@ private class BasicTest {
     fun Basic()
     {
         val json = Json()
+        json.GetCodec<List<String>>()
         json.FromJson<List<String>>("")
 
     }
+
+    //XXX check nullable/non-nullable list elements
 
     @Test
     fun TypeTokenTest()

@@ -1,9 +1,11 @@
-package com.ast.adk.json
+package com.ast.adk.json.internal
 
-import java.lang.Appendable
+import com.ast.adk.json.Json
+import com.ast.adk.json.JsonWriter
+import java.io.Writer
 
-internal class TextJsonWriter(val json: Json,
-                              val output: Appendable): JsonWriter {
+internal class TextJsonWriter(private val json: Json,
+                              private val output: Writer): JsonWriter {
 
     override fun WriteName() {
         TODO("not implemented") //XXX

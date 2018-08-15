@@ -1,6 +1,5 @@
 package com.ast.adk.json
 
-import java.lang.IllegalStateException
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.lang.reflect.WildcardType
@@ -8,7 +7,6 @@ import kotlin.jvm.internal.Reflection
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.KTypeProjection
-import kotlin.reflect.KVariance
 import kotlin.reflect.full.createType
 import kotlin.reflect.jvm.jvmErasure
 
@@ -28,6 +26,21 @@ open class TypeToken<T> {
     }
 
     val type: KType
+
+    override fun equals(other: Any?): Boolean
+    {
+        return type == (other as TypeToken<*>).type
+    }
+
+    override fun hashCode(): Int
+    {
+        return type.hashCode()
+    }
+
+    override fun toString(): String
+    {
+        return type.toString()
+    }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
 
