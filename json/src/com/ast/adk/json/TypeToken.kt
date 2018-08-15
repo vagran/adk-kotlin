@@ -76,10 +76,10 @@ open class TypeToken<T> {
     private fun CreateType(javaType: Type): KType
     {
         if (javaType is Class<*>) {
-            return Reflection.getOrCreateKotlinClass(javaType).createType()
+            return javaType.kotlin.createType()
         }
         val genType = javaType as ParameterizedType
-        val cls = Reflection.getOrCreateKotlinClass(genType.rawType as Class<*>)
+        val cls = (genType.rawType as Class<*>).kotlin
         val projections = ArrayList<KTypeProjection>()
         for (type in genType.actualTypeArguments) {
             projections.add(GetTypeParam(type))

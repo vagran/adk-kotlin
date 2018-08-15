@@ -24,7 +24,7 @@ class MapCodec(type: KType): JsonCodec<Map<*, *>> {
             }
             @Suppress("UNCHECKED_CAST")
             val codec = if (elementClass != null) {
-                if (element::class != elementClass) {
+                if (!elementClass.isInstance(element)) {
                     throw IllegalArgumentException(
                         "Element type mismatch, expected $elementClass, have ${element::class}")
                 }

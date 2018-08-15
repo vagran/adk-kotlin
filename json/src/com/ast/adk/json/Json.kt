@@ -156,27 +156,43 @@ class Json(val prettyPrint: Boolean = false,
 
     private fun CreateCodec(type: KType): JsonCodec<*>
     {
-        if (type.jvmErasure.isSubclassOf(List::class)) {
+        val jvmErasure = type.jvmErasure
+        if (jvmErasure.isSubclassOf(List::class)) {
             return ListCodec(type)
         }
-        if (type.jvmErasure.isSubclassOf(Map::class)) {
+        if (jvmErasure.isSubclassOf(Map::class)) {
             return MapCodec(type)
         }
-        if (type.jvmErasure.isSubclassOf(String::class)) {
+        if (jvmErasure.isSubclassOf(String::class)) {
             return StringCodec()
         }
-        if (type.jvmErasure.isSubclassOf(Array<Any>::class)) {
+        if (jvmErasure.isSubclassOf(Array<Any>::class)) {
             return ArrayCodec(type)
         }
-        if (type.jvmErasure.isSubclassOf(IntArray::class)) {
+        if (jvmErasure.isSubclassOf(IntArray::class)) {
             return IntArrayCodec()
         }
-        if (type.jvmErasure.isSubclassOf(LongArray::class)) {
+        if (jvmErasure.isSubclassOf(LongArray::class)) {
             return LongArrayCodec()
         }
-        if (type.jvmErasure.isSubclassOf(DoubleArray::class)) {
+        if (jvmErasure.isSubclassOf(DoubleArray::class)) {
             return DoubleArrayCodec()
         }
-        TODO()
+        if (jvmErasure.isSubclassOf(Int::class)) {
+            return IntCodec()
+        }
+        if (jvmErasure.isSubclassOf(Long::class)) {
+            return LongCodec()
+        }
+        if (jvmErasure.isSubclassOf(Double::class)) {
+            return DoubleCodec()
+        }
+        if (jvmErasure.isSubclassOf(Boolean::class)) {
+            return BooleanCodec()
+        }
+        if (jvmErasure == Any::class) {
+            return AnyCodec()
+        }
+        return MappedClassCodec<Any>(type)
     }
 }

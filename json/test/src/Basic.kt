@@ -66,6 +66,36 @@ private class BasicTest {
     }
 
     @Test
+    fun IntListWrite()
+    {
+        val json = Json(true)
+        val result = json.ToJson(listOf(1, 2, 3))
+        println(result)
+        assertEquals("""
+            [
+              1,
+              2,
+              3
+            ]
+        """.trimIndent(), result)
+    }
+
+    @Test
+    fun LongListWrite()
+    {
+        val json = Json(true)
+        val result = json.ToJson(listOf(1L, 2L, 3L))
+        println(result)
+        assertEquals("""
+            [
+              1,
+              2,
+              3
+            ]
+        """.trimIndent(), result)
+    }
+
+    @Test
     fun CustomListWrite()
     {
         val json = Json(true, additionalCodecs = CustomCodec.codecs)
@@ -175,24 +205,52 @@ private class BasicTest {
         """.trimIndent(), result)
     }
 
-    //XXX check nullable/non-nullable list elements
+    class MappedClass {
+        lateinit var a: String
+        var b: Int = 0
+        @JsonField(name = "CCC")
+        var c: Double = 0.0
+        val d = true
+        @JsonTransient val e = "ignored"
+    }
 
     @Test
-    fun TypeTokenTest()
+    fun MappedWrite()
     {
-        assertEquals(String::class, TypeToken.Create<String>().type.jvmErasure)
-
-        var tt: TypeToken<*> = TypeToken.Create<List<*>>()
-        assertEquals(List::class, tt.type.jvmErasure)
-        assertNull(tt.type.arguments[0].type)
-
-        tt = TypeToken.Create<List<String>>()
-        assertEquals(List::class, tt.type.jvmErasure)
-        assertEquals(String::class, tt.type.arguments[0].type!!.jvmErasure)
-
-        tt = TypeToken.Create(String::class)
-        assertEquals(String::class, tt.type.jvmErasure)
+        val obj = MappedClass()
+        obj.a = "AAA"
+        obj.b = 42
+        obj.c = 2.5
+        val json = Json(true)
+        val result = json.ToJson(obj)
+        assertEquals("""
+            {
+              "a": "AAA",
+              "b": 42,
+              "CCC": 2.5,
+              "d": true
+            }
+        """.trimIndent(), result)
     }
+
+    //XXX check nullable/non-nullable list elements
+
+//    @Test
+//    fun TypeTokenTest()
+//    {
+//        assertEquals(String::class, TypeToken.Create<String>().type.jvmErasure)
+//
+//        var tt: TypeToken<*> = TypeToken.Create<List<*>>()
+//        assertEquals(List::class, tt.type.jvmErasure)
+//        assertNull(tt.type.arguments[0].type)
+//
+//        tt = TypeToken.Create<List<String>>()
+//        assertEquals(List::class, tt.type.jvmErasure)
+//        assertEquals(String::class, tt.type.arguments[0].type!!.jvmErasure)
+//
+//        tt = TypeToken.Create(String::class)
+//        assertEquals(String::class, tt.type.jvmErasure)
+//    }
 
 }
 

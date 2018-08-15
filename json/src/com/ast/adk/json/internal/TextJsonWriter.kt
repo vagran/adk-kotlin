@@ -118,6 +118,13 @@ internal class TextJsonWriter(private val json: Json,
         output.write('"'.toInt())
     }
 
+    override fun Write(value: Boolean)
+    {
+        val state = GetCurState()
+        state.BeginValueWrite(this)
+        output.write(if (value) "true" else "false")
+    }
+
     override fun AssertComplete()
     {
         val state = GetCurState()
