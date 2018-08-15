@@ -10,7 +10,7 @@ internal class TextJsonWriter(private val json: Json,
 
     override fun WriteName(name: String)
     {
-        val state = curState ?: throw IllegalStateException("Document already complete")
+        val state = GetCurState()
         if (state.type != State.Type.OBJECT) {
             throw IllegalStateException("Cannot write name in $state state")
         }
@@ -36,7 +36,7 @@ internal class TextJsonWriter(private val json: Json,
 
     override fun BeginObject()
     {
-        val state = curState ?: throw IllegalStateException("Document already complete")
+        val state = GetCurState()
         state.BeginValueWrite(this)
         output.write('{'.toInt())
         PushState(State.Type.OBJECT)
@@ -44,7 +44,7 @@ internal class TextJsonWriter(private val json: Json,
 
     override fun EndObject()
     {
-        val state = curState ?: throw IllegalStateException("Document already complete")
+        val state = GetCurState()
         if (state.type != State.Type.OBJECT) {
             throw IllegalStateException("Expected object state, have $state")
         }
@@ -61,7 +61,7 @@ internal class TextJsonWriter(private val json: Json,
 
     override fun BeginArray()
     {
-        val state = curState ?: throw IllegalStateException("Document already complete")
+        val state = GetCurState()
         state.BeginValueWrite(this)
         output.write('['.toInt())
         PushState(State.Type.ARRAY)
@@ -69,7 +69,7 @@ internal class TextJsonWriter(private val json: Json,
 
     override fun EndArray()
     {
-        val state = curState ?: throw IllegalStateException("Document already complete")
+        val state = GetCurState()
         if (state.type != State.Type.ARRAY) {
             throw IllegalStateException("Expected array state, have $state")
         }
@@ -83,42 +83,45 @@ internal class TextJsonWriter(private val json: Json,
 
     override fun WriteNull()
     {
-        val state = curState ?: throw IllegalStateException("Document already complete")
+        val state = GetCurState()
         state.BeginValueWrite(this)
         output.write("null")
     }
 
     override fun Write(value: Int)
     {
-        val state = curState ?: throw IllegalStateException("Document already complete")
+        val state = GetCurState()
         state.BeginValueWrite(this)
         output.write(value.toString())
     }
 
     override fun Write(value: Long)
     {
-        val state = curState ?: throw IllegalStateException("Document already complete")
+        val state = GetCurState()
         state.BeginValueWrite(this)
         output.write(value.toString())
     }
 
     override fun Write(value: Double)
     {
-        val state = curState ?: throw IllegalStateException("Document already complete")
+        val state = GetCurState()
         state.BeginValueWrite(this)
         output.write(value.toString())
     }
 
     override fun Write(value: String)
     {
-        val state = curState ?: throw IllegalStateException("Document already complete")
+        val state = GetCurState()
         state.BeginValueWrite(this)
+        output.write('"'.toInt())
         WriteEscapedString(value)
+        output.write('"'.toInt())
     }
 
     override fun AssertComplete()
     {
-        if (curState != null) {
+        val state = GetCurState()
+        if (state.type != State.Type.ROOT || !state.valueWritten) {
             throw IllegalStateException("JSON document not complete")
         }
     }
@@ -175,7 +178,7 @@ internal class TextJsonWriter(private val json: Json,
         stateStack.push(State(State.Type.ROOT))
     }
 
-    private val curState: State? get() = stateStack.poll()
+    private fun GetCurState(): State = stateStack.peek()
 
     private fun PushState(type: State.Type)
     {

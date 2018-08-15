@@ -15,6 +15,7 @@ class CustomCodec: JsonCodec<Custom> {
         writer.BeginObject()
         writer.WriteName("value")
         writer.Write(Integer.toHexString(obj.i))
+        writer.EndObject()
     }
 
     override fun ReadNonNull(reader: JsonReader, json: Json): Custom
@@ -39,7 +40,11 @@ private class BasicTest {
         val json = Json(true, additionalCodecs = mapOf(Custom::class.createType() to CustomCodec()))
         val value = Custom(42)
         val result = json.ToJson(value)
-        println(result)
+        assertEquals("""
+            {
+              "value": "2a"
+            }
+        """.trimIndent(), result)
     }
 
     @Test
