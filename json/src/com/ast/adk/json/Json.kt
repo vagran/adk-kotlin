@@ -1,13 +1,18 @@
 package com.ast.adk.json
 
+
 import com.ast.adk.json.internal.AppendableWriter
 import com.ast.adk.json.internal.TextJsonReader
 import com.ast.adk.json.internal.TextJsonWriter
+import com.ast.adk.json.internal.codecs.ListCodec
+import com.ast.adk.json.internal.codecs.MapCodec
+import com.ast.adk.json.internal.codecs.StringCodec
 import java.io.*
-import java.lang.Appendable
 import java.nio.charset.StandardCharsets
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
+import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.jvm.jvmErasure
 
 /** Encapsulates encoding/decoding parameters and codecs registry. */
 class Json(val prettyPrint: Boolean = false,
@@ -15,10 +20,17 @@ class Json(val prettyPrint: Boolean = false,
            val prettyPrintIndent: Int = 2,
            additionalCodecs: Map<KType, JsonCodec<*>> = emptyMap()) {
 
+    @Suppress("UNCHECKED_CAST")
     fun <T> GetCodec(type: KType): JsonCodec<T>
     {
-        @Suppress("UNCHECKED_CAST")
-        return codecs.computeIfAbsent(type, this::CreateCodec) as JsonCodec<T>
+        var codec = codecs.get(type)
+        if (codec != null) {
+            return codec as JsonCodec<T>
+        }
+        codec = CreateCodec(type)
+        codecs[type] = codec
+        codec.Initialize(this)
+        return codec as JsonCodec<T>
     }
 
     fun <T> GetCodec(type: TypeToken<T>): JsonCodec<T>
@@ -146,6 +158,15 @@ class Json(val prettyPrint: Boolean = false,
 
     private fun CreateCodec(type: KType): JsonCodec<*>
     {
+        if (type.jvmErasure.isSubclassOf(List::class)) {
+            return ListCodec(type)
+        }
+        if (type.jvmErasure.isSubclassOf(Map::class)) {
+            return MapCodec(type)
+        }
+        if (type.jvmErasure.isSubclassOf(String::class)) {
+            return StringCodec()
+        }
         TODO()
     }
 }

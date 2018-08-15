@@ -21,7 +21,14 @@ open class TypeToken<T> {
 
         fun <T: Any> Create(cls: KClass<T>): TypeToken<T>
         {
-            return TypeToken(cls.createType())
+            if (cls.typeParameters.isEmpty()) {
+                return TypeToken(cls.createType())
+            }
+            val projectionsList = ArrayList<KTypeProjection>(cls.typeParameters.size)
+            for (i in 0 until cls.typeParameters.size) {
+                projectionsList.add(KTypeProjection.STAR)
+            }
+            return TypeToken(cls.createType(projectionsList))
         }
     }
 

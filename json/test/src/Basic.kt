@@ -10,6 +10,10 @@ import kotlin.reflect.jvm.jvmErasure
 data class Custom(val i: Int)
 
 class CustomCodec: JsonCodec<Custom> {
+    companion object {
+        val codecs = mapOf(Custom::class.createType() to CustomCodec())
+    }
+
     override fun WriteNonNull(obj: Custom, writer: JsonWriter, json: Json)
     {
         writer.BeginObject()
@@ -37,7 +41,7 @@ private class BasicTest {
     @Test
     fun CustomWrite()
     {
-        val json = Json(true, additionalCodecs = mapOf(Custom::class.createType() to CustomCodec()))
+        val json = Json(true, additionalCodecs = CustomCodec.codecs)
         val value = Custom(42)
         val result = json.ToJson(value)
         assertEquals("""
@@ -48,12 +52,71 @@ private class BasicTest {
     }
 
     @Test
-    fun Basic()
+    fun ListWrite()
     {
-        val json = Json()
-        json.GetCodec<List<String>>()
-        json.FromJson<List<String>>("")
+        val json = Json(true)
+        val result = json.ToJson(listOf("a", "b", "c"))
+        assertEquals("""
+            [
+              "a",
+              "b",
+              "c"
+            ]
+        """.trimIndent(), result)
+    }
 
+    @Test
+    fun CustomListWrite()
+    {
+        val json = Json(true, additionalCodecs = CustomCodec.codecs)
+        val result = json.ToJson(listOf(Custom(42), Custom(43), Custom(44)))
+        assertEquals("""
+            [
+              {
+                "value": "2a"
+              },
+              {
+                "value": "2b"
+              },
+              {
+                "value": "2c"
+              }
+            ]
+        """.trimIndent(), result)
+    }
+
+    @Test
+    fun MapWrite()
+    {
+        val json = Json(true)
+        val result = json.ToJson(mapOf('a' to "aaa", 'b' to "bbb", 'c' to "ccc"))
+        assertEquals("""
+            {
+              "a": "aaa",
+              "b": "bbb",
+              "c": "ccc"
+            }
+        """.trimIndent(), result)
+    }
+
+    @Test
+    fun CustomMapWrite()
+    {
+        val json = Json(true, additionalCodecs = CustomCodec.codecs)
+        val result = json.ToJson(mapOf(42 to Custom(42), 43 to Custom(43), 44 to Custom(44)))
+        assertEquals("""
+            {
+              "42": {
+                "value": "2a"
+              },
+              "43": {
+                "value": "2b"
+              },
+              "44": {
+                "value": "2c"
+              }
+            }
+        """.trimIndent(), result)
     }
 
     //XXX check nullable/non-nullable list elements
