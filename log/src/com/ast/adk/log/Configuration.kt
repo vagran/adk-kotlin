@@ -1,8 +1,7 @@
 package com.ast.adk.log
 
-import com.google.gson.GsonBuilder
+import com.ast.adk.json.Json
 import java.io.InputStream
-import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -10,7 +9,6 @@ import java.time.Duration
 import java.util.*
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 class Configuration(val settings: Settings,
                     val appenders: List<Appender>,
@@ -47,14 +45,12 @@ class Configuration(val settings: Settings,
 
         fun FromJson(json: String): Configuration
         {
-            val gson = GsonBuilder().create()
-            return FromJsonObject(gson.fromJson(json, Object::class.java))
+            return FromJsonObject(Json().FromJson(json)!!)
         }
 
         fun FromJson(json: InputStream): Configuration
         {
-            val gson = GsonBuilder().create()
-            return FromJsonObject(gson.fromJson(InputStreamReader(json), Object::class.java))
+            return FromJsonObject(Json().FromJson(json)!!)
         }
 
         fun FromJson(jsonFile: Path): Configuration

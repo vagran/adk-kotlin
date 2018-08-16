@@ -1,6 +1,6 @@
 module com.ast.adk.log {
     requires kotlin.stdlib;
-    requires gson;
+    requires com.ast.adk.json;
 
     exports com.ast.adk.log;
 }
