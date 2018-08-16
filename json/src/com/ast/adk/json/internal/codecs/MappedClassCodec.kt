@@ -1,15 +1,13 @@
 package com.ast.adk.json.internal.codecs
 
 import com.ast.adk.json.*
-import java.lang.IllegalStateException
-import java.lang.reflect.Modifier
+import com.ast.adk.json.internal.ConstructorFunc
+import com.ast.adk.json.internal.GetDefaultConstructor
 import kotlin.reflect.*
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure
 
-private typealias ConstructorFunc = () -> Any
 private typealias GetterFunc = (obj: Any) -> Any?
 private typealias SetterFunc = (obj: Any, value: Any?) -> Unit
 
@@ -66,7 +64,7 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
     {
         val cls = type.jvmErasure
         allowUnmatchedFields = clsAnn?.allowUnmatchedFields ?: json.allowUnmatchedFields
-        constructor = GetConstructor(cls)
+        constructor = GetDefaultConstructor(cls)
         for (prop in cls.declaredMemberProperties) {
             if (prop.findAnnotation<JsonTransient>() != null) {
                 continue
@@ -115,33 +113,4 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
     private var allowUnmatchedFields = false
     private val fields = HashMap<String, FieldDesc>()
     private var constructor: ConstructorFunc? = null
-
-
-    private fun GetConstructor(cls: KClass<*>): ConstructorFunc?
-    {
-        if (cls.isAbstract || cls.isSealed || cls.objectInstance != null) {
-            return null
-        }
-        for (ctr in cls.constructors) {
-            val defCtr = CheckConstructor(ctr)
-            if (defCtr != null) {
-                if (ctr.visibility != KVisibility.PUBLIC) {
-                    return null
-                }
-                return defCtr
-            }
-        }
-        return null
-    }
-
-    private fun CheckConstructor(ctr: KFunction<*>): ConstructorFunc?
-    {
-        for (paramIdx in 0 until ctr.parameters.size) {
-            val param = ctr.parameters[paramIdx]
-            if (!param.isOptional) {
-                return null
-            }
-        }
-        return { ctr.callBy(emptyMap()) as Any }
-    }
 }

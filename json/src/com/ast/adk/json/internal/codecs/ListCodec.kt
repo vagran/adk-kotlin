@@ -1,15 +1,15 @@
 package com.ast.adk.json.internal.codecs
 
-import com.ast.adk.json.Json
-import com.ast.adk.json.JsonCodec
-import com.ast.adk.json.JsonReader
-import com.ast.adk.json.JsonWriter
+import com.ast.adk.json.*
+import com.ast.adk.json.internal.ConstructorFunc
+import com.ast.adk.json.internal.GetDefaultConstructor
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.jvm.jvmErasure
 
-class ListCodec(type: KType): JsonCodec<List<*>> {
-    override fun WriteNonNull(obj: List<*>, writer: JsonWriter, json: Json)
+class ListCodec(private val type: KType): JsonCodec<Collection<*>> {
+
+    override fun WriteNonNull(obj: Collection<*>, writer: JsonWriter, json: Json)
     {
         writer.BeginArray()
         for (element in obj) {
@@ -32,9 +32,19 @@ class ListCodec(type: KType): JsonCodec<List<*>> {
         writer.EndArray()
     }
 
-    override fun ReadNonNull(reader: JsonReader, json: Json): List<*>
+    @Suppress("UNCHECKED_CAST")
+    override fun ReadNonNull(reader: JsonReader, json: Json): Collection<*>
     {
-        TODO("not implemented") //XXX
+        if (constructor == null) {
+            throw JsonReadError("No constructor found for $type")
+        }
+        val result = constructor.invoke() as MutableCollection<Any?>
+        reader.BeginArray()
+        while (reader.HasNext()) {
+            result.add(readElementCodec.Read(reader, json))
+        }
+        reader.EndArray()
+        return result
     }
 
     override fun Initialize(json: Json)
@@ -42,12 +52,29 @@ class ListCodec(type: KType): JsonCodec<List<*>> {
         if (elementClass != null) {
             @Suppress("UNCHECKED_CAST")
             elementCodec = json.GetCodec(elementClass)as JsonCodec<Any>
+            readElementCodec = elementCodec
+        } else {
+            readElementCodec = json.GetCodec()
         }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val elementClass: KClass<*>? = GetElementClass(type)
     private lateinit var elementCodec: JsonCodec<Any>
+    private lateinit var readElementCodec: JsonCodec<Any>
+    private val constructor: ConstructorFunc?
+
+    init {
+        val defCtr = GetDefaultConstructor(type.jvmErasure)
+        constructor = when {
+            defCtr != null -> defCtr
+            type.jvmErasure == List::class || type.jvmErasure == MutableList::class ||
+            type.jvmErasure == Collection::class || type.jvmErasure == MutableCollection::class -> {
+                { ArrayList<Any?>() }
+            }
+            else -> null
+        }
+    }
 
     private companion object {
         fun GetElementClass(type: KType): KClass<*>?

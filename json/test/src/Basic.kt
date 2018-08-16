@@ -334,6 +334,35 @@ private class BasicTest {
         assertEquals(43, result[2].b)
     }
 
+    class MyList<T>: ArrayList<T>() {
+        val marker = 42
+    }
+
+    @Test
+    fun ListRead()
+    {
+        val json = Json(true)
+        val sampleJson = """ [ "a", "b", "c"] """
+        val list = json.FromJson<MyList<String>>(sampleJson) ?: fail()
+        assertEquals(3, list.size)
+        assertEquals(42, list.marker)
+        assertEquals("a", list[0])
+        assertEquals("b", list[1])
+        assertEquals("c", list[2])
+    }
+
+    @Test
+    fun AbstractListRead()
+    {
+        val json = Json(true)
+        val sampleJson = """ [ "a", "b", "c"] """
+        val list = json.FromJson<List<String>>(sampleJson) ?: fail()
+        assertEquals(3, list.size)
+        assertEquals("a", list[0])
+        assertEquals("b", list[1])
+        assertEquals("c", list[2])
+    }
+
     //XXX check nullable/non-nullable list elements
 
 //    @Test
