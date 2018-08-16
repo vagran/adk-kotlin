@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import kotlin.reflect.full.createType
-import kotlin.reflect.jvm.jvmErasure
 
 data class Custom(val i: Int)
 
@@ -209,8 +208,10 @@ private class BasicTest {
         var b: Int = 0
         @JsonField(name = "CCC")
         var c: Double = 0.0
-        val d = true
-        @JsonTransient val e = "ignored"
+        var d = false
+        var e = 0L
+        var f: String? = "aaa"
+        @JsonTransient val ignored = "ignored"
     }
 
     @Test
@@ -220,6 +221,9 @@ private class BasicTest {
         obj.a = "AAA"
         obj.b = 42
         obj.c = 2.5
+        obj.d = true
+        obj.e = 123
+        obj.f = null
         val json = Json(true)
         val result = json.ToJson(obj)
         assertEquals("""
@@ -227,7 +231,9 @@ private class BasicTest {
               "a": "AAA",
               "b": 42,
               "CCC": 2.5,
-              "d": true
+              "d": true,
+              "e": 123,
+              "f": null
             }
         """.trimIndent(), result)
     }
@@ -241,13 +247,19 @@ private class BasicTest {
             {
                 "a": "я abc \n\b \u00A9" ,
                 "b": 42,
-                "CCC": 4.5
+                "CCC": 4.5,
+                "d": true,
+                "e": 123,
+                "f": null
             } /* EOF */
         """
         val result = json.FromJson<MappedClass>(sampleJson) ?: fail()
         assertEquals("я abc \n\b \u00A9", result.a)
         assertEquals(42, result.b)
         assertEquals(4.5, result.c, 0.0001)
+        assertTrue(result.d)
+        assertEquals(123L, result.e)
+        assertNull(result.f)
     }
 
     //XXX check nullable/non-nullable list elements

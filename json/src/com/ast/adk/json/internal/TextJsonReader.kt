@@ -123,7 +123,7 @@ class TextJsonReader(json: Json,
         }
 
         return when (state) {
-            State.BEFORE_VALUE -> HandleValueState(c)
+            State.BEFORE_VALUE -> HandleBeforeValueState(c)
             State.SYMBOL -> HandleSymbolState(c)
             State.NUMBER -> HandleNumberState(c)
             State.NAME, State.STRING -> HandleNameStringState(c)
@@ -133,7 +133,7 @@ class TextJsonReader(json: Json,
         }
     }
 
-    private fun HandleValueState(c: Int): Boolean
+    private fun HandleBeforeValueState(c: Int): Boolean
     {
         return when {
             c == '"'.toInt() -> {

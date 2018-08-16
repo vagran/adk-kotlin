@@ -13,6 +13,6 @@ class LongCodec: JsonCodec<Long> {
 
     override fun ReadNonNull(reader: JsonReader, json: Json): Long
     {
-        TODO("not implemented") //XXX
+        return reader.ReadLong()
     }
 }

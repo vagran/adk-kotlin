@@ -13,6 +13,6 @@ class BooleanCodec: JsonCodec<Boolean> {
 
     override fun ReadNonNull(reader: JsonReader, json: Json): Boolean
     {
-        TODO("not implemented") //XXX
+        return reader.ReadBoolean()
     }
 }
