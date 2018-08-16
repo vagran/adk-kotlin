@@ -3,6 +3,10 @@ import com.ast.adk.json.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.*
 import kotlin.reflect.full.createType
 import kotlin.reflect.jvm.jvmErasure
@@ -43,7 +47,7 @@ private class BasicTest {
     @Test
     fun CustomWrite()
     {
-        val json = Json(true, additionalCodecs = CustomCodec.codecs)
+        val json = Json(true, typeCodecs = CustomCodec.codecs)
         val value = Custom(42)
         val result = json.ToJson(value)
         assertEquals("""
@@ -98,7 +102,7 @@ private class BasicTest {
     @Test
     fun CustomListWrite()
     {
-        val json = Json(true, additionalCodecs = CustomCodec.codecs)
+        val json = Json(true, typeCodecs = CustomCodec.codecs)
         val result = json.ToJson(listOf(Custom(42), Custom(43), Custom(44)))
         assertEquals("""
             [
@@ -132,7 +136,7 @@ private class BasicTest {
     @Test
     fun CustomMapWrite()
     {
-        val json = Json(true, additionalCodecs = CustomCodec.codecs)
+        val json = Json(true, typeCodecs = CustomCodec.codecs)
         val result = json.ToJson(mapOf(42 to Custom(42), 43 to Custom(43), 44 to Custom(44)))
         assertEquals("""
             {
@@ -478,6 +482,38 @@ private class BasicTest {
 
         tt = TypeToken.Create(String::class)
         assertEquals(String::class, tt.type.jvmErasure)
+    }
+
+    @Test
+    fun LocalDateTimeTest()
+    {
+        val json = Json()
+        val time = LocalDateTime.ofEpochSecond(10000000L, 0, ZoneOffset.UTC)
+        val sampleJson = json.ToJson(time)
+        val parsed = json.FromJson<LocalDateTime>(sampleJson)
+        assertEquals(time, parsed)
+    }
+
+    @Test
+    fun PathTest()
+    {
+        val json = Json()
+        val path = Paths.get("/tmp/aaa")
+        val sampleJson = json.ToJson(path)
+        val parsed = json.FromJson<Path>(sampleJson)
+        assertEquals(path, parsed)
+    }
+
+    @Test
+    fun BitSetTest()
+    {
+        val json = Json()
+        val data = BitSet()
+        data[42] = true
+        data[113] = true
+        val sampleJson = json.ToJson(data)
+        val parsed = json.FromJson<BitSet>(sampleJson)
+        assertEquals(data, parsed)
     }
 }
 

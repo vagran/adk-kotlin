@@ -7,10 +7,15 @@ import com.ast.adk.json.internal.TextJsonWriter
 import com.ast.adk.json.internal.codecs.*
 import java.io.*
 import java.nio.charset.StandardCharsets
+import java.nio.file.Path
+import java.time.LocalDateTime
+import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
+
+typealias JsonCodecProvider = (type: KType) -> JsonCodec<*>
 
 /** Encapsulates encoding/decoding parameters and codecs registry.
  * @param allowUnmatchedFields Default value for unmatched fields handling behaviour. Can be
@@ -22,7 +27,9 @@ class Json(val prettyPrint: Boolean = false,
            val enableComments: Boolean = true,
            val allowUnmatchedFields: Boolean = false,
            val requireAllFields: Boolean = false,
-           additionalCodecs: Map<KType, JsonCodec<*>> = emptyMap()) {
+           typeCodecs: Map<KType, JsonCodec<*>> = emptyMap(),
+           classCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
+           subclassCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap()) {
 
     @Suppress("UNCHECKED_CAST")
     fun <T> GetCodec(type: KType): JsonCodec<T>
@@ -155,23 +162,43 @@ class Json(val prettyPrint: Boolean = false,
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val codecs = HashMap<KType, JsonCodec<*>>()
+    private val classCodecs = HashMap<KClass<*>, JsonCodecProvider>()
+    private val subclassCodecs = HashMap<KClass<*>, JsonCodecProvider>()
 
     init {
-        codecs.putAll(additionalCodecs)
+        this.classCodecs[LocalDateTime::class] = { LocalDateTimeCodec() }
+        this.classCodecs[BitSet::class] = { BitSetCodec() }
+
+        this.subclassCodecs[Path::class] = { PathCodec() }
+
+        codecs.putAll(typeCodecs)
+        this.classCodecs.putAll(classCodecs)
+        this.subclassCodecs.putAll(subclassCodecs)
     }
 
     private fun CreateCodec(type: KType): JsonCodec<*>
     {
         val jvmErasure = type.jvmErasure
+
+        for ((cls, provider) in classCodecs) {
+            if (jvmErasure == cls) {
+                return provider(type)
+            }
+        }
+
+        for ((cls, provider) in subclassCodecs) {
+            if (jvmErasure.isSubclassOf(cls)) {
+                return provider(type)
+            }
+        }
+
         if (jvmErasure.isSubclassOf(List::class)) {
             return ListCodec(type)
         }
         if (jvmErasure.isSubclassOf(Map::class)) {
             return MapCodec(type)
         }
-        if (jvmErasure.isSubclassOf(String::class)) {
-            return StringCodec()
-        }
+
         if (jvmErasure.isSubclassOf(IntArray::class)) {
             return IntArrayCodec()
         }
@@ -183,6 +210,10 @@ class Json(val prettyPrint: Boolean = false,
         }
         if (jvmErasure.java.isArray) {
             return ArrayCodec(type)
+        }
+
+        if (jvmErasure.isSubclassOf(String::class)) {
+            return StringCodec()
         }
         if (jvmErasure.isSubclassOf(Int::class)) {
             return IntCodec()
@@ -196,9 +227,11 @@ class Json(val prettyPrint: Boolean = false,
         if (jvmErasure.isSubclassOf(Boolean::class)) {
             return BooleanCodec()
         }
+
         if (jvmErasure == Any::class) {
             return AnyCodec()
         }
+
         return MappedClassCodec<Any>(type)
     }
 }
