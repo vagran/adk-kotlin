@@ -105,8 +105,8 @@ class Json(val prettyPrint: Boolean = false,
 
     fun GetWriter(output: OutputStream): JsonWriter
     {
-        return TextJsonWriter(this, OutputStreamWriter(
-            BufferedOutputStream(output)))
+        return TextJsonWriter(this, OutputStreamWriter(BufferedOutputStream(output),
+                                                       StandardCharsets.UTF_8))
     }
 
 
@@ -118,6 +118,16 @@ class Json(val prettyPrint: Boolean = false,
     }
 
     fun ToJson(obj: Any?, output: Appendable)
+    {
+        ToJson(obj, GetWriter(output))
+    }
+
+    fun ToJson(obj: Any?, output: Writer)
+    {
+        ToJson(obj, GetWriter(output))
+    }
+
+    fun ToJson(obj: Any?, output: OutputStream)
     {
         ToJson(obj, GetWriter(output))
     }

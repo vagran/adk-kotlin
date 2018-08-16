@@ -1,13 +1,12 @@
 package com.ast.adk
 
-import java.io.IOException
+import com.ast.adk.json.Json
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
-import java.util.function.BiFunction
 import java.util.stream.Stream
 import java.util.stream.StreamSupport
 
@@ -16,6 +15,7 @@ class Configuration {
 
     // /////////////////////////////////////////////////////////////////////////////////////////////////
     private var root: Any? = null
+    private val json = Json(true)
 
     constructor() {}
 
@@ -28,15 +28,14 @@ class Configuration {
     fun Load(s: InputStream)
     {
         InputStreamReader(s).use { reader ->
-            root = DefGson.Create().fromJson(reader, Any::class.java)
+            root = json.FromJson<Any>(reader)
         }
     }
 
     fun Save(path: Path)
     {
         Files.newBufferedWriter(path).use { writer ->
-            val gson = DefGson.Create()
-            gson.toJson(root, Any::class.java, gson.newJsonWriter(writer))
+            json.ToJson(root, writer)
         }
     }
 
@@ -175,7 +174,7 @@ class Configuration {
 
     override fun toString(): String
     {
-        return DefGson.ToJson(root!!, true)
+        return json.ToJson(root!!)
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
