@@ -32,9 +32,20 @@ class ArrayCodec(type: KType): JsonCodec<Array<*>> {
         writer.EndArray()
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun ReadNonNull(reader: JsonReader, json: Json): Array<*>
     {
-        TODO("not implemented") //XXX
+        val result = ArrayList<Any?>()
+        reader.BeginArray()
+        while (reader.HasNext()) {
+            result.add(readElementCodec.Read(reader, json))
+        }
+        reader.EndArray()
+        if (elementClass != null) {
+            val array = java.lang.reflect.Array.newInstance(elementClass.java, result.size)
+            return result.toArray(array as Array<Any?>)
+        }
+        return result.toArray()
     }
 
     override fun Initialize(json: Json)
@@ -42,12 +53,16 @@ class ArrayCodec(type: KType): JsonCodec<Array<*>> {
         if (elementClass != null) {
             @Suppress("UNCHECKED_CAST")
             elementCodec = json.GetCodec(elementClass)as JsonCodec<Any>
+            readElementCodec = elementCodec
+        } else {
+            readElementCodec = json.GetCodec()
         }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val elementClass: KClass<*>? = GetElementClass(type)
     private lateinit var elementCodec: JsonCodec<Any>
+    private lateinit var readElementCodec: JsonCodec<Any>
 
     private companion object {
         fun GetElementClass(type: KType): KClass<*>?

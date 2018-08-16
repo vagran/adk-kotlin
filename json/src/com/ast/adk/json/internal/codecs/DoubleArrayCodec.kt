@@ -17,6 +17,12 @@ class DoubleArrayCodec: JsonCodec<DoubleArray> {
 
     override fun ReadNonNull(reader: JsonReader, json: Json): DoubleArray
     {
-        TODO("not implemented") //XXX
+        val result = ArrayList<Double>()
+        reader.BeginArray()
+        while (reader.HasNext()) {
+            result.add(reader.ReadDouble())
+        }
+        reader.EndArray()
+        return result.toDoubleArray()
     }
 }

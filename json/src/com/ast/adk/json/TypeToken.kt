@@ -76,6 +76,9 @@ open class TypeToken<T> {
     private fun CreateType(javaType: Type): KType
     {
         if (javaType is Class<*>) {
+            if (javaType.isArray) {
+                return javaType.kotlin.createType(listOf(GetTypeParam(javaType.componentType)))
+            }
             return javaType.kotlin.createType()
         }
         val genType = javaType as ParameterizedType

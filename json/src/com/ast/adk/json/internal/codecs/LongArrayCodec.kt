@@ -17,6 +17,12 @@ class LongArrayCodec: JsonCodec<LongArray> {
 
     override fun ReadNonNull(reader: JsonReader, json: Json): LongArray
     {
-        TODO("not implemented") //XXX
+        val result = ArrayList<Long>()
+        reader.BeginArray()
+        while (reader.HasNext()) {
+            result.add(reader.ReadLong())
+        }
+        reader.EndArray()
+        return result.toLongArray()
     }
 }

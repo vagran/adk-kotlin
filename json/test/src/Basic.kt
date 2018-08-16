@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import kotlin.reflect.full.createType
+import kotlin.test.assertEquals
 
 data class Custom(val i: Int)
 
@@ -260,6 +261,77 @@ private class BasicTest {
         assertTrue(result.d)
         assertEquals(123L, result.e)
         assertNull(result.f)
+    }
+
+    @Test
+    fun NullRead()
+    {
+        val json = Json(true)
+        val sampleJson = "  null/**/"
+        val result = json.FromJson<IntArray>(sampleJson)
+        assertNull(result)
+    }
+
+    @Test
+    fun IntArrayRead()
+    {
+        val json = Json(true)
+        val sampleJson = "[1,2,3]"
+        val result = json.FromJson<IntArray>(sampleJson) ?: fail()
+        assertEquals(3, result.size)
+        assertEquals(1, result[0])
+        assertEquals(2, result[1])
+        assertEquals(3, result[2])
+    }
+
+    @Test
+    fun LongArrayRead()
+    {
+        val json = Json(true)
+        val sampleJson = "[1,2,3]"
+        val result = json.FromJson<LongArray>(sampleJson) ?: fail()
+        assertEquals(3, result.size)
+        assertEquals(1L, result[0])
+        assertEquals(2L, result[1])
+        assertEquals(3L, result[2])
+    }
+
+    @Test
+    fun DoubleArrayRead()
+    {
+        val json = Json(true)
+        val sampleJson = "[1.5,2.5,3.5]"
+        val result = json.FromJson<DoubleArray>(sampleJson) ?: fail()
+        assertEquals(3, result.size)
+        assertEquals(1.5, result[0], 0.00001)
+        assertEquals(2.5, result[1], 0.00001)
+        assertEquals(3.5, result[2], 0.00001)
+    }
+
+    @Test
+    fun ArrayRead()
+    {
+        val json = Json(true)
+        val sampleJson = """ [ "a", null, "c" ] """
+        val result = json.FromJson<Array<String?>>(sampleJson) ?: fail()
+        assertEquals(3, result.size)
+        assertEquals("a", result[0])
+        assertNull(result[1])
+        assertEquals("c", result[2])
+    }
+
+    @Test
+    fun MappedArrayRead()
+    {
+        val json = Json(true)
+        val sampleJson = """ [ {"a": "abc", "b": 42}, null, {"a": "def", "b": 43 } ] """
+        val result = json.FromJson<Array<MappedClass>>(sampleJson) ?: fail()
+        assertEquals(3, result.size)
+        assertEquals("abc", result[0].a)
+        assertEquals(42, result[0].b)
+        assertNull(result[1])
+        assertEquals("def", result[2].a)
+        assertEquals(43, result[2].b)
     }
 
     //XXX check nullable/non-nullable list elements

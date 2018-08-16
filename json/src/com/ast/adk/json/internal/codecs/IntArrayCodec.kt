@@ -17,6 +17,12 @@ class IntArrayCodec: JsonCodec<IntArray> {
 
     override fun ReadNonNull(reader: JsonReader, json: Json): IntArray
     {
-        TODO("not implemented") //XXX
+        val result = ArrayList<Int>()
+        reader.BeginArray()
+        while (reader.HasNext()) {
+            result.add(reader.ReadInt())
+        }
+        reader.EndArray()
+        return result.toIntArray()
     }
 }

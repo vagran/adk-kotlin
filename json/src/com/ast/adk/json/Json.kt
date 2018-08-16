@@ -171,9 +171,6 @@ class Json(val prettyPrint: Boolean = false,
         if (jvmErasure.isSubclassOf(String::class)) {
             return StringCodec()
         }
-        if (jvmErasure.isSubclassOf(Array<Any>::class)) {
-            return ArrayCodec(type)
-        }
         if (jvmErasure.isSubclassOf(IntArray::class)) {
             return IntArrayCodec()
         }
@@ -182,6 +179,9 @@ class Json(val prettyPrint: Boolean = false,
         }
         if (jvmErasure.isSubclassOf(DoubleArray::class)) {
             return DoubleArrayCodec()
+        }
+        if (jvmErasure.java.isArray) {
+            return ArrayCodec(type)
         }
         if (jvmErasure.isSubclassOf(Int::class)) {
             return IntCodec()
