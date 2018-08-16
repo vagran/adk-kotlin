@@ -76,7 +76,7 @@ open class TypeToken<T> {
     private fun CreateType(javaType: Type): KType
     {
         if (javaType is Class<*>) {
-            if (javaType.isArray) {
+            if (javaType.isArray && !javaType.componentType.isPrimitive) {
                 return javaType.kotlin.createType(listOf(GetTypeParam(javaType.componentType)))
             }
             return javaType.kotlin.createType()

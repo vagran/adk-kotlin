@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import java.util.*
 import kotlin.reflect.full.createType
+import kotlin.reflect.jvm.jvmErasure
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
@@ -71,7 +72,6 @@ private class BasicTest {
     {
         val json = Json(true)
         val result = json.ToJson(listOf(1, 2, 3))
-        println(result)
         assertEquals("""
             [
               1,
@@ -86,7 +86,6 @@ private class BasicTest {
     {
         val json = Json(true)
         val result = json.ToJson(listOf(1L, 2L, 3L))
-        println(result)
         assertEquals("""
             [
               1,
@@ -394,24 +393,53 @@ private class BasicTest {
         assertNull(map["c"])
     }
 
+    @Suppress("UNCHECKED_CAST")
+    @Test
+    fun AnyRead()
+    {
+        val json = Json(true)
+        val sampleJson = """
+            {
+                "a": [1,2,3],
+                "b": 4,
+                "c": {
+                    "d": "abc",
+                    "e": null
+                }
+            }
+        """
+        val obj = json.FromJson<Any?>(sampleJson) ?: fail()
+        val map = obj as Map<String, Any?>
+        val list = map["a"] as List<Any?>
+        assertEquals(3, map.size)
+        assertEquals(3, list.size)
+        assertEquals(1.0, list[0])
+        assertEquals(2.0, list[1])
+        assertEquals(3.0, list[2])
+        assertEquals(4.0, map["b"] as Double, 0.0001)
+        val map2 = map["c"] as Map<String, Any?>
+        assertEquals(2, map2.size)
+        assertEquals("abc", map2["d"])
+        assertNull(map2["e"])
+    }
+
     //XXX check nullable/non-nullable list elements
 
-//    @Test
-//    fun TypeTokenTest()
-//    {
-//        assertEquals(String::class, TypeToken.Create<String>().type.jvmErasure)
-//
-//        var tt: TypeToken<*> = TypeToken.Create<List<*>>()
-//        assertEquals(List::class, tt.type.jvmErasure)
-//        assertNull(tt.type.arguments[0].type)
-//
-//        tt = TypeToken.Create<List<String>>()
-//        assertEquals(List::class, tt.type.jvmErasure)
-//        assertEquals(String::class, tt.type.arguments[0].type!!.jvmErasure)
-//
-//        tt = TypeToken.Create(String::class)
-//        assertEquals(String::class, tt.type.jvmErasure)
-//    }
+    @Test
+    fun TypeTokenTest()
+    {
+        assertEquals(String::class, TypeToken.Create<String>().type.jvmErasure)
 
+        var tt: TypeToken<*> = TypeToken.Create<List<*>>()
+        assertEquals(List::class, tt.type.jvmErasure)
+        assertNull(tt.type.arguments[0].type)
+
+        tt = TypeToken.Create<List<String>>()
+        assertEquals(List::class, tt.type.jvmErasure)
+        assertEquals(String::class, tt.type.arguments[0].type!!.jvmErasure)
+
+        tt = TypeToken.Create(String::class)
+        assertEquals(String::class, tt.type.jvmErasure)
+    }
 }
 

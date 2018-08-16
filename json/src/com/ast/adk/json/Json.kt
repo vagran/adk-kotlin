@@ -128,7 +128,7 @@ class Json(val prettyPrint: Boolean = false,
 
     fun <T> FromJson(input: JsonReader, type: KType): T?
     {
-        return GetCodec<T>(type).Read(input, this)
+        return GetCodec<T>(type).Read(input, this).also { input.AssertFullConsumption() }
     }
 
     fun <T> FromJson(input: String, type: KType): T?

@@ -34,6 +34,14 @@ interface JsonReader {
         return token !== JsonToken.END_ARRAY && token !== JsonToken.END_OBJECT
     }
 
+    fun AssertFullConsumption()
+    {
+        val token = Peek()
+        if (token !== JsonToken.EOF) {
+            throw JsonReadError("Input was not fully consumed, next token $token")
+        }
+    }
+
     private fun SkipObject()
     {
         while (true) {

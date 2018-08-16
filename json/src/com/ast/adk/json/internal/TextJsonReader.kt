@@ -159,7 +159,6 @@ class TextJsonReader(json: Json,
                 state = State.BEFORE_NAME
                 true
             }
-            c == -1 -> Error("Unexpected end of file")
             else -> UnexpectedChar(c)
         }
     }
@@ -257,9 +256,6 @@ class TextJsonReader(json: Json,
             state = State.NAME
             return true
         }
-        if (c == -1) {
-            Error("Unexpected end of file")
-        }
         UnexpectedChar(c)
     }
 
@@ -268,9 +264,6 @@ class TextJsonReader(json: Json,
         if (c == ':'.toInt()) {
             state = State.BEFORE_VALUE
             return true
-        }
-        if (c == -1) {
-            Error("Unexpected end of file")
         }
         UnexpectedChar(c)
     }
@@ -341,7 +334,11 @@ class TextJsonReader(json: Json,
 
     private fun UnexpectedChar(c: Int): Nothing
     {
-        Error("Unexpected character: %c".format(c))
+        if (c == -1) {
+            Error("Unexpected end of file")
+        } else {
+            Error("Unexpected character: %c".format(c))
+        }
     }
 
     /** Read next character from the input. Some pre-processing is performed. -1 is returned when
