@@ -3,8 +3,10 @@ import com.ast.adk.json.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.util.*
 import kotlin.reflect.full.createType
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 data class Custom(val i: Int)
 
@@ -361,6 +363,35 @@ private class BasicTest {
         assertEquals("a", list[0])
         assertEquals("b", list[1])
         assertEquals("c", list[2])
+    }
+
+    class MyMap<T, U>: TreeMap<T, U>() {
+        val marker = 42
+    }
+
+    @Test
+    fun MapRead()
+    {
+        val json = Json(true)
+        val sampleJson = """ {"a": 1, "b": 2, "c": null} """
+        val map = json.FromJson<MyMap<String, Int>>(sampleJson) ?: fail()
+        assertEquals(3, map.size)
+        assertEquals(42, map.marker)
+        assertEquals(1, map["a"])
+        assertEquals(2, map["b"])
+        assertNull(map["c"])
+    }
+
+    @Test
+    fun AbstractMapRead()
+    {
+        val json = Json(true)
+        val sampleJson = """ {"a": 1, "b": 2, "c": null} """
+        val map = json.FromJson<Map<String, Int>>(sampleJson) ?: fail()
+        assertEquals(3, map.size)
+        assertEquals(1, map["a"])
+        assertEquals(2, map["b"])
+        assertNull(map["c"])
     }
 
     //XXX check nullable/non-nullable list elements

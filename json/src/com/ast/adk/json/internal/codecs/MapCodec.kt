@@ -1,14 +1,13 @@
 package com.ast.adk.json.internal.codecs
 
-import com.ast.adk.json.Json
-import com.ast.adk.json.JsonCodec
-import com.ast.adk.json.JsonReader
-import com.ast.adk.json.JsonWriter
+import com.ast.adk.json.*
+import com.ast.adk.json.internal.ConstructorFunc
+import com.ast.adk.json.internal.GetDefaultConstructor
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.jvm.jvmErasure
 
-class MapCodec(type: KType): JsonCodec<Map<*, *>> {
+class MapCodec(private val type: KType): JsonCodec<Map<*, *>> {
 
     override fun WriteNonNull(obj: Map<*, *>, writer: JsonWriter, json: Json)
     {
@@ -37,9 +36,19 @@ class MapCodec(type: KType): JsonCodec<Map<*, *>> {
         writer.EndObject()
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun ReadNonNull(reader: JsonReader, json: Json): Map<String, *>
     {
-        TODO("not implemented") //XXX
+        if (constructor == null) {
+            throw JsonReadError("No constructor found for $type")
+        }
+        val result = constructor.invoke() as MutableMap<String, Any?>
+        reader.BeginObject()
+        while (reader.HasNext()) {
+            result[reader.ReadName()] = readElementCodec.Read(reader, json)
+        }
+        reader.EndObject()
+        return result
     }
 
     override fun Initialize(json: Json)
@@ -47,12 +56,28 @@ class MapCodec(type: KType): JsonCodec<Map<*, *>> {
         if (elementClass != null) {
             @Suppress("UNCHECKED_CAST")
             elementCodec = json.GetCodec(elementClass)as JsonCodec<Any>
+            readElementCodec = elementCodec
+        } else {
+            readElementCodec = json.GetCodec()
         }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val elementClass: KClass<*>? = GetElementClass(type)
     private lateinit var elementCodec: JsonCodec<Any>
+    private lateinit var readElementCodec: JsonCodec<Any>
+    private val constructor: ConstructorFunc?
+
+    init {
+        val defCtr = GetDefaultConstructor(type.jvmErasure)
+        constructor = when {
+            defCtr != null -> defCtr
+            type.jvmErasure == Map::class || type.jvmErasure == MutableMap::class -> {
+                { HashMap<String, Any?>() }
+            }
+            else -> null
+        }
+    }
 
     private companion object {
         fun GetElementClass(type: KType): KClass<*>?
