@@ -265,12 +265,50 @@ private class BasicTest {
     }
 
     @Test
+    fun LateInitNotSet()
+    {
+        val json = Json(true)
+        val sampleJson = "{}"
+        assertThrows(JsonReadError::class.java) {
+            json.FromJson<MappedClass>(sampleJson)
+        }
+    }
+
+    @Test
+    fun NullValueForNonNullable()
+    {
+        val json = Json(true)
+        val sampleJson = """{ "a": null }"""
+        assertThrows(JsonReadError::class.java) {
+            json.FromJson<MappedClass>(sampleJson)
+        }
+    }
+
+    @Test
     fun NullRead()
     {
         val json = Json(true)
         val sampleJson = "  null/**/"
         val result = json.FromJson<IntArray>(sampleJson)
         assertNull(result)
+    }
+
+    @Test
+    fun EmptyArray()
+    {
+        val json = Json(true)
+        val sampleJson = "[]"
+        val result = json.FromJson<Any?>(sampleJson) ?: fail()
+        assertEquals(0, (result as List<*>).size)
+    }
+
+    @Test
+    fun EmptyMap()
+    {
+        val json = Json(true)
+        val sampleJson = "{}"
+        val result = json.FromJson<Any?>(sampleJson) ?: fail()
+        assertEquals(0, (result as Map<*, *>).size)
     }
 
     @Test

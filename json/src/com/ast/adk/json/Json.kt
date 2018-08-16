@@ -21,6 +21,7 @@ class Json(val prettyPrint: Boolean = false,
            val prettyPrintIndent: Int = 2,
            val enableComments: Boolean = true,
            val allowUnmatchedFields: Boolean = false,
+           val requireAllFields: Boolean = false,
            additionalCodecs: Map<KType, JsonCodec<*>> = emptyMap()) {
 
     @Suppress("UNCHECKED_CAST")

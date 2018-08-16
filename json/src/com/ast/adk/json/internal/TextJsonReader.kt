@@ -46,9 +46,12 @@ class TextJsonReader(json: Json,
         NAME(false)
     }
 
-    private enum class StackItem {
-        ARRAY,
-        OBJECT
+    private class StackItem(val type: Type) {
+        enum class Type {
+            ARRAY,
+            OBJECT
+        }
+        var valueSeen = false
     }
 
     private enum class CommentState {
@@ -135,6 +138,17 @@ class TextJsonReader(json: Json,
 
     private fun HandleBeforeValueState(c: Int): Boolean
     {
+        val stackTop = stack.peek()
+        if (stackTop != null) {
+            if (c == ']'.toInt() && stackTop.type == StackItem.Type.ARRAY && !stackTop.valueSeen) {
+                stack.pop()
+                state = State.AFTER_VALUE
+                EmitToken(JsonToken.END_ARRAY)
+                return true
+            } else {
+                stackTop.valueSeen = true
+            }
+        }
         return when {
             c == '"'.toInt() -> {
                 state = State.STRING
@@ -149,12 +163,12 @@ class TextJsonReader(json: Json,
                 false
             }
             c == '['.toInt() -> {
-                stack.push(StackItem.ARRAY)
+                stack.push(StackItem(StackItem.Type.ARRAY))
                 EmitToken(JsonToken.BEGIN_ARRAY)
                 true
             }
             c == '{'.toInt() -> {
-                stack.push(StackItem.OBJECT)
+                stack.push(StackItem(StackItem.Type.OBJECT))
                 EmitToken(JsonToken.BEGIN_OBJECT)
                 state = State.BEFORE_NAME
                 true
@@ -252,7 +266,15 @@ class TextJsonReader(json: Json,
 
     private fun HandleBeforeNameState(c: Int): Boolean
     {
+        val stackTop = stack.peek()!!
+        if (c == '}'.toInt() && !stackTop.valueSeen) {
+            stack.pop()
+            state = State.AFTER_VALUE
+            EmitToken(JsonToken.END_OBJECT)
+            return true
+        }
         if (c == '"'.toInt()) {
+            stackTop.valueSeen = true
             state = State.NAME
             return true
         }
@@ -281,7 +303,7 @@ class TextJsonReader(json: Json,
             return false
         }
 
-        if (stackTop == StackItem.ARRAY) {
+        if (stackTop.type == StackItem.Type.ARRAY) {
             if (c == ','.toInt()) {
                 state = State.BEFORE_VALUE
                 return true
