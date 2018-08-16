@@ -1,4 +1,4 @@
-module com.ast.argparser {
+module com.ast.adk.argparser {
     requires kotlin.stdlib;
     requires kotlin.reflect;
 
