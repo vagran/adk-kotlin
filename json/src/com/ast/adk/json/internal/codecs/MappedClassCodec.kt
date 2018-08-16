@@ -1,6 +1,7 @@
 package com.ast.adk.json.internal.codecs
 
 import com.ast.adk.json.*
+import java.lang.IllegalStateException
 import java.lang.reflect.Modifier
 import kotlin.reflect.*
 import kotlin.reflect.full.declaredMemberProperties
@@ -32,14 +33,39 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
         writer.EndObject()
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun ReadNonNull(reader: JsonReader, json: Json): T
     {
-        TODO("not implemented") //XXX
+        val obj = constructor?.invoke() ?:
+            throw IllegalStateException("Mapped class constructor not available: $type")
+        reader.BeginObject()
+        while (true) {
+            if (!reader.HasNext()) {
+                break
+            }
+            val name = reader.ReadName()
+            val desc = fields[name]
+            if (desc == null) {
+                if (!allowUnmatchedFields) {
+                    throw JsonReadError("Unmatched field $name for $type")
+                }
+                reader.SkipValue()
+                continue
+            }
+            if (desc.setter == null) {
+                throw JsonReadError("Attempted to set read-only field $name for $type")
+            }
+            val value = desc.codec.Read(reader, json)
+            desc.setter.invoke(obj, value)
+        }
+        reader.EndObject()
+        return obj as T
     }
 
     override fun Initialize(json: Json)
     {
         val cls = type.jvmErasure
+        allowUnmatchedFields = clsAnn?.allowUnmatchedFields ?: json.allowUnmatchedFields
         constructor = GetConstructor(cls)
         for (prop in cls.declaredMemberProperties) {
             if (prop.findAnnotation<JsonTransient>() != null) {
@@ -85,8 +111,11 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
         }
     }
 
+    private val clsAnn: JsonClass? = type.jvmErasure.findAnnotation()
+    private var allowUnmatchedFields = false
     private val fields = HashMap<String, FieldDesc>()
     private var constructor: ConstructorFunc? = null
+
 
     private fun GetConstructor(cls: KClass<*>): ConstructorFunc?
     {

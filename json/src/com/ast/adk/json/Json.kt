@@ -12,11 +12,15 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
-/** Encapsulates encoding/decoding parameters and codecs registry. */
+/** Encapsulates encoding/decoding parameters and codecs registry.
+ * @param allowUnmatchedFields Default value for unmatched fields handling behaviour. Can be
+ * overridden for a class by JsonClass.allowUnmatchedFields annotation.
+ */
 class Json(val prettyPrint: Boolean = false,
            val serializeNulls: Boolean = true,
            val prettyPrintIndent: Int = 2,
            val enableComments: Boolean = true,
+           val allowUnmatchedFields: Boolean = false,
            additionalCodecs: Map<KType, JsonCodec<*>> = emptyMap()) {
 
     @Suppress("UNCHECKED_CAST")

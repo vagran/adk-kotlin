@@ -240,7 +240,7 @@ private class BasicTest {
             /* Sample comment * * / */
             {
                 "a": "я abc \n\b \u00A9" ,
-                "b: 42,
+                "b": 42,
                 "CCC": 4.5
             } /* EOF */
         """

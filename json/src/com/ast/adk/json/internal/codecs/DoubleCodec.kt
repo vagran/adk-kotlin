@@ -13,6 +13,6 @@ class DoubleCodec: JsonCodec<Double> {
 
     override fun ReadNonNull(reader: JsonReader, json: Json): Double
     {
-        TODO("not implemented") //XXX
+        return reader.ReadDouble()
     }
 }

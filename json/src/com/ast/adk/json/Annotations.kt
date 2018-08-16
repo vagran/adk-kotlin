@@ -9,3 +9,10 @@ annotation class JsonField(val name: String = "")
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.PROPERTY)
 annotation class JsonTransient
+
+/** @param allowUnmatchedFields Do not fail if some field in JSON cannot be matched to object
+ * field, it is just silently ignored if this parameter is true.
+ */
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.CLASS)
+annotation class JsonClass(val allowUnmatchedFields: Boolean = true)

@@ -13,6 +13,6 @@ class IntCodec: JsonCodec<Int> {
 
     override fun ReadNonNull(reader: JsonReader, json: Json): Int
     {
-        TODO("not implemented") //XXX
+        return reader.ReadInt()
     }
 }

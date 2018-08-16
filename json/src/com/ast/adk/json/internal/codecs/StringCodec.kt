@@ -11,7 +11,8 @@ class StringCodec: JsonCodec<String> {
         writer.Write(obj)
     }
 
-    override fun ReadNonNull(reader: JsonReader, json: Json): String {
-        TODO("not implemented") //XXX
+    override fun ReadNonNull(reader: JsonReader, json: Json): String
+    {
+        return reader.ReadString()
     }
 }

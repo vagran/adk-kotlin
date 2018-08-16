@@ -6,23 +6,56 @@ interface JsonReader {
 
     fun Read(): JsonToken
 
-    fun ReadName(): String = Read().Name()
+    fun ReadName() = Read().Name()
     fun BeginObject() = Read().AssertBeginObject()
     fun EndObject() = Read().AssertEndObject()
     fun BeginArray() = Read().AssertBeginArray()
     fun EndArray() = Read().AssertEndArray()
-    fun ReadString(): String? = Read().StringValue()
-    fun ReadInt(): Int? = Read().IntValue()
-    fun ReadLong(): Long? = Read().LongValue()
-    fun ReadDouble(): Double? = Read().DoubleValue()
-    fun ReadBoolean(): Boolean? = Read().BooleanValue()
+    fun ReadString() = Read().StringValue()
+    fun ReadInt() = Read().IntValue()
+    fun ReadLong() = Read().LongValue()
+    fun ReadDouble() = Read().DoubleValue()
+    fun ReadBoolean() = Read().BooleanValue()
 
-    fun SkipValue() = Read().AssertValue()
+    fun SkipValue()
+    {
+        val token = Read()
+        when {
+            token === JsonToken.BEGIN_OBJECT -> SkipObject()
+            token === JsonToken.BEGIN_ARRAY -> SkipArray()
+            else -> token.AssertValue()
+        }
+    }
 
     /** @return true if current array or object has next value. */
     fun HasNext(): Boolean
     {
         val token = Peek()
-        return token.type != JsonToken.Type.END_ARRAY && token.type != JsonToken.Type.END_OBJECT
+        return token !== JsonToken.END_ARRAY && token !== JsonToken.END_OBJECT
+    }
+
+    private fun SkipObject()
+    {
+        while (true) {
+            val token = Peek()
+            if (token == JsonToken.END_OBJECT) {
+                EndObject()
+                return
+            }
+            ReadName()
+            SkipValue()
+        }
+    }
+
+    private fun SkipArray()
+    {
+        while (true) {
+            val token = Peek()
+            if (token == JsonToken.END_ARRAY) {
+                EndArray()
+                return
+            }
+            SkipValue()
+        }
     }
 }

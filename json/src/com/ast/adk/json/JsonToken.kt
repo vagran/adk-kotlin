@@ -82,22 +82,16 @@ class JsonToken(val type: Type, val value: String) {
         }
     }
 
-    fun StringValue(): String?
+    fun StringValue(): String
     {
-        if (type == Type.NULL) {
-            return null
-        }
         if (type != JsonToken.Type.STRING) {
             throw JsonReadError("Expected string value, have $this")
         }
         return value
     }
 
-    fun IntValue(): Int?
+    fun IntValue(): Int
     {
-        if (type == Type.NULL) {
-            return null
-        }
         if (type != JsonToken.Type.NUMBER) {
             throw JsonReadError("Expected integer value, have $this")
         }
@@ -108,11 +102,8 @@ class JsonToken(val type: Type, val value: String) {
         }
     }
 
-    fun LongValue(): Long?
+    fun LongValue(): Long
     {
-        if (type == Type.NULL) {
-            return null
-        }
         if (type != JsonToken.Type.NUMBER) {
             throw JsonReadError("Expected long integer value, have $this")
         }
@@ -123,11 +114,8 @@ class JsonToken(val type: Type, val value: String) {
         }
     }
 
-    fun DoubleValue(): Double?
+    fun DoubleValue(): Double
     {
-        if (type == Type.NULL) {
-            return null
-        }
         if (type != JsonToken.Type.NUMBER) {
             throw JsonReadError("Expected double value, have $this")
         }
@@ -138,11 +126,8 @@ class JsonToken(val type: Type, val value: String) {
         }
     }
 
-    fun BooleanValue(): Boolean?
+    fun BooleanValue(): Boolean
     {
-        if (type == Type.NULL) {
-            return null
-        }
         if (type != JsonToken.Type.BOOLEAN) {
             throw JsonReadError("Expected boolean value, have $this")
         }
