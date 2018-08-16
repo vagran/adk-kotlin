@@ -25,7 +25,7 @@ class TextJsonReader(json: Json,
     private val buf = StringBuilder()
     private var lastToken: JsonToken? = null
     private var pendingChar: Int = 0
-    private var state = State.VALUE
+    private var state = State.BEFORE_VALUE
     private val stack = ArrayDeque<StackItem>()
     private var commentState = CommentState.NONE
     private var curCol = 1
@@ -36,7 +36,7 @@ class TextJsonReader(json: Json,
     private var stringEscapeCode = 0
 
     private enum class State(val skipWs: Boolean) {
-        VALUE(true),
+        BEFORE_VALUE(true),
         STRING(false),
         NUMBER(false),
         SYMBOL(false),
@@ -123,7 +123,7 @@ class TextJsonReader(json: Json,
         }
 
         return when (state) {
-            State.VALUE -> HandleValueState(c)
+            State.BEFORE_VALUE -> HandleValueState(c)
             State.SYMBOL -> HandleSymbolState(c)
             State.NUMBER -> HandleNumberState(c)
             State.NAME, State.STRING -> HandleNameStringState(c)
@@ -233,6 +233,11 @@ class TextJsonReader(json: Json,
             return true
         }
 
+        if (c == '\\'.toInt()) {
+            stringEscape = true
+            return true
+        }
+
         if (c == '"'.toInt()) {
             EmitToken(JsonToken(
                 if (state == State.NAME) JsonToken.Type.NAME else JsonToken.Type.STRING,
@@ -261,7 +266,7 @@ class TextJsonReader(json: Json,
     private fun HandleAfterNameState(c: Int): Boolean
     {
         if (c == ':'.toInt()) {
-            state = State.VALUE
+            state = State.BEFORE_VALUE
             return true
         }
         if (c == -1) {
@@ -285,7 +290,7 @@ class TextJsonReader(json: Json,
 
         if (stackTop == StackItem.ARRAY) {
             if (c == ','.toInt()) {
-                state = State.VALUE
+                state = State.BEFORE_VALUE
                 return true
             }
             if (c == ']'.toInt()) {
@@ -298,7 +303,7 @@ class TextJsonReader(json: Json,
         }
 
         if (c == ','.toInt()) {
-            state = State.NAME
+            state = State.BEFORE_NAME
             return true
         }
         if (c == '}'.toInt()) {
