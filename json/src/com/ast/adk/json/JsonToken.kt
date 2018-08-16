@@ -7,6 +7,8 @@ class JsonToken(val type: Type, val value: String) {
     companion object {
         val EOF = JsonToken(Type.EOF, "")
         val NULL = JsonToken(Type.NULL, "")
+        val TRUE = JsonToken(Type.BOOLEAN, "true")
+        val FALSE = JsonToken(Type.BOOLEAN, "false")
         val BEGIN_OBJECT = JsonToken(Type.BEGIN_OBJECT, "")
         val END_OBJECT = JsonToken(Type.END_OBJECT, "")
         val BEGIN_ARRAY = JsonToken(Type.BEGIN_ARRAY, "")
@@ -18,8 +20,8 @@ class JsonToken(val type: Type, val value: String) {
         NAME,
         NULL,
         STRING,
-        SYMBOL,
         NUMBER,
+        BOOLEAN,
         BEGIN_OBJECT,
         END_OBJECT,
         BEGIN_ARRAY,
@@ -72,7 +74,7 @@ class JsonToken(val type: Type, val value: String) {
         if (type != Type.NULL &&
             type != Type.STRING &&
             type != Type.NUMBER &&
-            type != Type.SYMBOL &&
+            type != Type.BOOLEAN &&
             type != Type.BEGIN_OBJECT &&
             type != Type.BEGIN_ARRAY) {
 
@@ -141,12 +143,12 @@ class JsonToken(val type: Type, val value: String) {
         if (type == Type.NULL) {
             return null
         }
-        if (type != JsonToken.Type.SYMBOL) {
+        if (type != JsonToken.Type.BOOLEAN) {
             throw JsonReadError("Expected boolean value, have $this")
         }
-        return when (value) {
-            "true" -> true
-            "false" -> false
+        return when {
+            this === TRUE -> true
+            this === FALSE -> false
             else -> throw JsonReadError("Bad boolean value: $value")
         }
     }

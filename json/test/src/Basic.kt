@@ -1,7 +1,6 @@
 
 import com.ast.adk.json.*
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import kotlin.reflect.full.createType
@@ -231,6 +230,24 @@ private class BasicTest {
               "d": true
             }
         """.trimIndent(), result)
+    }
+
+    @Test
+    fun MappedRead()
+    {
+        val json = Json(true)
+        val sampleJson = """
+            /* Sample comment * * / */
+            {
+                "a": "я abc \n\b \u00A9" ,
+                "b: 42,
+                "CCC": 4.5
+            } /* EOF */
+        """
+        val result = json.FromJson<MappedClass>(sampleJson) ?: fail()
+        assertEquals("я abc \n\b \u00A9", result.a)
+        assertEquals(42, result.b)
+        assertEquals(4.5, result.c, 0.0001)
     }
 
     //XXX check nullable/non-nullable list elements

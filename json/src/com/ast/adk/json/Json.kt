@@ -16,6 +16,7 @@ import kotlin.reflect.jvm.jvmErasure
 class Json(val prettyPrint: Boolean = false,
            val serializeNulls: Boolean = true,
            val prettyPrintIndent: Int = 2,
+           val enableComments: Boolean = true,
            additionalCodecs: Map<KType, JsonCodec<*>> = emptyMap()) {
 
     @Suppress("UNCHECKED_CAST")
