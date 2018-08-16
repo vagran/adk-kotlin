@@ -14,5 +14,5 @@ interface JsonWriter {
     fun Write(value: String)
     fun Write(value: Boolean)
 
-    fun AssertComplete()
+    fun Finish()
 }

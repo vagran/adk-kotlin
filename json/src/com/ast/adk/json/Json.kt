@@ -140,7 +140,7 @@ class Json(val prettyPrint: Boolean = false,
         }
         @Suppress("UNCHECKED_CAST")
         (GetCodec(obj::class) as JsonCodec<Any>).Write(obj, output, this)
-        output.AssertComplete()
+        output.Finish()
     }
 
 

@@ -125,12 +125,13 @@ internal class TextJsonWriter(private val json: Json,
         output.write(if (value) "true" else "false")
     }
 
-    override fun AssertComplete()
+    override fun Finish()
     {
         val state = GetCurState()
         if (state.type != State.Type.ROOT || !state.valueWritten) {
             throw IllegalStateException("JSON document not complete")
         }
+        output.flush()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

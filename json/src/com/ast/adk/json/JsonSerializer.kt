@@ -49,7 +49,7 @@ class JsonSerializer<T>(private val json: Json,
     private inline fun ToJson(obj: T?, writer: JsonWriter)
     {
         codec.Write(obj, writer, json)
-        writer.AssertComplete()
+        writer.Finish()
     }
 
     @Suppress("NOTHING_TO_INLINE")
