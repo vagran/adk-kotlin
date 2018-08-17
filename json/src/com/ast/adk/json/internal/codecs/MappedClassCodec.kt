@@ -4,8 +4,10 @@ import com.ast.adk.json.*
 import com.ast.adk.json.internal.ConstructorFunc
 import com.ast.adk.json.internal.GetDefaultConstructor
 import kotlin.reflect.*
+import kotlin.reflect.full.allSuperclasses
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.superclasses
 import kotlin.reflect.jvm.jvmErasure
 
 private typealias GetterFunc = (obj: Any) -> Any?
@@ -79,28 +81,30 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
         allowUnmatchedFields = clsAnn?.allowUnmatchedFields ?: json.allowUnmatchedFields
         val requiredDefault = clsAnn?.requireAllFields ?: json.requireAllFields
         constructor = GetDefaultConstructor(cls)
-        for (prop in cls.declaredMemberProperties) {
-            if (prop.findAnnotation<JsonTransient>() != null) {
-                continue
-            }
-            val fieldAnn = prop.findAnnotation<JsonField>()
-            if (prop.visibility != KVisibility.PUBLIC) {
-                if (fieldAnn != null) {
-                    throw IllegalArgumentException(
-                        "Mapped field should be public: ${cls.qualifiedName}::${prop.name}")
+        for (curCls in cls.allSuperclasses + cls) {
+            for (prop in curCls.declaredMemberProperties) {
+                if (prop.findAnnotation<JsonTransient>() != null) {
+                    continue
                 }
-                continue
+                val fieldAnn = prop.findAnnotation<JsonField>()
+                if (prop.visibility != KVisibility.PUBLIC) {
+                    if (fieldAnn != null) {
+                        throw IllegalArgumentException(
+                            "Mapped field should be public: ${curCls.qualifiedName}::${prop.name}")
+                    }
+                    continue
+                }
+                val name = if (fieldAnn != null && !fieldAnn.name.isEmpty()) {
+                    fieldAnn.name
+                } else {
+                    prop.name
+                }
+                if (name in fields) {
+                    throw IllegalArgumentException(
+                        "Duplicated field name: ${curCls.qualifiedName}::${prop.name}")
+                }
+                fields[name] = FieldDesc(prop, json, fieldAnn, requiredDefault, fields.size)
             }
-            val name = if (fieldAnn != null && !fieldAnn.name.isEmpty()) {
-                fieldAnn.name
-            } else {
-                prop.name
-            }
-            if (name in fields) {
-                throw IllegalArgumentException(
-                    "Duplicated field name: ${cls.qualifiedName}::${prop.name}")
-            }
-            fields[name] = FieldDesc(prop, json, fieldAnn, requiredDefault, fields.size)
         }
     }
 

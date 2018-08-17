@@ -515,5 +515,26 @@ private class BasicTest {
         val parsed = json.FromJson<BitSet>(sampleJson)
         assertEquals(data, parsed)
     }
+
+    open class Base {
+        lateinit var a: String
+    }
+
+    class Derived: Base() {
+        var i: Int = 0
+    }
+
+    @Test
+    fun ClassHierarchyTest()
+    {
+        val obj = Derived()
+        obj.i = 42
+        obj.a = "abc"
+        val json = Json(true)
+        val sampleJson = json.ToJson(obj)
+        val parsed = json.FromJson<Derived>(sampleJson) ?: fail()
+        assertEquals(obj.a, parsed.a)
+        assertEquals(obj.i, parsed.i)
+    }
 }
 
