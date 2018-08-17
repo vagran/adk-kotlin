@@ -213,8 +213,30 @@ internal class TextJsonWriter(private val json: Json,
 
     private fun WriteEscapedString(s: String)
     {
-        for (i in 0 until s.length) {
+        loop@for (i in 0 until s.length) {
             val c = s[i]
+            when (c) {
+                '\r' -> {
+                    output.write("\\r")
+                    continue@loop
+                }
+                '\n' -> {
+                    output.write("\\n")
+                    continue@loop
+                }
+                '\t' -> {
+                    output.write("\\t")
+                    continue@loop
+                }
+                '\b' -> {
+                    output.write("\\b")
+                    continue@loop
+                }
+                0xc.toChar() -> {
+                    output.write("\\f")
+                    continue@loop
+                }
+            }
             if (c == '\\' || c == '"') {
                 output.write('\\'.toInt())
             }

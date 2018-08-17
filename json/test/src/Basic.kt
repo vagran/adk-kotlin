@@ -529,7 +529,7 @@ private class BasicTest {
     {
         val obj = Derived()
         obj.i = 42
-        obj.a = "abc"
+        obj.a = "a\"bc\n\r\t"
         val json = Json(true)
         val sampleJson = json.ToJson(obj)
         val parsed = json.FromJson<Derived>(sampleJson) ?: fail()
