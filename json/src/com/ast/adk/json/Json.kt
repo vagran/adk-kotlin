@@ -136,10 +136,10 @@ class Json(val prettyPrint: Boolean = false,
     {
         if (obj == null) {
             output.WriteNull()
-            return
+        } else {
+            @Suppress("UNCHECKED_CAST")
+            (GetCodec(obj::class) as JsonCodec<Any>).Write(obj, output, this)
         }
-        @Suppress("UNCHECKED_CAST")
-        (GetCodec(obj::class) as JsonCodec<Any>).Write(obj, output, this)
         output.Finish()
     }
 
