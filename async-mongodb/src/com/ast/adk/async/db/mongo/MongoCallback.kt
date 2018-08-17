@@ -23,14 +23,14 @@ class MongoCallback<T>: SingleResultCallback<T>, Awaitable<T> {
     }
 }
 
-fun <TRet> MongoCall(func: (SingleResultCallback<TRet>) -> Unit): Deferred<TRet>
+inline fun <TRet> MongoCall(func: (SingleResultCallback<TRet>) -> Unit): Deferred<TRet>
 {
     val cbk = MongoCallback<TRet>()
     func(cbk)
     return cbk.result
 }
 
-fun <TRet, TArg1> MongoCall(
+inline fun <TRet, TArg1> MongoCall(
     func: (TArg1, SingleResultCallback<TRet>) -> Unit,
     arg1: TArg1):
     Deferred<TRet>
@@ -40,7 +40,7 @@ fun <TRet, TArg1> MongoCall(
     return cbk.result
 }
 
-fun <TRet, TArg1, TArg2> MongoCall(
+inline fun <TRet, TArg1, TArg2> MongoCall(
     func: (TArg1, TArg2, SingleResultCallback<TRet>) -> Unit,
     arg1: TArg1,
     arg2: TArg2):
@@ -51,7 +51,7 @@ fun <TRet, TArg1, TArg2> MongoCall(
     return cbk.result
 }
 
-fun <TRet, TArg1, TArg2, TArg3> MongoCall(
+inline fun <TRet, TArg1, TArg2, TArg3> MongoCall(
     func: (TArg1, TArg2, TArg3, SingleResultCallback<TRet>) -> Unit,
     arg1: TArg1,
     arg2: TArg2,
@@ -63,7 +63,7 @@ fun <TRet, TArg1, TArg2, TArg3> MongoCall(
     return cbk.result
 }
 
-fun <TRet, TArg1, TArg2, TArg3, TArg4> MongoCall(
+inline fun <TRet, TArg1, TArg2, TArg3, TArg4> MongoCall(
     func: (TArg1, TArg2, TArg3, TArg4, SingleResultCallback<TRet>) -> Unit,
     arg1: TArg1,
     arg2: TArg2,
