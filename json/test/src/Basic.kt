@@ -202,9 +202,9 @@ private class BasicTest {
         val result = json.ToJson(doubleArrayOf(1.0, 2.5, 3.0))
         assertEquals("""
             [
-              1.0,
+              1,
               2.5,
-              3.0
+              3
             ]
         """.trimIndent(), result)
     }

@@ -104,9 +104,16 @@ internal class TextJsonWriter(private val json: Json,
 
     override fun Write(value: Double)
     {
+        if (value.isInfinite() || value.isNaN()) {
+            throw IllegalArgumentException("Illegal double value: $value")
+        }
         val state = GetCurState()
         state.BeginValueWrite(this)
-        output.write(value.toString())
+        if (value == Math.floor(value)) {
+            output.write(value.toLong().toString())
+        } else {
+            output.write(value.toString())
+        }
     }
 
     override fun Write(value: String)
