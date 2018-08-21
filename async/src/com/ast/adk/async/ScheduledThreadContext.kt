@@ -166,10 +166,7 @@ class ScheduledThreadContext(name: String,
         while (true) {
             var tokens: Token? = null
             val time = LockQueue {
-                val e = scheduledMessages.firstEntry()
-                if (e == null) {
-                    return@LockQueue 0L
-                }
+                val e = scheduledMessages.firstEntry() ?: return@LockQueue 0L
                 val fireTime = e.key
                 if (fireTime > curTime) {
                     return@LockQueue fireTime - curTime
@@ -193,6 +190,7 @@ class ScheduledThreadContext(name: String,
                     try {
                         tokens!!.message.Reject(e)
                     } catch (_e: Throwable) {
+                        _e.addSuppressed(e)
                         Error("Exception in message reject handler", _e)
                     }
                 }
