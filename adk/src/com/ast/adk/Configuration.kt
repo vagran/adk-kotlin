@@ -48,19 +48,29 @@ class Configuration {
         root = MergeConfigEntry(root, other.root)
     }
 
-    fun GetString(path: String, allowMissing: Boolean = false): String?
+    fun GetString(path: String, allowMissing: Boolean): String?
     {
         return (ResolvePath(path, allowMissing) ?: return null) as? String
             ?: throw Error("Expected string in configuration entry: $path")
     }
 
-    fun GetPath(path: String, allowMissing: Boolean = false): Path?
+    fun GetString(path: String): String
+    {
+        return GetString(path, false) as String
+    }
+
+    fun GetPath(path: String, allowMissing: Boolean): Path?
     {
         val s = GetString(path, allowMissing) ?: return null
         return Paths.get(s)
     }
 
-    fun GetInteger(path: String, allowMissing: Boolean = false): Int?
+    fun GetPath(path: String): Path
+    {
+        return GetPath(path, false) as Path
+    }
+
+    fun GetInteger(path: String, allowMissing: Boolean): Int?
     {
         val obj = ResolvePath(path, allowMissing) ?: return null
         if (obj is Double) {
@@ -72,10 +82,37 @@ class Configuration {
         return obj
     }
 
-    fun GetSubConfig(path: String, allowMissing: Boolean = false): Configuration?
+    fun GetInteger(path: String): Int
+    {
+        return GetInteger(path, false) as Int
+    }
+
+    fun GetLong(path: String, allowMissing: Boolean): Long?
+    {
+        val obj = ResolvePath(path, allowMissing) ?: return null
+        if (obj is Double) {
+            return obj.toLong()
+        }
+        if (obj !is Long) {
+            throw Error("Expected long integer in configuration entry: $path")
+        }
+        return obj
+    }
+
+    fun GetLong(path: String): Long
+    {
+        return GetLong(path, false) as Long
+    }
+
+    fun GetSubConfig(path: String, allowMissing: Boolean): Configuration?
     {
         val obj = ResolvePath(path, allowMissing) ?: return null
         return Configuration(obj)
+    }
+
+    fun GetSubConfig(path: String): Configuration
+    {
+        return GetSubConfig(path, false) as Configuration
     }
 
     /** Entry in an iterable configuration value.  */
