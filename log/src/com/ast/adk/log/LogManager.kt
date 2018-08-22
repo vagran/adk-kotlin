@@ -48,7 +48,7 @@ class LogManager {
     private lateinit var config: Configuration
     private lateinit var queue: LogQueue<LogMessage>
     private val appenders = TreeMap<String, Appender>()
-    private val appenderThread = Thread(this::AppenderThreadFunc)
+    private val appenderThread = Thread(this::AppenderThreadFunc, "AdkLogAppender")
     private val loggers = HashMap<String, Logger>()
 
     inner class LoggerImpl(name: String,
