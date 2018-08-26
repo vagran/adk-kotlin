@@ -17,7 +17,7 @@ import java.util.zip.GZIPOutputStream
 import kotlin.concurrent.thread
 
 
-class FileAppender(private val config: Configuration.Appender):
+class FileAppender(private val config: LogConfiguration.Appender):
     Appender(GetPattern(config), config.level) {
 
     override fun AppendMessageImpl(msg: LogMessage)
@@ -59,9 +59,9 @@ class FileAppender(private val config: Configuration.Appender):
     private companion object {
         val ROLL_CHECK_INTERVAL: Duration = Duration.ofSeconds(30)
 
-        fun GetPattern(config: Configuration.Appender): Pattern
+        fun GetPattern(config: LogConfiguration.Appender): Pattern
         {
-            return Pattern(config.pattern ?: Configuration.DEFAULT_PATTERN)
+            return Pattern(config.pattern ?: LogConfiguration.DEFAULT_PATTERN)
         }
 
         fun GetCreationTime(path: Path): Instant
@@ -79,7 +79,7 @@ class FileAppender(private val config: Configuration.Appender):
                                            StandardOpenOption.DSYNC)
         }
 
-        fun GetOldPattern(config: Configuration.Appender.FileParams): RegExp
+        fun GetOldPattern(config: LogConfiguration.Appender.FileParams): RegExp
         {
             val pat = StringBuilder()
             pat.append("\\d{4}\\-\\d{2}\\-\\d{2}_\\d{2}\\-\\d{2}\\-\\d{2}_")
@@ -103,7 +103,7 @@ class FileAppender(private val config: Configuration.Appender):
         }
     }
 
-    private fun CheckRoll(fileParams: Configuration.Appender.FileParams, curTime: Instant)
+    private fun CheckRoll(fileParams: LogConfiguration.Appender.FileParams, curTime: Instant)
     {
         var doRoll = if (fileParams.maxSize != null) {
             val size = Files.size(fileParams.path)

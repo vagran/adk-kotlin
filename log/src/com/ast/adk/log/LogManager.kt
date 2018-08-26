@@ -6,7 +6,7 @@ import kotlin.collections.ArrayList
 
 class LogManager {
 
-    fun Initialize(config: Configuration)
+    fun Initialize(config: LogConfiguration)
     {
         this.config = config
         queue = LogQueue(config.settings.queueSize,
@@ -45,7 +45,7 @@ class LogManager {
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private var isInitialized = false
-    private lateinit var config: Configuration
+    private lateinit var config: LogConfiguration
     private lateinit var queue: LogQueue<LogMessage>
     private val appenders = TreeMap<String, Appender>()
     private val appenderThread = Thread(this::AppenderThreadFunc, "AdkLogAppender")
@@ -80,11 +80,11 @@ class LogManager {
         }
     }
 
-    private fun CreateAppender(appenderConfig: Configuration.Appender): Appender
+    private fun CreateAppender(appenderConfig: LogConfiguration.Appender): Appender
     {
         return when (appenderConfig.type) {
-            Configuration.Appender.Type.CONSOLE -> ConsoleAppender(appenderConfig)
-            Configuration.Appender.Type.FILE -> FileAppender(appenderConfig)
+            LogConfiguration.Appender.Type.CONSOLE -> ConsoleAppender(appenderConfig)
+            LogConfiguration.Appender.Type.FILE -> FileAppender(appenderConfig)
         }
     }
 

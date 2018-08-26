@@ -1,6 +1,6 @@
 package com.ast.adk.log
 
-class ConsoleAppender(config: Configuration.Appender):
+class ConsoleAppender(config: LogConfiguration.Appender):
     Appender(GetPattern(config), config.level) {
 
     override fun AppendMessageImpl(msg: LogMessage)
@@ -13,15 +13,15 @@ class ConsoleAppender(config: Configuration.Appender):
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val stream = when (config.consoleParams!!.target) {
-        Configuration.Appender.ConsoleParams.Target.STDOUT -> System.out
-        Configuration.Appender.ConsoleParams.Target.STDERR -> System.err
+        LogConfiguration.Appender.ConsoleParams.Target.STDOUT -> System.out
+        LogConfiguration.Appender.ConsoleParams.Target.STDERR -> System.err
     }
 
     private companion object {
-        fun GetPattern(config: Configuration.Appender): Pattern
+        fun GetPattern(config: LogConfiguration.Appender): Pattern
         {
             return if (config.pattern == null) {
-                Pattern(Configuration.DEFAULT_PATTERN)
+                Pattern(LogConfiguration.DEFAULT_PATTERN)
             } else {
                 Pattern(config.pattern!!)
             }

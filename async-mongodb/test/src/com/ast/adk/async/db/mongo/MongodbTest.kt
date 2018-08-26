@@ -3,8 +3,8 @@ package com.ast.adk.async.db.mongo
 import com.ast.adk.async.Deferred
 import com.ast.adk.async.TaskThrottler
 import com.ast.adk.async.observable.One
-import com.ast.adk.log.Configuration
-import com.ast.adk.log.Configuration.Companion.DEFAULT_PATTERN
+import com.ast.adk.log.LogConfiguration
+import com.ast.adk.log.LogConfiguration.Companion.DEFAULT_PATTERN
 import com.ast.adk.log.LogLevel
 import com.ast.adk.log.LogManager
 import com.ast.adk.log.LoggerName
@@ -33,28 +33,28 @@ private class MongodbTest {
     @BeforeAll
     fun Setup()
     {
-        val appender = Configuration.Appender("console").apply {
-            type = Configuration.Appender.Type.CONSOLE
+        val appender = LogConfiguration.Appender("console").apply {
+            type = LogConfiguration.Appender.Type.CONSOLE
             pattern = DEFAULT_PATTERN
             level = LogLevel.TRACE
-            consoleParams = Configuration.Appender.ConsoleParams().apply {
-                target = Configuration.Appender.ConsoleParams.Target.STDOUT
+            consoleParams = LogConfiguration.Appender.ConsoleParams().apply {
+                target = LogConfiguration.Appender.ConsoleParams.Target.STDOUT
             }
         }
         val appenders = listOf(appender)
 
-        val rootLogger = Configuration.Logger(LoggerName.ROOT).apply {
+        val rootLogger = LogConfiguration.Logger(LoggerName.ROOT).apply {
             this.level = LogLevel.TRACE
             this.appenders = appenders
         }
 
-        val mongoProtocolLogger = Configuration.Logger("org.mongodb.driver").apply {
+        val mongoProtocolLogger = LogConfiguration.Logger("org.mongodb.driver").apply {
             this.level = LogLevel.INFO
             this.appenders = appenders
         }
 
-        val logConfig = Configuration(Configuration.Settings(), appenders,
-                                      listOf(rootLogger, mongoProtocolLogger))
+        val logConfig = LogConfiguration(LogConfiguration.Settings(), appenders,
+                                         listOf(rootLogger, mongoProtocolLogger))
         Slf4jLogManager.logManager = LogManager().apply { Initialize(logConfig) }
 
         client = MongoClients.create(

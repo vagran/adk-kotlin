@@ -10,9 +10,9 @@ import java.util.*
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 
-class Configuration(val settings: Settings,
-                    val appenders: List<Appender>,
-                    val loggers: Map<LoggerName, Logger>) {
+class LogConfiguration(val settings: Settings,
+                       val appenders: List<Appender>,
+                       val loggers: Map<LoggerName, Logger>) {
 
     constructor(settings: Settings,
                 appenders: List<Appender>,
@@ -23,7 +23,7 @@ class Configuration(val settings: Settings,
 
         fun Default(consoleTarget: Appender.ConsoleParams.Target =
                         Appender.ConsoleParams.Target.STDERR,
-                    thresholdLevel: LogLevel = LogLevel.TRACE): Configuration
+                    thresholdLevel: LogLevel = LogLevel.TRACE): LogConfiguration
         {
             val appender = Appender("console").apply {
                 type = Appender.Type.CONSOLE
@@ -40,20 +40,20 @@ class Configuration(val settings: Settings,
                 this.appenders = appenders
             }
 
-            return Configuration(Settings(), appenders, mapOf(logger.name to logger))
+            return LogConfiguration(Settings(), appenders, mapOf(logger.name to logger))
         }
 
-        fun FromJson(json: String): Configuration
+        fun FromJson(json: String): LogConfiguration
         {
             return FromJsonObject(Json().FromJson(json)!!)
         }
 
-        fun FromJson(json: InputStream): Configuration
+        fun FromJson(json: InputStream): LogConfiguration
         {
             return FromJsonObject(Json().FromJson(json)!!)
         }
 
-        fun FromJson(jsonFile: Path): Configuration
+        fun FromJson(jsonFile: Path): LogConfiguration
         {
             Files.newInputStream(jsonFile).use {
                 return FromJson(it)
@@ -61,7 +61,7 @@ class Configuration(val settings: Settings,
         }
 
         @Suppress("UNCHECKED_CAST")
-        private fun FromJsonObject(obj: Any): Configuration
+        private fun FromJsonObject(obj: Any): LogConfiguration
         {
             if (obj !is Map<*, *>) {
                 throw Exception("Invalid configuration")
@@ -103,7 +103,7 @@ class Configuration(val settings: Settings,
                 }
             }
 
-            return Configuration(settings, ArrayList(appenders.values), loggers)
+            return LogConfiguration(settings, ArrayList(appenders.values), loggers)
         }
 
         private fun LoggersListToMap(loggers: List<Logger>): Map<LoggerName, Logger>

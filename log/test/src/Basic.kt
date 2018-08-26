@@ -80,7 +80,7 @@ class Basic {
     @Test
     fun BasicTest()
     {
-        val config = Configuration.FromJson(testConfigStr)
+        val config = LogConfiguration.FromJson(testConfigStr)
         val logManager = LogManager()
         logManager.Initialize(config)
         val log = logManager.GetLogger("my.test.aaa")
@@ -92,7 +92,7 @@ class Basic {
     fun DefaultLogTest()
     {
         val logManager = LogManager()
-        logManager.Initialize(Configuration.Default())
+        logManager.Initialize(LogConfiguration.Default())
         val log = logManager.GetLogger("my.test.aaa")
         log.Info("%d %f", 42, 13.0)
         logManager.Shutdown()
@@ -101,7 +101,7 @@ class Basic {
 //    @Test
 //    fun RollBySizeTest()
 //    {
-//        val config = Configuration.FromJson(testConfigStr)
+//        val config = LogConfiguration.FromJson(testConfigStr)
 //        val logManager = LogManager()
 //        logManager.Initialize(config)
 //        val log = logManager.GetLogger("logger.fastRollSize")
@@ -115,7 +115,7 @@ class Basic {
 //    @Test
 //    fun RollByTimeTest()
 //    {
-//        val config = Configuration.FromJson(testConfigStr)
+//        val config = LogConfiguration.FromJson(testConfigStr)
 //        val logManager = LogManager()
 //        logManager.Initialize(config)
 //        val log = logManager.GetLogger("logger.fastRollTime")
@@ -130,7 +130,7 @@ class Basic {
     fun RedirectStderrTest()
     {
         val logManager = LogManager()
-        logManager.Initialize(Configuration.Default())
+        logManager.Initialize(LogConfiguration.Default())
         logManager.RedirectStderr("logger.console")
         System.err.println("Test stderr message")
         logManager.Shutdown()

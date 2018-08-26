@@ -1,6 +1,6 @@
 package com.ast.adk.log.slf4j.api
 
-import com.ast.adk.log.Configuration
+import com.ast.adk.log.LogConfiguration
 import com.ast.adk.log.LogManager
 
 /** This object provides control over log manager instance used by SLF4J bindings. */
@@ -13,7 +13,7 @@ object Slf4jLogManager {
                 _logManager = synchronized(this) {
                     if (this.logManagerImpl == null) {
                         this.logManagerImpl = LogManager().apply {
-                            Initialize(Configuration.Default())
+                            Initialize(LogConfiguration.Default())
                         }
                     }
                     this.logManagerImpl!!
