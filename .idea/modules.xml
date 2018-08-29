@@ -12,6 +12,8 @@
       <module fileurl="file://$PROJECT_DIR$/async/test/async.test.iml" filepath="$PROJECT_DIR$/async/test/async.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/diff/diff.iml" filepath="$PROJECT_DIR$/diff/diff.iml" />
       <module fileurl="file://$PROJECT_DIR$/diff/test/diff.test.iml" filepath="$PROJECT_DIR$/diff/test/diff.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gui-utils/gui-utils.iml" filepath="$PROJECT_DIR$/gui-utils/gui-utils.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gui-utils/test/gui-utils.test.iml" filepath="$PROJECT_DIR$/gui-utils/test/gui-utils.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/json/json.iml" filepath="$PROJECT_DIR$/json/json.iml" />
       <module fileurl="file://$PROJECT_DIR$/json/test/json.test.iml" filepath="$PROJECT_DIR$/json/test/json.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/log.iml" filepath="$PROJECT_DIR$/log/log.iml" />
