@@ -7,11 +7,11 @@ import javafx.stage.Stage
 
 class Props {
     var someString = "initial value"
-    @PropItem(name = "Some integer")
+    @PropItem(displayName = "Some integer")
     var someInt = 42
 
     lateinit var subProps: SubProps
-    @PropItem(name = "second subprops")
+    @PropItem(displayName = "second subprops")
     val subProps2 = SubProps()
 
     lateinit var subProps3: OtherSubProps
@@ -19,7 +19,7 @@ class Props {
     lateinit var subProps4: OtherSubProps
 }
 
-@PropClass(name = "Sub-properties")
+@PropClass(displayName = "Sub-properties")
 class SubProps {
     var value = 3.14
 }
