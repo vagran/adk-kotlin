@@ -8,8 +8,13 @@ import javafx.scene.control.TitledPane
 import javafx.scene.layout.*
 import java.util.*
 import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.KProperty1
+import kotlin.reflect.KVisibility
 import kotlin.reflect.full.createInstance
+import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.jvm.jvmErasure
 
 private typealias FieldSetter<T> = (value: T) -> Unit
 private typealias FieldGetter<T> = () -> T
@@ -58,6 +63,37 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
     private val nodes = TreeMap<Int, Node>()
     private var curId = 1
 
+    private class PropPath(val components: Array<String>) {
+        companion object {
+            val EMPTY = PropPath(emptyArray())
+
+            fun Create(vararg components: String): PropPath
+            {
+                return PropPath(arrayOf(*components))
+            }
+
+            fun Parse(s: String): PropPath
+            {
+                return PropPath(s.split('.').toTypedArray())
+            }
+        }
+
+        fun Append(component: String): PropPath
+        {
+            return PropPath(components + component)
+        }
+
+        fun Append(other: PropPath): PropPath
+        {
+            return PropPath(components + other.components)
+        }
+
+        override fun toString(): String
+        {
+            return components.joinToString(".")
+        }
+    }
+
     private abstract class Node(val id: Int, val name: String, val displayName: String) {
         abstract val isCategory: Boolean
     }
@@ -71,7 +107,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
         lateinit var uiNode: javafx.scene.Node
     }
 
-    private class Field(id: Int, name: String, displayName: String):
+    private class Item(id: Int, name: String, displayName: String):
         Node(id, name, displayName) {
 
         override val isCategory = false
@@ -82,14 +118,21 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             it.alignment = Pos.TOP_CENTER
         }
         _props = cls.createInstance();
-        rootCat = CreateCategory("", _props, null, null)
+        rootCat = CreateCategory("", _props, PropPath.EMPTY, null, null)
         root.children.add(rootCat.uiNode)
     }
 
-    private fun CreateCategory(name: String, obj: Any, ann: PropItem?, parentGrid: GridPane?): Category
+    @Suppress("UNCHECKED_CAST")
+    private fun CreateCategory(name: String,
+                               obj: Any,
+                               prefixPath: PropPath,
+                               ann: PropItem?,
+                               parentGrid: GridPane?): Category
     {
         val cls = obj::class
+
         val clsAnn = cls.findAnnotation<PropClass>()
+
         val displayName = run {
             if (ann != null && !ann.displayName.isEmpty()) {
                 return@run ann.displayName
@@ -99,7 +142,9 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             }
             return@run name
         }
+
         val cat = Category(curId++, name, displayName)
+
         val isFlat = ann != null && ann.flat
 
         val catContainer = run {
@@ -134,6 +179,40 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
 
         var curRow = grid.rowCount
 
+        for (prop in cls.declaredMemberProperties) {
+            if (prop.visibility != KVisibility.PUBLIC) {
+                continue
+            }
+            val item = CreateItem(prop, obj)
+            if (item != null) {
+                //XXX
+                continue
+            }
+            /* Treat as category. */
+            var catObj = if (prop.isLateinit) {
+                null
+            } else {
+                (prop as KProperty1<Any, Any?>).get(obj)
+            }
+            if (catObj == null) {
+                if (prop !is KMutableProperty1) {
+                    continue
+                }
+                try {
+                    catObj = prop.returnType.jvmErasure.createInstance()
+                    (prop as KMutableProperty1<Any, Any?>).set(obj, catObj)
+                } catch (e: Throwable) {
+                    throw Error(
+                        "Failed to initialize category field ${prefixPath.Append(prop.name)}", e)
+                }
+            }
+            val catAnn = prop.findAnnotation<PropItem>()
+            val isCatFlat = catAnn != null && catAnn.flat
+            val childCat = CreateCategory(prop.name, catObj, prefixPath.Append(prop.name),
+                                          catAnn, if (isCatFlat) grid else null)
+            cat.children.add(childCat)
+            grid.add(childCat.uiNode, 0, curRow++, 2, 1)
+        }
 
         if (catContainer != null) {
             catContainer.content = grid
@@ -143,5 +222,15 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
         }
 
         return cat
+    }
+
+    /** Create item based on the provided property if applicable. Returns null if the property is
+     * not suitable for item creation.
+     */
+    private fun CreateItem(prop: KProperty1<*, *>, container: Any): Item?
+    {
+        prop.returnType.jvmErasure
+
+        return null
     }
 }
