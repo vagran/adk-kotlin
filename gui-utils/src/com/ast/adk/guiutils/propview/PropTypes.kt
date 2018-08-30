@@ -7,7 +7,8 @@ package com.ast.adk.guiutils.propview
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.PROPERTY)
 annotation class PropItem(val name: String = "",
-                          val flat: Boolean = false)
+                          val flat: Boolean = false,
+                          val readonly: Boolean = false)
 
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.CLASS)
