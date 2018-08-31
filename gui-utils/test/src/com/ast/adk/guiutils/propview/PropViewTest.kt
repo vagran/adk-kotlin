@@ -6,9 +6,12 @@ import javafx.stage.Stage
 
 
 class Props {
+    @PropItem(order = 1)
     var someString = "initial value"
-    @PropItem(displayName = "Some integer")
+    @PropItem(displayName = "Some integer", order = 2)
     var someInt = 42
+    @PropItem(order = 3)
+    var custom = CustomItem()
 
     lateinit var subProps: SubProps
     @PropItem(displayName = "second subprops")
@@ -37,6 +40,20 @@ class OtherSubProps: ValidatedProperties {
                 }
             }
         }
+    }
+}
+
+class CustomItem: CustomPropertyItem {
+    var value: Int = 0
+
+    override fun Parse(s: String)
+    {
+        value = s.toInt(16)
+    }
+
+    override fun toString(): String
+    {
+        return value.toString(16)
     }
 }
 

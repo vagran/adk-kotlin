@@ -7,7 +7,8 @@ package com.ast.adk.guiutils.propview
 @Target(AnnotationTarget.PROPERTY)
 annotation class PropItem(val displayName: String = "",
                           val flat: Boolean = false,
-                          val readonly: Boolean = false)
+                          val readonly: Boolean = false,
+                          val order: Int = -1)
 
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.CLASS)
@@ -25,4 +26,9 @@ interface ValidatedProperties {
      * @param value New value.
      */
     fun Validate(fieldName: String, value: Any?)
+}
+
+/** Item with custom string parsing. */
+interface CustomPropertyItem {
+    fun Parse(s: String)
 }
