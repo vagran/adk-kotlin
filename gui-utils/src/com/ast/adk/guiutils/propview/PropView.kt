@@ -52,22 +52,19 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
     /** Update displayed values from the current state. */
     fun Update()
     {
-        for (item in items) {
-            item.Update(true)
-        }
+        rootCat.Update(true)
     }
 
     /** Update displayed value for the item with the specified ID. */
     fun Update(id: Int)
     {
-        TODO()
+        nodes[id]?.Update(true)
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val rootCat: Category
     private val _props: T
     private val nodes = TreeMap<Int, Node>()
-    private val items = ArrayList<Item>()
     private var curId = 1
 
     private class PropPath(val components: Array<String>) {
@@ -106,11 +103,10 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
         abstract val isCategory: Boolean
         val name get() = path.components.lastOrNull() ?: ""
 
+        abstract fun Update(objToDisplay: Boolean)
+
         init {
             nodes[id] = this
-            if (this is Item) {
-                items.add(this)
-            }
         }
     }
 
@@ -121,6 +117,13 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
 
         val children = ArrayList<Node>()
         lateinit var uiNode: javafx.scene.Node
+
+        override fun Update(objToDisplay: Boolean)
+        {
+            for (child in children) {
+                child.Update(objToDisplay)
+            }
+        }
     }
 
     private inner class Item(id: Int, path: PropPath, displayName: String):
@@ -134,7 +137,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
         lateinit var uiNode: javafx.scene.Node
         var lastValue: Any? = null
 
-        fun Update(objToDisplay: Boolean)
+        override fun Update(objToDisplay: Boolean)
         {
             if (objToDisplay) {
                 lastValue = fieldGetter()
@@ -220,6 +223,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             }
             val item = CreateItem(path.Append(prop.name), prop, obj)
             if (item != null) {
+                cat.children.add(item)
                 grid.add(Label(item.displayName), 0, curRow)
                 grid.add(item.uiNode, 1, curRow)
                 curRow++
@@ -319,6 +323,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
      */
     private fun CreateItem(path: PropPath, prop: KProperty1<Any, Any?>, container: Any): Item?
     {
+        val MIN_FIELD_WIDTH = 50.0
         val cls = prop.returnType.jvmErasure
         val ann = prop.findAnnotation<PropItem>()
         val displayName = run {
@@ -338,6 +343,8 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             }
             item.uiNode = TextField().also {
                 textField ->
+                textField.minWidth = MIN_FIELD_WIDTH
+                textField.prefWidth = Region.USE_COMPUTED_SIZE
                 item.displayGetter = { textField.text }
                 item.displaySetter = { textField.text = it as String }
                 if (!isReadonly) {
@@ -387,6 +394,8 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
 
             item.uiNode = TextField().also {
                 textField ->
+                textField.minWidth = MIN_FIELD_WIDTH
+                textField.prefWidth = Region.USE_COMPUTED_SIZE
                 if (item.fieldSetter == null) {
                     textField.isDisable = true
                 } else {

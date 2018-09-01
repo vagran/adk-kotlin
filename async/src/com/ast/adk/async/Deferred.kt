@@ -61,6 +61,10 @@ class Deferred<T> private constructor(): Awaitable<T> {
             class Aggregator {
 
                 val result = Create<Unit>()
+                private var iterDone = false
+                private var numResults = 0
+                private var numComplete = 0
+                private var error: Throwable? = null
 
                 init {
                     while (results.hasNext()) {
@@ -75,11 +79,6 @@ class Deferred<T> private constructor(): Awaitable<T> {
                         CheckComplete()
                     }
                 }
-
-                private var iterDone = false
-                private var numResults = 0
-                private var numComplete = 0
-                private var error: Throwable? = null
 
                 @Suppress("UNUSED_PARAMETER")
                 private fun OnComplete(value: Any?, error: Throwable?)

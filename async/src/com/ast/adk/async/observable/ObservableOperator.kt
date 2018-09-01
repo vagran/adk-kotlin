@@ -109,7 +109,7 @@ abstract class ObservableOperator<T>: Observable.Source<T> {
     /** Signal that input value is processed without output result set. */
     protected fun ValueProcessed()
     {
-        var _valueProcessed: Deferred<Boolean>? = null
+        var _valueProcessed: Deferred<Boolean>?
         synchronized(this) {
             _valueProcessed = valueProcessed
             valueProcessed = null
