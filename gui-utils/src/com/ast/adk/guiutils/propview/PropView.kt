@@ -140,7 +140,9 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
                 lastValue = fieldGetter()
                 displaySetter(lastValue)
             } else {
-                fieldSetter?.invoke(displayGetter())
+                val newValue = displayGetter()
+                fieldSetter?.invoke(newValue)
+                lastValue = newValue
             }
         }
     }
@@ -221,6 +223,13 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
                 grid.add(Label(item.displayName), 0, curRow)
                 grid.add(item.uiNode, 1, curRow)
                 curRow++
+                val prevSetter = item.fieldSetter
+                if (obj is ValidatedProperties && prevSetter != null) {
+                    item.fieldSetter = {
+                        obj.Validate(prop.name, it)
+                        prevSetter(it)
+                    }
+                }
                 continue
             }
             /* Treat as category. */
@@ -248,6 +257,8 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             cat.children.add(childCat)
             if (!isCatFlat) {
                 grid.add(childCat.uiNode, 0, curRow++, 2, 1)
+            } else {
+                curRow = grid.rowCount
             }
         }
 
@@ -316,7 +327,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             }
             return@run prop.name
         }
-        val isReadonly = ann?.readonly ?: true
+        val isReadonly = ann?.readonly ?: false
 
         if (cls.isSubclassOf(CustomPropertyItem::class)) {
             val item = Item(curId++, path, displayName)
