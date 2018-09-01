@@ -3,10 +3,7 @@ package com.ast.adk.guiutils.propview
 import javafx.geometry.HPos
 import javafx.geometry.Insets
 import javafx.scene.Parent
-import javafx.scene.control.Label
-import javafx.scene.control.ScrollPane
-import javafx.scene.control.TextField
-import javafx.scene.control.TitledPane
+import javafx.scene.control.*
 import javafx.scene.layout.ColumnConstraints
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.Priority
@@ -56,7 +53,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
     fun Update()
     {
         for (item in items) {
-            item.Update()
+            item.Update(true)
         }
     }
 
@@ -135,10 +132,16 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
         lateinit var displayGetter: ValueGetter<Any?>
         lateinit var displaySetter: ValueSetter<Any?>
         lateinit var uiNode: javafx.scene.Node
+        var lastValue: Any? = null
 
-        fun Update()
+        fun Update(objToDisplay: Boolean)
         {
-            displaySetter(fieldGetter())
+            if (objToDisplay) {
+                lastValue = fieldGetter()
+                displaySetter(lastValue)
+            } else {
+                fieldSetter?.invoke(displayGetter())
+            }
         }
     }
 
@@ -381,7 +384,13 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
                         }
                     }
                 }
-                item.displayGetter = { converter(textField.text) }
+                item.displayGetter = {
+                    try {
+                        converter(textField.text)
+                    } catch (e: NumberFormatException) {
+                        throw Exception("Failed to parse number: ${e.message}", e)
+                    }
+                }
                 item.displaySetter = { textField.text = it.toString() }
             }
             return item
@@ -390,8 +399,23 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
         return null
     }
 
+    private fun Error(msg: String)
+    {
+        val alert = Alert(Alert.AlertType.ERROR)
+        alert.title = "Error"
+        alert.headerText = null
+        alert.contentText = msg
+        alert.showAndWait()
+    }
+
     private fun OnItemChanged(item: Item)
     {
-        println("${item.name} changed")
+        try {
+            item.Update(false)
+        } catch (error: Throwable) {
+            item.displaySetter(item.lastValue)
+            Error("Value change failed: ${item.path}\n${error.message}")
+            item.uiNode.requestFocus()
+        }
     }
 }
