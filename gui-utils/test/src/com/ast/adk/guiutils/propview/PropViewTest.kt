@@ -17,6 +17,7 @@ class Props {
     val roBool = true
     val roString = "aaa"
     val roInt = 43
+    var nullableInt: Int? = null
 
     lateinit var subProps: SubProps
     @PropItem(displayName = "second subprops")

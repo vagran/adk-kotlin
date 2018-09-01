@@ -375,13 +375,15 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
 
             val item = Item(curId++, path, displayName)
 
-            item.fieldGetter = { prop.get(container).toString() }
+            item.fieldGetter = { prop.get(container) }
 
             item.fieldSetter = if (prop is KMutableProperty1 && !isReadonly) {
                 { prop.set(container, it) }
             } else {
                 null
             }
+
+            val isNullable = prop.returnType.isMarkedNullable
 
             item.uiNode = TextField().also {
                 textField ->
@@ -395,14 +397,24 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
                         }
                     }
                 }
-                item.displayGetter = {
+                item.displayGetter = getter@ {
+                    val text = textField.text
+                    if (isNullable && text.isBlank()) {
+                        return@getter null
+                    }
                     try {
-                        converter(textField.text)
+                        return@getter converter(textField.text)
                     } catch (e: NumberFormatException) {
                         throw Exception("Failed to parse number: ${e.message}", e)
                     }
                 }
-                item.displaySetter = { textField.text = it.toString() }
+                item.displaySetter = {
+                    if (isNullable && it == null) {
+                        textField.text = ""
+                    } else {
+                        textField.text = it.toString()
+                    }
+                }
             }
             return item
         }
