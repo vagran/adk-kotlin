@@ -407,6 +407,27 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             return item
         }
 
+        if (cls == Boolean::class) {
+            val item = Item(curId++, path, displayName)
+            item.fieldGetter = { prop.get(container) }
+            item.fieldSetter = if (prop is KMutableProperty1 && !isReadonly) {
+                { prop.set(container, it) }
+            } else {
+                null
+            }
+            item.uiNode = CheckBox().also {
+                checkBox ->
+                if (item.fieldSetter == null) {
+                    checkBox.isDisable = true
+                } else {
+                    checkBox.selectedProperty().addListener { _, _, _ -> OnItemChanged(item) }
+                }
+                item.displayGetter = { checkBox.isSelected }
+                item.displaySetter = { checkBox.isSelected = it as Boolean }
+            }
+            return item
+        }
+
         return null
     }
 
