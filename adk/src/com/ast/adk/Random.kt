@@ -1,7 +1,7 @@
 package com.ast.adk
 
 /** Random number generator based on CMWC4096 algorithm.  */
-class Random(seed: Int = System.currentTimeMillis().toInt()) {
+class Random(seed: Int = System.nanoTime().toInt()) {
 
     /* ****************************************************************************/
     private val Q = IntArray(4096)

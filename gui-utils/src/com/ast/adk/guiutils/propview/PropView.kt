@@ -209,9 +209,9 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
                                   Priority.SOMETIMES, HPos.LEFT, true),
                 ColumnConstraints(50.0, Region.USE_COMPUTED_SIZE, Double.MAX_VALUE,
                                   Priority.SOMETIMES, HPos.LEFT, true))
-            grid.hgap = 2.0
+            grid.hgap = 4.0
             grid.vgap = 2.0
-            grid.padding = Insets(3.0)
+            grid.padding = Insets(4.0)
             return@run grid
         }
 
@@ -326,7 +326,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
      */
     private fun CreateItem(path: PropPath, prop: KProperty1<Any, Any?>, container: Any): Item?
     {
-        val MIN_FIELD_WIDTH = 50.0
+        val FIELD_COL_COUNT = 4
         val cls = prop.returnType.jvmErasure
         val ann = prop.findAnnotation<PropItem>()
         val displayName = run {
@@ -346,8 +346,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             }
             item.uiNode = TextField().also {
                 textField ->
-                textField.minWidth = MIN_FIELD_WIDTH
-                textField.prefWidth = Region.USE_COMPUTED_SIZE
+                textField.prefColumnCount = FIELD_COL_COUNT
                 item.displayGetter = { textField.text }
                 item.displaySetter = { textField.text = it as String }
                 if (!isReadonly) {
@@ -397,8 +396,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
 
             item.uiNode = TextField().also {
                 textField ->
-                textField.minWidth = MIN_FIELD_WIDTH
-                textField.prefWidth = Region.USE_COMPUTED_SIZE
+                textField.prefColumnCount = FIELD_COL_COUNT
                 if (item.fieldSetter == null) {
                     textField.isDisable = true
                 } else {
