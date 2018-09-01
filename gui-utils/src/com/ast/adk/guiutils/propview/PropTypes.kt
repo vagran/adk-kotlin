@@ -8,7 +8,8 @@ package com.ast.adk.guiutils.propview
 annotation class PropItem(val displayName: String = "",
                           val flat: Boolean = false,
                           val readonly: Boolean = false,
-                          val order: Int = -1)
+                          val order: Int = -1,
+                          val ignored: Boolean = false)
 
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.CLASS)

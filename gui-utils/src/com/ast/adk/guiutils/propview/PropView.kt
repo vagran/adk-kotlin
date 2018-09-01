@@ -288,6 +288,9 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
                 continue
             }
             val ann = prop.findAnnotation<PropItem>()
+            if (ann != null && ann.ignored) {
+                continue
+            }
             val order = ann?.order ?: -1
             list.add(Entry(order, prop as KProperty1<Any, Any?>))
         }

@@ -18,6 +18,8 @@ class Props {
     val roString = "aaa"
     val roInt = 43
     var nullableInt: Int? = null
+    @PropItem(ignored = true)
+    var ignoredProp = 44
 
     lateinit var subProps: SubProps
     @PropItem(displayName = "second subprops")
