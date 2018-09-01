@@ -12,6 +12,11 @@ class Props {
     var someInt = 42
     @PropItem(order = 3)
     var custom = CustomItem()
+    var testBool = false
+    var testBool2 = true
+    val roBool = true
+    val roString = "aaa"
+    val roInt = 43
 
     lateinit var subProps: SubProps
     @PropItem(displayName = "second subprops")
@@ -44,7 +49,7 @@ class OtherSubProps: ValidatedProperties {
 }
 
 class CustomItem: CustomPropertyItem {
-    var value: Int = 0
+    var value: Int = 11
 
     override fun Parse(s: String)
     {

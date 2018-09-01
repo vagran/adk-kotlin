@@ -23,8 +23,8 @@ import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
-private typealias FieldSetter<T> = (value: T) -> Unit
-private typealias FieldGetter<T> = () -> T
+private typealias ValueSetter<T> = (value: T) -> Unit
+private typealias ValueGetter<T> = () -> T
 
 class PropView<T: Any> private constructor(cls: KClass<T>) {
 
@@ -55,7 +55,9 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
     /** Update displayed values from the current state. */
     fun Update()
     {
-        TODO()
+        for (item in items) {
+            item.Update()
+        }
     }
 
     /** Update displayed value for the item with the specified ID. */
@@ -68,6 +70,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
     private val rootCat: Category
     private val _props: T
     private val nodes = TreeMap<Int, Node>()
+    private val items = ArrayList<Item>()
     private var curId = 1
 
     private class PropPath(val components: Array<String>) {
@@ -101,12 +104,21 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
         }
     }
 
-    private abstract class Node(val id: Int, val name: String, val displayName: String) {
+    @Suppress("LeakingThis")
+    private abstract inner class Node(val id: Int, val path: PropPath, val displayName: String) {
         abstract val isCategory: Boolean
+        val name get() = path.components.lastOrNull() ?: ""
+
+        init {
+            nodes[id] = this
+            if (this is Item) {
+                items.add(this)
+            }
+        }
     }
 
-    private class Category(id: Int, name: String, displayName: String):
-        Node(id, name, displayName) {
+    private inner class Category(id: Int, path: PropPath, displayName: String):
+        Node(id, path, displayName) {
 
         override val isCategory = true
 
@@ -114,13 +126,20 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
         lateinit var uiNode: javafx.scene.Node
     }
 
-    private class Item(id: Int, name: String, displayName: String):
-        Node(id, name, displayName) {
+    private inner class Item(id: Int, path: PropPath, displayName: String):
+        Node(id, path, displayName) {
 
         override val isCategory = false
-        lateinit var fieldGetter: FieldGetter<String>
-        lateinit var fieldSetter: FieldSetter<String>
+        lateinit var fieldGetter: ValueGetter<Any?>
+        var fieldSetter: ValueSetter<Any?>? = null
+        lateinit var displayGetter: ValueGetter<Any?>
+        lateinit var displaySetter: ValueSetter<Any?>
         lateinit var uiNode: javafx.scene.Node
+
+        fun Update()
+        {
+            displaySetter(fieldGetter())
+        }
     }
 
     init {
@@ -129,21 +148,20 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             it.minHeight = 150.0
             it.isFitToWidth = true
         }
-        _props = cls.createInstance();
-        rootCat = CreateCategory("", _props, PropPath.EMPTY, null, null)
+        _props = cls.createInstance()
+        rootCat = CreateCategory(PropPath.EMPTY, _props, null, null)
         root.content = rootCat.uiNode
+        Update()
     }
 
-    private fun CreateCategory(name: String,
+    private fun CreateCategory(path: PropPath,
                                obj: Any,
-                               prefixPath: PropPath,
                                ann: PropItem?,
                                parentGrid: GridPane?): Category
     {
         val cls = obj::class
-
         val clsAnn = cls.findAnnotation<PropClass>()
-
+        val name = path.components.lastOrNull() ?: ""
         val displayName = run {
             if (ann != null && !ann.displayName.isEmpty()) {
                 return@run ann.displayName
@@ -154,7 +172,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             return@run name
         }
 
-        val cat = Category(curId++, name, displayName)
+        val cat = Category(curId++, path, displayName)
 
         val isFlat = ann != null && ann.flat
 
@@ -186,8 +204,6 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             grid.hgap = 2.0
             grid.vgap = 2.0
             grid.padding = Insets(3.0)
-            grid.add(Label("aaa"), 0, 0)//XXX
-            grid.add(Label("bbb"), 1, 0)//XXX
             return@run grid
         }
 
@@ -197,7 +213,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             if (prop.visibility != KVisibility.PUBLIC) {
                 continue
             }
-            val item = CreateItem(prop, obj)
+            val item = CreateItem(path.Append(prop.name), prop, obj)
             if (item != null) {
                 grid.add(Label(item.displayName), 0, curRow)
                 grid.add(item.uiNode, 1, curRow)
@@ -219,13 +235,13 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
                     prop.set(obj, catObj)
                 } catch (e: Throwable) {
                     throw Error(
-                        "Failed to initialize category field ${prefixPath.Append(prop.name)}", e)
+                        "Failed to initialize category field $path", e)
                 }
             }
             val catAnn = prop.findAnnotation<PropItem>()
             val isCatFlat = catAnn != null && catAnn.flat
-            val childCat = CreateCategory(prop.name, catObj, prefixPath.Append(prop.name),
-                                          catAnn, if (isCatFlat) grid else null)
+            val childCat = CreateCategory(path.Append(prop.name), catObj, catAnn,
+                                          if (isCatFlat) grid else null)
             cat.children.add(childCat)
             if (!isCatFlat) {
                 grid.add(childCat.uiNode, 0, curRow++, 2, 1)
@@ -287,7 +303,7 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
     /** Create item based on the provided property if applicable. Returns null if the property is
      * not suitable for item creation.
      */
-    private fun CreateItem(prop: KProperty1<Any, Any?>, container: Any): Item?
+    private fun CreateItem(path: PropPath, prop: KProperty1<Any, Any?>, container: Any): Item?
     {
         val cls = prop.returnType.jvmErasure
         val ann = prop.findAnnotation<PropItem>()
@@ -297,16 +313,85 @@ class PropView<T: Any> private constructor(cls: KClass<T>) {
             }
             return@run prop.name
         }
+        val isReadonly = ann?.readonly ?: true
 
         if (cls.isSubclassOf(CustomPropertyItem::class)) {
-            val item = Item(curId++, prop.name, displayName)
+            val item = Item(curId++, path, displayName)
             val instance = prop.get(container) as CustomPropertyItem
             item.fieldGetter = { instance.toString() }
-            item.fieldSetter = { instance.Parse(it) }
-            item.uiNode = TextField()
+            if (!isReadonly) {
+                item.fieldSetter = { instance.Parse(it as String) }
+            }
+            item.uiNode = TextField().also {
+                textField ->
+                item.displayGetter = { textField.text }
+                item.displaySetter = { textField.text = it as String }
+                if (!isReadonly) {
+                    textField.focusedProperty().addListener {
+                        _, _, isFocused ->
+                        if (!isFocused) {
+                            OnItemChanged(item)
+                        }
+                    }
+                }
+            }
+            return item
+        }
+
+        run {
+            val converter: (String) -> Any?
+            when (cls) {
+                Int::class -> {
+                    converter = { it.toInt() }
+                }
+                Long::class -> {
+                    converter = { it.toLong() }
+                }
+                Float::class -> {
+                    converter = { it.toFloat() }
+                }
+                Double::class -> {
+                    converter = { it.toDouble() }
+                }
+                String::class -> {
+                    converter = { it }
+                }
+                else -> return@run
+            }
+
+            val item = Item(curId++, path, displayName)
+
+            item.fieldGetter = { prop.get(container).toString() }
+
+            item.fieldSetter = if (prop is KMutableProperty1 && !isReadonly) {
+                { prop.set(container, it) }
+            } else {
+                null
+            }
+
+            item.uiNode = TextField().also {
+                textField ->
+                if (item.fieldSetter == null) {
+                    textField.isDisable = true
+                } else {
+                    textField.focusedProperty().addListener {
+                        _, _, isFocused ->
+                        if (!isFocused) {
+                            OnItemChanged(item)
+                        }
+                    }
+                }
+                item.displayGetter = { converter(textField.text) }
+                item.displaySetter = { textField.text = it.toString() }
+            }
             return item
         }
 
         return null
+    }
+
+    private fun OnItemChanged(item: Item)
+    {
+        println("${item.name} changed")
     }
 }
