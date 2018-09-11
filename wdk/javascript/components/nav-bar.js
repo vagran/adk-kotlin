@@ -41,7 +41,9 @@ goog.provide("wdk.components.nav_bar");
 `;
 
     Vue.component("nav-bar", {
+
         template: tpl,
+
         /*
          * items: Each item is an object with the following fields:
          *  name: Display name.
@@ -51,11 +53,13 @@ goog.provide("wdk.components.nav_bar");
          *  type: Optional "header" or "separator" for drop-down child item.
          */
         props: ["brand", "brandUrl", "items", "activeUrl"],
-        created: function () {
+
+        created() {
             this.dropdownIndex = 0;
         },
+
         methods: {
-            GetItemClasses: function (item) {
+            GetItemClasses(item) {
                 let cls = {};
                 if (this.activeUrl !== undefined && item.url === this.activeUrl) {
                     cls.active = true;
@@ -77,17 +81,17 @@ goog.provide("wdk.components.nav_bar");
             },
 
             /** @return {boolean} True if the item is dropdown. */
-            IsDropdown: function(item) {
+            IsDropdown(item) {
                 return item.children !== undefined;
             },
 
             /** @return {String} Tag ID to use for next dropdown. */
-            NextDropdownId: function () {
+            NextDropdownId() {
                 return "dropdown_" + (++this.dropdownIndex);
             },
 
             /** @return {String} Tag ID to use for current dropdown. */
-            CurDropdownId: function () {
+            CurDropdownId () {
                 return "dropdown_" + this.dropdownIndex;
             }
         }

@@ -3,9 +3,9 @@ goog.require("wdk.base");
 
 
 (function(wdk) {
-    
+
     /**
-     * Define class. The argument is prototype object. It should have "constructor" property with 
+     * Define class. The argument is prototype object. It should have "constructor" property with
      * the constructor definition. Base class also can be specified as the first argument.
      * Call base class constructor as "BaseClass.call(this, args)".
      * @module Class
@@ -41,6 +41,6 @@ goog.require("wdk.base");
         }
         proto.constructor.prototype = proto;
         return proto.constructor;
-    }
+    };
 
 })(window.wdk || (window.wdk = {}));

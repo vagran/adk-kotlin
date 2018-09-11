@@ -37,7 +37,7 @@ goog.provide("wdk.components.object_view");
             }
         },
 
-        data: function() {
+        data() {
             return {
                 someVar: [],
                 isExpandedCur: this.isExpanded
@@ -48,7 +48,7 @@ goog.provide("wdk.components.object_view");
             /**
              * @return {boolean} True if single value can be rendered.
              */
-            hasSingleValue: function () {
+            hasSingleValue() {
                 if (this.object === undefined) {
                     return true;
                 }
@@ -57,7 +57,7 @@ goog.provide("wdk.components.object_view");
                     type === "string" || type === "function";
             },
 
-            valueTagClass: function () {
+            valueTagClass() {
                 let classes = {value: true};
                 classes["value-" + this.GetType(this.object)] = true;
                 return classes
@@ -66,7 +66,7 @@ goog.provide("wdk.components.object_view");
             /**
              * @return {string} Content text for type label.
              */
-            typeLabel: function () {
+            typeLabel() {
                 if (this.object === undefined) {
                     return "U";
                 }
@@ -92,7 +92,7 @@ goog.provide("wdk.components.object_view");
                 return "?";
             },
 
-            typeLabelClass: function () {
+            typeLabelClass() {
                 let classes = {"type-label": true};
                 classes["type-label-" + this.GetType(this.object)] = true;
                 return classes
@@ -101,14 +101,14 @@ goog.provide("wdk.components.object_view");
             /**
              * @return {number} Number of child elements for collection type.
              */
-            elementsCount: function () {
+            elementsCount() {
                 return Object.keys(this.object).length;
             },
 
             /**
              * @return {string} String representation of single value.
              */
-            singleValue: function () {
+            singleValue() {
                 if (this.object === undefined) {
                     return "undefined";
                 }
@@ -128,7 +128,7 @@ goog.provide("wdk.components.object_view");
             /**
              * @return {string} Name for type of the specified object.
              */
-            GetType: function(obj) {
+            GetType(obj) {
                 if (obj === undefined) {
                     return "undefined";
                 }
@@ -148,7 +148,7 @@ goog.provide("wdk.components.object_view");
                 return "unknown";
             },
 
-            OnExpandToggle: function () {
+            OnExpandToggle() {
                 this.isExpandedCur = !this.isExpandedCur;
             },
         }

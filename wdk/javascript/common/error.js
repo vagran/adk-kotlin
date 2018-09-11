@@ -10,11 +10,10 @@ goog.require("wdk.class");
         className: "WdkError",
 
         /**
-         * @constructor
          * @param msg Error message.
          * @param cause Optional cause exception.
          */
-        constructor: function(msg, cause) {
+        constructor(msg, cause) {
             this.message = msg;
             let stack = new Error().stack;
             this.stack = stack === undefined ? null : stack;
@@ -25,7 +24,7 @@ goog.require("wdk.class");
          * @method ToString
          * @return {String} Error description with causes chain and stack traces if available.
          */
-        ToString: function() {
+        ToString() {
             let clsName = this.className ? this.className :
                 (this.constructor.name ? this.constructor.name : "{unknown class}");
             let result = clsName + ": " + this.message;
@@ -38,7 +37,7 @@ goog.require("wdk.class");
             return result;
         },
 
-        toString: function() {
+        toString() {
             return this.ToString();
         }
     });
@@ -50,7 +49,7 @@ goog.require("wdk.class");
     wdk.InternalError = wdk.Class(wdk.Error, {
         className: "InternalError",
 
-        constructor: function(msg, cause) {
+        constructor(msg, cause) {
             wdk.Error.call(this, msg, cause);
         }
     });
@@ -61,7 +60,7 @@ goog.require("wdk.class");
     wdk.InvalidParamError = wdk.Class(wdk.Error, {
         className: "InvalidParamError",
 
-        constructor: function(msg, cause) {
+        constructor(msg, cause) {
             wdk.Error.call(this, msg, cause);
         }
     });
@@ -72,7 +71,7 @@ goog.require("wdk.class");
     wdk.InvalidOpError = wdk.Class(wdk.Error, {
         className: "InvalidOpError",
 
-        constructor: function(msg, cause) {
+        constructor(msg, cause) {
             wdk.Error.call(this, msg, cause);
         }
     });

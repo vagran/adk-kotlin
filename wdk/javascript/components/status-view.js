@@ -22,18 +22,18 @@ goog.provide("wdk.components.status_view");
     Vue.component("status-view", {
         template: tpl,
         props: ["status"],
-        data: function() {
+        data() {
             return {
                 hidden: []
             }
         },
         watch: {
-            status: function() {
+            status() {
                 this.hidden = [];
             }
         },
         computed: {
-            items: function () {
+            items() {
                 if (this.status === null) {
                     return null;
                 }
@@ -109,7 +109,7 @@ goog.provide("wdk.components.status_view");
                 return result;
             },
 
-            hasVisibleItems: function() {
+            hasVisibleItems() {
                 if (this.status === null) {
                     return false;
                 }
@@ -124,7 +124,7 @@ goog.provide("wdk.components.status_view");
         },
 
         methods: {
-            OnDismiss: function(index) {
+            OnDismiss(index) {
                 this.hidden.push(index);
             }
         }
