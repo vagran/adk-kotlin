@@ -49,9 +49,12 @@ goog.provide("wdk.components.object_view");
              * @return {boolean} True if single value can be rendered.
              */
             hasSingleValue: function () {
+                if (this.object === undefined) {
+                    return true;
+                }
                 let type = this.GetType(this.object);
                 return type === "null" || type === "number" || type === "boolean" ||
-                    type === "string";
+                    type === "string" || type === "function";
             },
 
             valueTagClass: function () {
@@ -64,6 +67,9 @@ goog.provide("wdk.components.object_view");
              * @return {string} Content text for type label.
              */
             typeLabel: function () {
+                if (this.object === undefined) {
+                    return "U";
+                }
                 let type = this.GetType(this.object);
                 switch (type) {
                     case "null":
@@ -80,8 +86,10 @@ goog.provide("wdk.components.object_view");
                         return "[]";
                     case "object":
                         return "{}";
+                    case "function":
+                        return "F";
                 }
-                return "U";
+                return "?";
             },
 
             typeLabelClass: function () {
@@ -101,9 +109,14 @@ goog.provide("wdk.components.object_view");
              * @return {string} String representation of single value.
              */
             singleValue: function () {
+                if (this.object === undefined) {
+                    return "undefined";
+                }
                 let type = this.GetType(this.object);
                 if (type === "string") {
                     return '"' + this.object + '"';
+                } else if (type === "function") {
+                    return this.object.name;
                 } else if (type === "null") {
                     return "null";
                 }
@@ -116,10 +129,14 @@ goog.provide("wdk.components.object_view");
              * @return {string} Name for type of the specified object.
              */
             GetType: function(obj) {
+                if (obj === undefined) {
+                    return "undefined";
+                }
                 let typeStr = typeof obj;
                 if (this.object === null) {
                     return "null";
-                } else if (typeStr === "number" || typeStr === "boolean" || typeStr === "string") {
+                } else if (typeStr === "number" || typeStr === "boolean" || typeStr === "string" ||
+                           typeStr === "function") {
                     return typeStr;
                 } else if (typeStr === "object") {
                     if (Array.isArray(this.object)) {
