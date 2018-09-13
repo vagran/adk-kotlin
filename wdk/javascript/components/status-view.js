@@ -8,7 +8,7 @@ goog.provide("wdk.components.status_view");
     <div v-for="(item, index) in items" class="alert" :class="item.alertClass" role="alert">
         <span v-if="item.inProgress" class="spin-indicator"></span>
         {{item.text}}
-        <button type="button" class="close" @click="OnDismiss(index)">
+        <button type="button" class="close" @click="_OnDismiss(index)">
             <span>&times;</span>
         </button>
         <details v-if="item.details !== null">
