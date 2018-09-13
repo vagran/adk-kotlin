@@ -23,6 +23,11 @@ class Deferred<T> private constructor(): Awaitable<T> {
             return Deferred(result, null)
         }
 
+        fun Unit(): Deferred<Unit>
+        {
+            return ForResult(Unit)
+        }
+
         fun <T> ForError(error: Throwable): Deferred<T>
         {
             return Deferred(null, error)
