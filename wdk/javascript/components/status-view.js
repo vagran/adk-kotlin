@@ -6,7 +6,7 @@ goog.provide("wdk.components.status_view");
     let tpl = `
 <div v-if="hasVisibleItems" class="wdk_status-view">
     <div v-for="(item, index) in items" class="alert" :class="item.alertClass" role="alert">
-        <span v-if="item.inProgress" class="loader"></span>
+        <span v-if="item.inProgress" class="spin-indicator"></span>
         {{item.text}}
         <button type="button" class="close" @click="OnDismiss(index)">
             <span>&times;</span>
