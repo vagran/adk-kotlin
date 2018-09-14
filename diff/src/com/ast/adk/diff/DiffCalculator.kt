@@ -42,7 +42,7 @@ class DiffCalculator(private val data: DataAccessor) {
      * Deletion is performed from the first sequence, indices are the first and past the last
      * inserted element (exclusive range). The second sequence indices are pointing to current
      * position in it.
-     * Copy is defining equal preserved sub-sequences, indices define range exclusively in both
+     * Equal is defining equal preserved sub-sequences, indices define range exclusively in both
      * sequences.
      */
     data class DiffEntry(val type: Type,
@@ -53,7 +53,7 @@ class DiffCalculator(private val data: DataAccessor) {
         enum class Type {
             INSERTION,
             DELETION,
-            COPY
+            EQUAL
         }
     }
 
@@ -197,7 +197,7 @@ class DiffCalculator(private val data: DataAccessor) {
             val type = when {
                 newX == prevX -> DiffEntry.Type.INSERTION
                 newY == prevY -> DiffEntry.Type.DELETION
-                else -> DiffEntry.Type.COPY
+                else -> DiffEntry.Type.EQUAL
             }
             val e = DiffEntry(type, prevX, newX, prevY, newY)
             if (lastEntry == null) {
