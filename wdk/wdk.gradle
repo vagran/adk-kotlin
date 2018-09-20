@@ -59,6 +59,7 @@ Task CreateJsCompileTask(String name, List<String> srcDirsFiles, String outName,
     task.args "--language_in", "ECMASCRIPT6_STRICT"
     task.args "--js_output_file", "$buildDir/$outName"
     task.args "--dependency_mode", "LOOSE"
+    task.args "--process_closure_primitives"
 
     def jsSources = []
     srcDirsFiles.each {
