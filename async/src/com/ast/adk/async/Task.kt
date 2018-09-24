@@ -68,7 +68,7 @@ class Task<T>: Message, Awaitable<T> {
 
                 override val context: CoroutineContext = EmptyCoroutineContext
 
-                override fun resumeWith(result: SuccessOrFailure<T>)
+                override fun resumeWith(result: Result<T>)
                 {
                     result.fold({ this@Task.result.SetResult(it) },
                                 { this@Task.result.SetError(it) })

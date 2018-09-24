@@ -101,7 +101,7 @@ private class DeferredTest {
         }.createCoroutine(object: Continuation<Unit> {
             override val context = EmptyCoroutineContext
 
-            override fun resumeWith(result: SuccessOrFailure<Unit>)
+            override fun resumeWith(result: Result<Unit>)
             {
                 result.fold({ done = true }, { fail(it) })
             }
@@ -125,7 +125,7 @@ private class DeferredTest {
         }.createCoroutine(object: Continuation<Unit> {
             override val context = EmptyCoroutineContext
 
-            override fun resumeWith(result: SuccessOrFailure<Unit>)
+            override fun resumeWith(result: Result<Unit>)
             {
                 result.fold({ done = true },
                             { resError = it; done = true })
@@ -150,7 +150,7 @@ private class DeferredTest {
         }.createCoroutine(object: Continuation<Unit> {
             override val context = EmptyCoroutineContext
 
-            override fun resumeWith(result: SuccessOrFailure<Unit>)
+            override fun resumeWith(result: Result<Unit>)
             {
                 result.fold({ done = true }, { fail(it) })
             }

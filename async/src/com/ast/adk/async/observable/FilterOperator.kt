@@ -37,7 +37,7 @@ class FilterOperator<T>(input: Observable<T>,
 
             override val context: CoroutineContext = EmptyCoroutineContext
 
-            override fun resumeWith(result: SuccessOrFailure<Boolean>)
+            override fun resumeWith(result: Result<Boolean>)
             {
                 result.fold({
                     isPassed ->

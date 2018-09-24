@@ -33,7 +33,7 @@ class MapOperator<T, U>(input: Observable<T>,
 
             override val context: CoroutineContext = EmptyCoroutineContext
 
-            override fun resumeWith(result: SuccessOrFailure<U>)
+            override fun resumeWith(result: Result<U>)
             {
                 result.fold({ SetResult(Observable.Value.Of(it), null) },
                             { SetResult(null, it) })

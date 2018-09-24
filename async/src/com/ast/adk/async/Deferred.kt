@@ -40,7 +40,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
 
                 override val context: CoroutineContext = EmptyCoroutineContext
 
-                override fun resumeWith(result: SuccessOrFailure<T>)
+                override fun resumeWith(result: Result<T>)
                 {
                     result.fold({ defResult.SetResult(it) }, { defResult.SetError(it) })
                 }
