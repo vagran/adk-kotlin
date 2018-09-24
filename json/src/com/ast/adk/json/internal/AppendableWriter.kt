@@ -21,17 +21,17 @@ internal class AppendableWriter(private val appendable: Appendable): Writer() {
     private object CurrentWrite: CharSequence {
 
         override val length: Int
-            get() = chars!!.size
+            get() = chars.size
 
         override fun get(index: Int): Char {
-            return chars!![index]
+            return chars[index]
         }
 
-        var chars: CharArray? = null
+        lateinit var chars: CharArray
 
         override fun subSequence(startIndex: Int, endIndex: Int): CharSequence
         {
-            return String(chars!!, startIndex, endIndex - startIndex)
+            return String(chars, startIndex, endIndex - startIndex)
         }
     }
 }
