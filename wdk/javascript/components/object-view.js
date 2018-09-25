@@ -11,7 +11,7 @@ goog.provide("wdk.components.object_view");
         <span v-if="name !== null" class="name">{{name}}:</span>
         <span v-if="hasSingleValue" class="single-value">{{singleValue}}</span>
         <span v-if="!hasSingleValue" class="elements-count" @click="OnExpandToggle()">({{elementsCount}} elements)</span>
-        <div v-if="!hasSingleValue && isExpandedCur" class="collection-values" >
+        <div v-if="!hasSingleValue && isExpandedCur && elementsCount > 0" class="collection-values" >
             <object-view v-for="(value, key) in object" :object="value" :isRoot="false" 
                          :name="key" :key="key" :isExpanded="isExpanded"></object-view>
         </div>
