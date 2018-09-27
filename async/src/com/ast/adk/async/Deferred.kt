@@ -5,6 +5,8 @@ import kotlin.coroutines.*
 
 typealias DeferredCallback<T> = (result: T?, error: Throwable?) -> Unit
 
+typealias DeferredValueCallback<T> = (result: T) -> Unit
+
 @Suppress("CanBePrimaryConstructorProperty")
 /** Represents deferred result (synonymous to future or promise). Result is either some successfully
  * obtained value or error.
@@ -162,6 +164,18 @@ class Deferred<T> private constructor(): Awaitable<T> {
             if (curState == STATE_READY) {
                 cbk(result, error)
                 break
+            }
+        }
+    }
+
+    /** Subscribe for successful result. */
+    @Suppress("UNCHECKED_CAST")
+    fun Subscribe(cbk: DeferredValueCallback<in T>)
+    {
+        Subscribe {
+            result, error ->
+            if (error === null) {
+                cbk(result as T)
             }
         }
     }
