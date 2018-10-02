@@ -1,4 +1,4 @@
-goog.provide("wdk.components.nav_bar");
+goog.provide("wdk.components.NavBar");
 
 
 (function(wdk) {

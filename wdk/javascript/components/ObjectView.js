@@ -1,11 +1,11 @@
-goog.provide("wdk.components.object_view");
+goog.provide("wdk.components.ObjectView");
 /* Dumps arbitrary Javascript object. Mostly for debug purposes. */
 
 (function(wdk) {
 
     // language=HTML
     let tpl = `
-<div :class="{'wdk_object-view_container': true, 'wdk_object-view_container_root': isRoot}">
+<div :class="{'wdk_ObjectView_container': true, 'wdk_ObjectView_container_root': isRoot}">
     <div v-if="title !== null" class="title">{{title}}</div>
     <div :class="valueTagClass">
         <span class="type-label-outer"><span :class="typeLabelClass">{{typeLabel}}</span></span>

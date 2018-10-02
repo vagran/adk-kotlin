@@ -1,5 +1,5 @@
 goog.provide("wdk.components");
 
-goog.require("wdk.components.status_view");
-goog.require("wdk.components.nav_bar");
-goog.require("wdk.components.object_view");
+goog.require("wdk.components.StatusView");
+goog.require("wdk.components.NavBar");
+goog.require("wdk.components.ObjectView");

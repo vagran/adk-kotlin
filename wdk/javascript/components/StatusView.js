@@ -1,12 +1,12 @@
-goog.provide("wdk.components.status_view");
+goog.provide("wdk.components.StatusView");
 
 (function(wdk) {
 
     // language=HTML
     let tpl = `
-<div v-if="hasVisibleItems" class="wdk_status-view">
+<div v-if="hasVisibleItems" class="wdk_StatusView">
     <div v-for="(item, index) in items" class="alert" :class="item.alertClass" role="alert">
-        <span v-if="item.inProgress" class="spin-indicator"></span>
+        <span v-if="item.inProgress" class="SpinIndicator"></span>
         {{item.text}}
         <button type="button" class="close" @click="_OnDismiss(index)">
             <span>&times;</span>
