@@ -3,11 +3,15 @@ package com.ast.adk.json.internal.codecs
 import com.ast.adk.json.*
 import com.ast.adk.json.internal.ConstructorFunc
 import com.ast.adk.json.internal.GetDefaultConstructor
-import kotlin.reflect.*
+import java.lang.reflect.Modifier
+import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.KProperty1
+import kotlin.reflect.KType
+import kotlin.reflect.KVisibility
 import kotlin.reflect.full.allSuperclasses
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.superclasses
+import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.jvmErasure
 
 private typealias GetterFunc = (obj: Any) -> Any?
@@ -83,7 +87,9 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
         constructor = GetDefaultConstructor(cls)
         for (curCls in cls.allSuperclasses + cls) {
             for (prop in curCls.declaredMemberProperties) {
-                if (prop.findAnnotation<JsonTransient>() != null) {
+                if (Modifier.isTransient(prop.javaField?.modifiers ?: 0) ||
+                    prop.findAnnotation<JsonTransient>() != null) {
+
                     continue
                 }
                 val fieldAnn = prop.findAnnotation<JsonField>()
