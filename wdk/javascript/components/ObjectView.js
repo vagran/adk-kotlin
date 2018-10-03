@@ -5,14 +5,14 @@ goog.provide("wdk.components.ObjectView");
 
     // language=HTML
     let tpl = `
-<div :class="{'wdk_ObjectView_container': true, 'wdk_ObjectView_container_root': isRoot}">
+<div :class="{'wdk_ObjectView_container': true, 'wdk_ObjectView_containerRoot': isRoot}">
     <div v-if="title !== null" class="title">{{title}}</div>
     <div :class="valueTagClass">
-        <span class="type-label-outer"><span :class="typeLabelClass">{{typeLabel}}</span></span>
+        <span class="typeLabelOuter"><span :class="typeLabelClass">{{typeLabel}}</span></span>
         <span v-if="name !== null" class="name">{{name}}:</span>
-        <span v-if="hasSingleValue" class="single-value">{{singleValue}}</span>
-        <span v-if="!hasSingleValue" class="elements-count" @click="OnExpandToggle()">({{elementsCount}} elements)</span>
-        <div v-if="!hasSingleValue && isExpandedCur && elementsCount > 0" class="collection-values" >
+        <span v-if="hasSingleValue" class="singleValue">{{singleValue}}</span>
+        <span v-if="!hasSingleValue" class="elementsCount" @click="OnExpandToggle()">({{elementsCount}} elements)</span>
+        <div v-if="!hasSingleValue && isExpandedCur && elementsCount > 0" class="collectionValues" >
             <object-view v-for="(value, key) in object" :object="value" :isRoot="false" 
                          :name="key" :key="key" :isExpanded="isExpanded"></object-view>
         </div>
@@ -62,7 +62,7 @@ goog.provide("wdk.components.ObjectView");
 
             valueTagClass() {
                 let classes = {value: true};
-                classes["value-" + this.GetType(this.object)] = true;
+                classes["value_" + this.GetType(this.object)] = true;
                 return classes
             },
 
@@ -96,8 +96,8 @@ goog.provide("wdk.components.ObjectView");
             },
 
             typeLabelClass() {
-                let classes = {"type-label": true};
-                classes["type-label-" + this.GetType(this.object)] = true;
+                let classes = {"typeLabel": true};
+                classes["typeLabel_" + this.GetType(this.object)] = true;
                 return classes
             },
 
