@@ -18,7 +18,7 @@ private class BasicTest {
                 e.type == DiffCalculator.DiffEntry.Type.DELETION -> {
                     sb.append("- ${s1.subSequence(e.idx1Start, e.idx1End)}\n")
                 }
-                e.type == DiffCalculator.DiffEntry.Type.COPY -> {
+                e.type == DiffCalculator.DiffEntry.Type.EQUAL -> {
                     sb.append("  ${s1.subSequence(e.idx1Start, e.idx1End)}\n")
                 }
             }
