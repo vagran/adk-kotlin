@@ -1,7 +1,9 @@
 package com.ast.adk.domain
 
+import com.ast.adk.async.Deferred
 import com.ast.adk.async.ThreadContext
 import com.ast.adk.domain.httpserver.HttpDomainServer
+import com.ast.adk.domain.httpserver.HttpError
 import com.ast.adk.log.LogConfiguration
 import com.ast.adk.log.LogManager
 import com.sun.net.httpserver.HttpExchange
@@ -15,10 +17,13 @@ class WebServer {
     {
         ctx.Start()
 
-        httpServer.createContext("/test/", domainServer.CreateHandler(this::Test))
+        httpServer.createContext("/test", domainServer.CreateHandler(this::Test))
+        httpServer.createContext("/", domainServer.CreateHandler(this::DefaultHandler))
 
         httpServer.executor = ctx.GetExecutor()
         httpServer.start()
+
+        domainServer.CreateController("/Test", TestController())
     }
 
     fun Stop()
@@ -26,6 +31,11 @@ class WebServer {
         httpServer.stop(1)
         ctx.Stop()
         logManager.Shutdown()
+    }
+
+    private fun DefaultHandler(request: HttpExchange): Nothing
+    {
+        throw HttpError(404, "Endpoint not found", request)
     }
 
     suspend fun Test(request: HttpExchange): String
@@ -51,6 +61,27 @@ class WebServer {
     private val domainServer = HttpDomainServer(httpServer)
     init {
         domainServer.log = log
+    }
+}
+
+class TestController {
+
+    @Endpoint
+    fun Test1(): String
+    {
+        return "test1"
+    }
+
+    @Endpoint
+    fun Test2(): Deferred<String>
+    {
+        return Deferred.ForResult("test2")
+    }
+
+    @Endpoint
+    suspend fun Test3(): String
+    {
+        return "test3"
     }
 }
 

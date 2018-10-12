@@ -84,6 +84,11 @@ class HttpDomainServer(private val httpServer: HttpServer,
         return CreateHandler(handler.ToDeferredHandler())
     }
 
+    fun CreateController(prefix: String, controller: Any)
+    {
+        MountController(HttpPath(prefix), controller)
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val json: Json = json ?: Json()
 
@@ -119,6 +124,11 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
 
         request.close()
+    }
+
+    private fun MountController(prefix: HttpPath, controller: Any)
+    {
+
     }
 
 }
