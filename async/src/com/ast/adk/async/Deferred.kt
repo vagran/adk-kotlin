@@ -174,7 +174,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
     {
         Subscribe {
             result, error ->
-            if (error === null) {
+            if (error == null) {
                 cbk(result as T)
             }
         }

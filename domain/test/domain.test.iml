@@ -10,5 +10,9 @@
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="library" scope="TEST" name="org.junit.jupiter:junit-jupiter-api:5.2.0" level="project" />
     <orderEntry type="module" module-name="domain" />
+    <orderEntry type="module" module-name="adk" />
+    <orderEntry type="module" module-name="async" />
+    <orderEntry type="module" module-name="log" />
+    <orderEntry type="module" module-name="json" />
   </component>
 </module>

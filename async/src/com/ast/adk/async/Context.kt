@@ -1,8 +1,11 @@
 package com.ast.adk.async
 
-import kotlin.coroutines.*
+import java.util.concurrent.Executor
+import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /** Execution context which receives messages. */
 interface Context {
@@ -166,5 +169,10 @@ interface Context {
 
             override fun Reject(error: Throwable) {/* Rejection ignored. */}
         })
+    }
+
+    fun GetExecutor(): Executor
+    {
+        return Executor { command -> Run(command::run)}
     }
 }
