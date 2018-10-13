@@ -4,13 +4,13 @@ import java.lang.StringBuilder
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
-/** @param path Should be raw path, usually returned by URI.rawPath */
 class HttpPath {
     val components: List<String>
     val hasRoot: Boolean
 
     val length get() = components.size
 
+    /** @param path Should be raw path, usually returned by URI.rawPath */
     constructor(path: String)
     {
         var curIdx = 0

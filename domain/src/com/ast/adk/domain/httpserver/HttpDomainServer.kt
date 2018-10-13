@@ -2,20 +2,28 @@ package com.ast.adk.domain.httpserver
 
 import com.ast.adk.GetStackTrace
 import com.ast.adk.async.Deferred
+import com.ast.adk.domain.Endpoint
 import com.ast.adk.json.Json
 import com.ast.adk.log.Logger
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
 import com.sun.net.httpserver.HttpServer
 import java.io.IOException
+import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import kotlin.reflect.full.*
+import kotlin.reflect.jvm.jvmErasure
 
 /** Returned value is serialized into HTTP response body. Null can be returned instantly for null
  * result.
  */
-private typealias HttpRequestHandler<T> = (request: HttpExchange) -> Deferred<T>?
-private typealias HttpRequestHandlerAsync<T> = suspend (request: HttpExchange) -> T
+typealias HttpRequestHandler<T> = (request: HttpExchange) -> Deferred<T>?
+typealias HttpRequestHandlerAsync<T> = suspend (request: HttpExchange) -> T
 /** May throw exception (presumably HttpError) to prevent from further processing. */
-private typealias HttpRequestHook = suspend (request: HttpExchange) -> Unit
+typealias HttpRequestHook = suspend (request: HttpExchange) -> Unit
+
+/** Method node references to. */
+private typealias NodeMethod = (Array<Any?>) -> Deferred<*>?
 
 fun <T> HttpRequestHandlerAsync<T>.ToDeferredHandler(): HttpRequestHandler<T>
 {
@@ -101,7 +109,8 @@ class HttpDomainServer(private val httpServer: HttpServer,
     fun MountController(prefix: String, controller: Any)
     {
         val path = domainPrefixPath.Append(HttpPath(prefix))
-        val ctrlNode = CreateNode(path) { Node(controller) }
+        val ctrlNode = CreateNode(path) { Node(controller = controller) }
+        MountController(ctrlNode, controller::class)
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -114,8 +123,12 @@ class HttpDomainServer(private val httpServer: HttpServer,
 
     }
 
-    private class Node(val controller: Any? = null) {
-
+    private class Node(val controller: Any? = null,
+                       val method: NodeMethod? = null) {
+        /** Index of the argument for HttpRequestContext. */
+        var ctxArgIdx = -1
+        /** Index of the argument for request data. */
+        var dataArgIdx = -1
     }
 
     private class NodeKey(val name: String, val parent: Node?) {
@@ -172,6 +185,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
 
     private fun HandleRequest(request: HttpExchange): Deferred<*>
     {
+        val path = HttpPath(request.requestURI.rawPath)
         //XXX
         return Deferred.Unit()
     }
@@ -195,5 +209,48 @@ class HttpDomainServer(private val httpServer: HttpServer,
             }
         }
         throw Error("Not reached")
+    }
+
+    private fun MountController(ctrlNode: Node, ctrlClass: KClass<*>)
+    {
+        for (func in ctrlClass.declaredMemberFunctions) {
+            val ann = func.findAnnotation<Endpoint>() ?: continue
+            val node = CreateMethodNode(func)
+
+        }
+    }
+
+    private fun CreateMethodNode(func: KFunction<*>): Node
+    {
+        val method: NodeMethod =
+            when {
+                func.isSuspend ->
+                    { args -> Deferred.ForFunc { func.callSuspend(args) } }
+                func.returnType.jvmErasure.isSubclassOf(Deferred::class) ->
+                    { args -> func.call(args) as Deferred<*>? }
+                else ->
+                    { args -> Deferred.ForResult(func.call(args)) }
+            }
+
+        val node = Node(method = method)
+
+        if (func.parameters.size > 3) {
+            throw Error("Endpoint ${func.name} has too many arguments")
+        }
+        for (i in 1 until func.parameters.size) {
+            val param = func.parameters[i]
+            if (param.type.jvmErasure.isSubclassOf(HttpRequestContext::class)) {
+                if (node.ctxArgIdx >= 0) {
+                    throw Error("Context argument specified more than once in ${func.name}")
+                }
+                node.ctxArgIdx = i
+                continue
+            }
+            if (node.dataArgIdx >= 0) {
+                throw Error("Data argument specified more than once in ${func.name}")
+            }
+            node.dataArgIdx = i
+        }
+        return node
     }
 }
