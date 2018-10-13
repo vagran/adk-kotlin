@@ -4,10 +4,12 @@ import com.ast.adk.async.Deferred
 import com.ast.adk.async.ThreadContext
 import com.ast.adk.domain.httpserver.HttpDomainServer
 import com.ast.adk.domain.httpserver.HttpError
+import com.ast.adk.domain.httpserver.HttpRequestContext
 import com.ast.adk.log.LogConfiguration
 import com.ast.adk.log.LogManager
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
+import org.junit.jupiter.api.Test
 import java.net.InetSocketAddress
 
 
@@ -19,16 +21,18 @@ class WebServer {
 
         httpServer.createContext("/test", domainServer.CreateHandler(this::Test))
         httpServer.createContext("/", domainServer.CreateHandler(this::DefaultHandler))
+        domainServer.Start()
 
         httpServer.executor = ctx.GetExecutor()
         httpServer.start()
 
-        domainServer.CreateController("/Test", TestController())
+        domainServer.MountController("/Test", TestController())
     }
 
     fun Stop()
     {
         httpServer.stop(1)
+        domainServer.Stop()
         ctx.Stop()
         logManager.Shutdown()
     }
@@ -58,7 +62,7 @@ class WebServer {
 
     private val httpServer = HttpServer.create(InetSocketAddress("0.0.0.0", 8086), 5)
 
-    private val domainServer = HttpDomainServer(httpServer)
+    private val domainServer = HttpDomainServer(httpServer, "/domain")
     init {
         domainServer.log = log
     }
@@ -82,6 +86,43 @@ class TestController {
     suspend fun Test3(): String
     {
         return "test3"
+    }
+
+    @Endpoint
+    suspend fun Test4(ctx: HttpRequestContext): String
+    {
+        return "test4 " + ctx.request.requestURI
+    }
+
+    @Endpoint
+    fun Test5()
+    {
+        println("test5")
+    }
+
+    @RepositoryEndpoint
+    suspend fun Entity(id: String): TestEntity
+    {
+        val _id = id.toInt()
+        if (_id > 42) {
+            throw HttpError(404, "Entity not found")
+        }
+        return TestEntity(_id)
+    }
+}
+
+class TestEntity(val id: Int) {
+
+    @Endpoint
+    fun Delete()
+    {
+        println("deleting #$id")
+    }
+
+    @Endpoint
+    fun SomeMethod(): String
+    {
+        return "TestEntity #$id"
     }
 }
 

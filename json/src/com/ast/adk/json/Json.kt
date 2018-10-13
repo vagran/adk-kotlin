@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.time.LocalDateTime
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.full.isSubclassOf
@@ -171,7 +172,7 @@ class Json(val prettyPrint: Boolean = false,
     inline fun <reified T> FromJson(input: InputStream): T? = FromJson(input, TypeToken.Create<T>().type)
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    private val codecs = HashMap<KType, JsonCodec<*>>()
+    private val codecs = ConcurrentHashMap<KType, JsonCodec<*>>()
     private val classCodecs = HashMap<KClass<*>, JsonCodecProvider>()
     private val subclassCodecs = HashMap<KClass<*>, JsonCodecProvider>()
 

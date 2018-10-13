@@ -49,11 +49,15 @@ open class HttpError(val code: Int,
     }
 }
 
-private class HttpAuthError(val realm: String, req: HttpExchange? = null):
+class HttpAuthError(val realm: String, req: HttpExchange? = null):
     HttpError(401, "Authorization required", req)
 
+interface HttpRequestContext {
+    val request: HttpExchange
+}
 
 class HttpDomainServer(private val httpServer: HttpServer,
+                       val domainPrefix: String,
                        json: Json? = null) {
 
     var requestValidationHook: HttpRequestHook? = null
@@ -79,18 +83,54 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
     }
 
+    fun Start()
+    {
+        httpServer.createContext(domainPrefix, CreateHandler(this::HandleRequest))
+    }
+
+    fun Stop()
+    {
+        httpServer.removeContext(domainPrefix)
+    }
+
     fun CreateHandler(handler: HttpRequestHandlerAsync<*>): HttpHandler
     {
         return CreateHandler(handler.ToDeferredHandler())
     }
 
-    fun CreateController(prefix: String, controller: Any)
+    fun MountController(prefix: String, controller: Any)
     {
-        MountController(HttpPath(prefix), controller)
+        val path = domainPrefixPath.Append(HttpPath(prefix))
+        val ctrlNode = CreateNode(path) { Node(controller) }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val json: Json = json ?: Json()
+    private val nodes = HashMap<NodeKey, Node>()
+    private val domainPrefixPath = HttpPath(domainPrefix)
+
+    private inner class RequestContext (override val request: HttpExchange):
+        HttpRequestContext {
+
+    }
+
+    private class Node(val controller: Any? = null) {
+
+    }
+
+    private class NodeKey(val name: String, val parent: Node?) {
+
+        override fun equals(other: Any?): Boolean
+        {
+            val _other = other as NodeKey
+            return parent === _other.parent && name == _other.name
+        }
+
+        override fun hashCode(): Int
+        {
+            return super.hashCode() xor name.hashCode()
+        }
+    }
 
 
     private fun OnRequestHandled(request: HttpExchange, result: Any?, error: Throwable?)
@@ -117,8 +157,12 @@ class HttpDomainServer(private val httpServer: HttpServer,
             code = 200
         }
         try {
-            request.sendResponseHeaders(code, 0)
-            request.responseBody.use { json.ToJson(_result, it) }
+            if (_result is Unit) {
+                request.sendResponseHeaders(code, -1)
+            } else {
+                request.sendResponseHeaders(code, 0)
+                request.responseBody.use { json.ToJson(_result, it) }
+            }
         } catch (e: IOException) {
             log?.Error(e, "Response writing failed")
         }
@@ -126,9 +170,30 @@ class HttpDomainServer(private val httpServer: HttpServer,
         request.close()
     }
 
-    private fun MountController(prefix: HttpPath, controller: Any)
+    private fun HandleRequest(request: HttpExchange): Deferred<*>
     {
-
+        //XXX
+        return Deferred.Unit()
     }
 
+    private fun CreateNode(path: HttpPath, fabric: () -> Node): Node
+    {
+        var parentNode: Node? = null
+        for (i in 0 until path.length) {
+            val comp = path.components[i]
+            val nodeKey = NodeKey(comp, parentNode)
+            if (i < path.length - 1) {
+                parentNode = nodes.computeIfAbsent(nodeKey) { Node() }
+                if (parentNode.controller != null) {
+                    throw Error("Path intersects with mounted controlled: $path")
+                }
+            } else {
+                if (nodes.containsKey(nodeKey)) {
+                    throw Error("Node already exists: $path")
+                }
+                return fabric().also { nodes[nodeKey] = it }
+            }
+        }
+        throw Error("Not reached")
+    }
 }
