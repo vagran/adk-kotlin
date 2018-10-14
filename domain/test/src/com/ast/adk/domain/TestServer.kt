@@ -142,13 +142,13 @@ class TestController {
     }
 
     @Endpoint(isRepository = true)
-    suspend fun Entity(id: String): TestEntity
+    fun Entity(id: String): Deferred<TestEntity>
     {
         val _id = id.toInt()
         if (_id > 42) {
             throw HttpError(404, "Entity not found")
         }
-        return TestEntity(_id)
+        return Deferred.ForResult(TestEntity(_id))
     }
 }
 

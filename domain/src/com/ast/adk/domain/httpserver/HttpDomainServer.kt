@@ -133,29 +133,35 @@ class HttpDomainServer(private val httpServer: HttpServer,
         /** Index of the argument for request data. */
         var dataArgIdx = -1
         val dataSerializer: JsonSerializer<*>?
-        val isRepository: Boolean
+        val repoEntityClass: KClass<*>?
 
         init {
             if (func == null) {
                 method = null
                 dataSerializer = null
-                isRepository = false
+                repoEntityClass = null
 
             } else {
-                isRepository = annotation?.isRepository ?: false
+                val isRepository = annotation?.isRepository ?: false
 
-                method =
-                    when {
-                        func.isSuspend ->
-                            { args -> Deferred.ForFunc { func.callSuspend(*args) } }
-                        func.returnType.jvmErasure.isSubclassOf(Deferred::class) ->
-                            { args -> func.call(*args) as Deferred<*>? }
-                        else ->
-                            { args -> Deferred.ForResult(func.call(*args)) }
+                when {
+                    func.isSuspend -> {
+                        method = { args -> Deferred.ForFunc { func.callSuspend(*args) } }
+                        repoEntityClass = func.returnType.jvmErasure
                     }
+                    func.returnType.jvmErasure.isSubclassOf(Deferred::class) -> {
+                        method = { args -> func.call(*args) as Deferred<*>? }
+                        repoEntityClass = func.returnType.arguments[0].type?.jvmErasure ?:
+                            throw Error("Star projection not allowed for returned deferred $func")
+                    }
+                    else -> {
+                        method = { args -> Deferred.ForResult(func.call(*args)) }
+                        repoEntityClass = func.returnType.jvmErasure
+                    }
+                }
 
                 if (func.parameters.size > 3) {
-                    throw Error("Endpoint ${func.name} has too many arguments")
+                    throw Error("Endpoint $func has too many arguments")
                 }
 
                 var dataSerializer: JsonSerializer<*>? = null
@@ -163,16 +169,16 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     val param = func.parameters[i]
                     if (param.type.jvmErasure.isSubclassOf(HttpRequestContext::class)) {
                         if (ctxArgIdx >= 0) {
-                            throw Error("Context argument specified more than once in ${func.name}")
+                            throw Error("Context argument specified more than once in $func")
                         }
                         ctxArgIdx = i
                         continue
                     }
                     if (dataArgIdx >= 0) {
-                        throw Error("Data argument specified more than once in ${func.name}")
+                        throw Error("Data argument specified more than once in func")
                     }
                     if (isRepository && !param.type.jvmErasure.isSubclassOf(String::class)) {
-                        throw Error("Data argument type should be string for repository endpoint ${func.name}")
+                        throw Error("Data argument type should be string for repository endpoint $func")
                     }
                     dataArgIdx = i
                     dataSerializer = json.GetSerializer<Any>(param.type)
