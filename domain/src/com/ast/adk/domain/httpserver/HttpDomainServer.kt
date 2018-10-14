@@ -4,6 +4,7 @@ import com.ast.adk.GetStackTrace
 import com.ast.adk.async.Deferred
 import com.ast.adk.domain.Endpoint
 import com.ast.adk.json.Json
+import com.ast.adk.json.JsonSerializer
 import com.ast.adk.log.Logger
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
@@ -123,12 +124,82 @@ class HttpDomainServer(private val httpServer: HttpServer,
 
     }
 
-    private class Node(val controller: Any? = null,
-                       val method: NodeMethod? = null) {
+    private inner class Node(val controller: Any? = null,
+                             func: KFunction<*>? = null) {
+        val method: NodeMethod?
         /** Index of the argument for HttpRequestContext. */
         var ctxArgIdx = -1
         /** Index of the argument for request data. */
         var dataArgIdx = -1
+        val dataSerializer: JsonSerializer<*>?
+
+        init {
+            if (func == null) {
+                method = null
+                dataSerializer = null
+
+            } else {
+                method =
+                    when {
+                        func.isSuspend ->
+                            { args -> Deferred.ForFunc { func.callSuspend(*args) } }
+                        func.returnType.jvmErasure.isSubclassOf(Deferred::class) ->
+                            { args -> func.call(*args) as Deferred<*>? }
+                        else ->
+                            { args -> Deferred.ForResult(func.call(*args)) }
+                    }
+
+                if (func.parameters.size > 3) {
+                    throw Error("Endpoint ${func.name} has too many arguments")
+                }
+
+                var dataSerializer: JsonSerializer<*>? = null
+                for (i in 1 until func.parameters.size) {
+                    val param = func.parameters[i]
+                    if (param.type.jvmErasure.isSubclassOf(HttpRequestContext::class)) {
+                        if (ctxArgIdx >= 0) {
+                            throw Error("Context argument specified more than once in ${func.name}")
+                        }
+                        ctxArgIdx = i
+                        continue
+                    }
+                    if (dataArgIdx >= 0) {
+                        throw Error("Data argument specified more than once in ${func.name}")
+                    }
+                    dataArgIdx = i
+                    dataSerializer = json.GetSerializer<Any>(param.type)
+                }
+                this.dataSerializer = dataSerializer
+            }
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        fun InvokeMethod(ctx: RequestContext, controller: Any): Deferred<*>?
+        {
+            if (method == null) {
+                throw IllegalStateException("Non-executable node invoked")
+            }
+            var argSize = 1
+            if (ctxArgIdx != -1) {
+                argSize++
+            }
+            val data =
+                if (dataArgIdx != -1) {
+                    argSize++
+                    GetRequestBody(ctx.request, dataSerializer as JsonSerializer<Any>)
+                } else {
+                    null
+                }
+            val args = Array(argSize) {
+                argIdx ->
+                when (argIdx) {
+                    0 -> controller
+                    ctxArgIdx -> ctx
+                    else -> data
+                }
+            }
+            return method.invoke(args)
+        }
     }
 
     private class NodeKey(val name: String, val parent: Node?) {
@@ -141,7 +212,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
 
         override fun hashCode(): Int
         {
-            return super.hashCode() xor name.hashCode()
+            return parent.hashCode() xor name.hashCode()
         }
     }
 
@@ -183,11 +254,29 @@ class HttpDomainServer(private val httpServer: HttpServer,
         request.close()
     }
 
-    private fun HandleRequest(request: HttpExchange): Deferred<*>
+    private fun HandleRequest(request: HttpExchange): Deferred<*>?
     {
+        val ctx = RequestContext(request)
         val path = HttpPath(request.requestURI.rawPath)
-        //XXX
-        return Deferred.Unit()
+        var controller: Any? = null
+        var curNode: Node? = null
+        for (compIdx in 0 until path.components.size) {
+            val pathComp = path.components[compIdx]
+            val node = nodes[NodeKey(pathComp, curNode)]
+                ?: throw HttpError(404, "Path not found", request)
+            if (node.controller != null) {
+                controller = node.controller
+            }
+            //XXX
+            if (node.method != null) {
+                if (controller == null) {
+                    throw HttpError(500, "Controller not specified", request)
+                }
+                return node.InvokeMethod(ctx, controller)
+            }
+            curNode = node
+        }
+        throw HttpError(404, "No handler found", request)
     }
 
     private fun CreateNode(path: HttpPath, fabric: () -> Node): Node
@@ -215,42 +304,24 @@ class HttpDomainServer(private val httpServer: HttpServer,
     {
         for (func in ctrlClass.declaredMemberFunctions) {
             val ann = func.findAnnotation<Endpoint>() ?: continue
-            val node = CreateMethodNode(func)
-
+            val node = Node(func = func)
+            val name =
+                if (ann.name.isEmpty()) {
+                    func.name
+                } else {
+                    ann.name
+                }
+            nodes[NodeKey(name, ctrlNode)] = node
         }
     }
 
-    private fun CreateMethodNode(func: KFunction<*>): Node
+    private fun <T: Any> GetRequestBody(request: HttpExchange, serializer: JsonSerializer<T>): T
     {
-        val method: NodeMethod =
-            when {
-                func.isSuspend ->
-                    { args -> Deferred.ForFunc { func.callSuspend(args) } }
-                func.returnType.jvmErasure.isSubclassOf(Deferred::class) ->
-                    { args -> func.call(args) as Deferred<*>? }
-                else ->
-                    { args -> Deferred.ForResult(func.call(args)) }
-            }
-
-        val node = Node(method = method)
-
-        if (func.parameters.size > 3) {
-            throw Error("Endpoint ${func.name} has too many arguments")
+        if (request.requestMethod != "POST") {
+            throw Error("POST method expected")
         }
-        for (i in 1 until func.parameters.size) {
-            val param = func.parameters[i]
-            if (param.type.jvmErasure.isSubclassOf(HttpRequestContext::class)) {
-                if (node.ctxArgIdx >= 0) {
-                    throw Error("Context argument specified more than once in ${func.name}")
-                }
-                node.ctxArgIdx = i
-                continue
-            }
-            if (node.dataArgIdx >= 0) {
-                throw Error("Data argument specified more than once in ${func.name}")
-            }
-            node.dataArgIdx = i
+        request.requestBody.use { body ->
+            return serializer.FromJson(body) ?: throw IllegalArgumentException("Null not allowed")
         }
-        return node
     }
 }
