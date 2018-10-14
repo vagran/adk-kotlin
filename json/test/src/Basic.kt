@@ -536,5 +536,21 @@ private class BasicTest {
         assertEquals(obj.a, parsed.a)
         assertEquals(obj.i, parsed.i)
     }
+
+    @JsonClass(annotatedOnly = true)
+    class AnnotatedOnlyClass {
+        @JsonField
+        var i = 42
+        val s = "abc"
+        var s2 = "def"
+    }
+
+    @Test
+    fun AnnotatedOnly()
+    {
+        val obj = AnnotatedOnlyClass()
+        val json = Json(false)
+        assertEquals("{\"i\":42}", json.ToJson(obj))
+    }
 }
 

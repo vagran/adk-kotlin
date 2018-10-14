@@ -16,8 +16,10 @@ annotation class JsonTransient
  * field, it is just silently ignored if this parameter is true.
  * @param requireAllFields Require all fields to be set from JSON. Separate fields can be specified
  * as optional with JsonField.optional parameter.
+ * @param annotatedOnly Process only fields which are annotated by JsonField annotation.
  */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.CLASS)
 annotation class JsonClass(val allowUnmatchedFields: Boolean = true,
-                           val requireAllFields: Boolean = false)
+                           val requireAllFields: Boolean = false,
+                           val annotatedOnly: Boolean = false)

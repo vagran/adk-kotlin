@@ -28,6 +28,7 @@ class Json(val prettyPrint: Boolean = false,
            val enableComments: Boolean = true,
            val allowUnmatchedFields: Boolean = false,
            val requireAllFields: Boolean = false,
+           val annotatedOnly: Boolean = false,
            typeCodecs: Map<KType, JsonCodec<*>> = emptyMap(),
            classCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
            subclassCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap()) {

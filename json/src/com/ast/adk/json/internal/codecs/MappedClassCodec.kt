@@ -84,6 +84,7 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
         val cls = type.jvmErasure
         allowUnmatchedFields = clsAnn?.allowUnmatchedFields ?: json.allowUnmatchedFields
         val requiredDefault = clsAnn?.requireAllFields ?: json.requireAllFields
+        val annotatedOnly = clsAnn?.annotatedOnly ?: json.annotatedOnly
         constructor = GetDefaultConstructor(cls)
         for (curCls in cls.allSuperclasses + cls) {
             for (prop in curCls.declaredMemberProperties) {
@@ -93,6 +94,9 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
                     continue
                 }
                 val fieldAnn = prop.findAnnotation<JsonField>()
+                if (fieldAnn == null && annotatedOnly) {
+                    continue
+                }
                 if (prop.visibility != KVisibility.PUBLIC) {
                     if (fieldAnn != null) {
                         throw IllegalArgumentException(
