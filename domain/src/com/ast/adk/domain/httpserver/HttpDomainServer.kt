@@ -125,20 +125,25 @@ class HttpDomainServer(private val httpServer: HttpServer,
     }
 
     private inner class Node(val controller: Any? = null,
-                             func: KFunction<*>? = null) {
+                             func: KFunction<*>? = null,
+                             annotation: Endpoint? = null) {
         val method: NodeMethod?
         /** Index of the argument for HttpRequestContext. */
         var ctxArgIdx = -1
         /** Index of the argument for request data. */
         var dataArgIdx = -1
         val dataSerializer: JsonSerializer<*>?
+        val isRepository: Boolean
 
         init {
             if (func == null) {
                 method = null
                 dataSerializer = null
+                isRepository = false
 
             } else {
+                isRepository = annotation?.isRepository ?: false
+
                 method =
                     when {
                         func.isSuspend ->
@@ -166,6 +171,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     if (dataArgIdx >= 0) {
                         throw Error("Data argument specified more than once in ${func.name}")
                     }
+                    if (isRepository && !param.type.jvmErasure.isSubclassOf(String::class)) {
+                        throw Error("Data argument type should be string for repository endpoint ${func.name}")
+                    }
                     dataArgIdx = i
                     dataSerializer = json.GetSerializer<Any>(param.type)
                 }
@@ -188,6 +196,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     argSize++
                     GetRequestBody(ctx.request, dataSerializer as JsonSerializer<Any>)
                 } else {
+                    if (ctx.request.requestMethod != "GET") {
+                        throw HttpError(400, "GET method expected")
+                    }
                     null
                 }
             val args = Array(argSize) {
@@ -304,7 +315,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
     {
         for (func in ctrlClass.declaredMemberFunctions) {
             val ann = func.findAnnotation<Endpoint>() ?: continue
-            val node = Node(func = func)
+            val node = Node(func = func, annotation = ann)
             val name =
                 if (ann.name.isEmpty()) {
                     func.name
