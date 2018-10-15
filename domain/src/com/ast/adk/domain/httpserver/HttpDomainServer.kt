@@ -22,10 +22,10 @@ import kotlin.reflect.jvm.jvmErasure
 /** Returned value is serialized into HTTP response body. Null can be returned instantly for null
  * result.
  */
-typealias HttpRequestHandler<T> = (request: HttpExchange) -> Deferred<T>?
-typealias HttpRequestHandlerAsync<T> = suspend (request: HttpExchange) -> T
+typealias HttpRequestHandler<T> = (request: HttpRequestContext) -> Deferred<T>?
+typealias HttpRequestHandlerAsync<T> = suspend (request: HttpRequestContext) -> T
 /** May throw exception (presumably HttpError) to prevent from further processing. */
-typealias HttpRequestHook = suspend (request: HttpExchange) -> Unit
+typealias HttpRequestHook = suspend (request: HttpRequestContext) -> Unit
 
 /** Method node references to. */
 private typealias NodeMethod = suspend (Array<Any?>) -> Any?
@@ -37,17 +37,17 @@ fun <T> HttpRequestHandlerAsync<T>.ToDeferredHandler(): HttpRequestHandler<T>
 
 open class HttpError(val code: Int,
                      message: String,
-                     req: HttpExchange? = null):
+                     req: HttpRequestContext? = null):
     Exception(GetMessage(code, message, req)) {
 
     companion object {
         private fun GetMessage(code: Int,
                                message: String,
-                               req: HttpExchange?): String
+                               req: HttpRequestContext?): String
         {
             val buf = StringBuilder()
             if (req != null) {
-                val remoteAddr = req.requestHeaders["X-remote-addr"]
+                val remoteAddr = req.request.requestHeaders["X-remote-addr"]
                 if (remoteAddr != null) {
                     buf.append('[')
                     buf.append(remoteAddr[0])
@@ -62,7 +62,7 @@ open class HttpError(val code: Int,
     }
 }
 
-class HttpAuthError(val realm: String, req: HttpExchange? = null):
+class HttpAuthError(val realm: String, req: HttpRequestContext? = null):
     HttpError(401, "Authorization required", req)
 
 interface HttpRequestContext {
@@ -80,18 +80,19 @@ class HttpDomainServer(private val httpServer: HttpServer,
     {
         return HttpHandler {
             request: HttpExchange ->
+            val ctx = RequestContext(request)
             val method = request.requestMethod
             val uri = request.requestURI
             log?.Info("Request from %s - %s %s", request.remoteAddress, method, uri)
             try {
                 Deferred.ForFunc {
-                    requestValidationHook?.invoke(request)
-                    val def = handler(request)
+                    requestValidationHook?.invoke(ctx)
+                    val def = handler(ctx)
                     return@ForFunc def?.Await()
                 }
-                    .Subscribe { result, error -> OnRequestHandled(request, result, error) }
+                    .Subscribe { result, error -> OnRequestHandled(ctx, result, error) }
             } catch (e: Throwable) {
-                OnRequestHandled(request, null, e)
+                OnRequestHandled(ctx, null, e)
             }
         }
     }
@@ -200,7 +201,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
 
         @Suppress("UNCHECKED_CAST")
-        suspend fun InvokeMethod(ctx: RequestContext, controller: Any, entityId: String?): Any?
+        suspend fun InvokeMethod(ctx: HttpRequestContext, controller: Any, entityId: String?): Any?
         {
             if (method == null) {
                 throw IllegalStateException("Non-executable node invoked")
@@ -255,8 +256,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
     }
 
 
-    private fun OnRequestHandled(request: HttpExchange, result: Any?, error: Throwable?)
+    private fun OnRequestHandled(ctx: HttpRequestContext, result: Any?, error: Throwable?)
     {
+        val request = ctx.request
         var _result = result
         val headers = request.responseHeaders
         headers.set("Content-Type", "application/json; charset=UTF-8")
@@ -292,9 +294,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
         request.close()
     }
 
-    private suspend fun HandleRequest(request: HttpExchange): Any?
+    private suspend fun HandleRequest(ctx: HttpRequestContext): Any?
     {
-        val ctx = RequestContext(request)
+        val request = ctx.request
         val path = HttpPath(request.requestURI.rawPath)
         var controller: Any? = null
         var curNode: Node? = null
@@ -306,17 +308,17 @@ class HttpDomainServer(private val httpServer: HttpServer,
 
             if (repoNode == null) {
                 node = nodes[NodeKey(pathComp, curNode)]
-                    ?: throw HttpError(404, "Path not found", request)
+                    ?: throw HttpError(404, "Path not found", ctx)
                 if (node.controller != null) {
                     controller = node.controller
                 }
                 if (node.method != null) {
                     if (controller == null) {
-                        throw HttpError(500, "Controller not specified", request)
+                        throw HttpError(500, "Controller not specified", ctx)
                     }
                     if (node.repoEntityClass == null) {
                         if (compIdx < path.components.size - 1) {
-                            throw HttpError(400, "Endpoint sub-path requested", request)
+                            throw HttpError(400, "Endpoint sub-path requested", ctx)
                         }
                         return node.InvokeMethod(ctx, controller, null)
                     }
@@ -333,10 +335,10 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     pathComp
                 }
                 if (controller == null) {
-                    throw HttpError(500, "Controller not specified", request)
+                    throw HttpError(500, "Controller not specified", ctx)
                 }
                 val entity = repoNode.InvokeMethod(ctx, controller, entityId)
-                    ?: throw HttpError(500, "Null entity returned", request)
+                    ?: throw HttpError(500, "Null entity returned", ctx)
                 repoNode = null
                 if (compIdx == path.components.size - 1) {
                     return entity
@@ -350,9 +352,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
 
         if (repoNode != null) {
-            throw HttpError(400, "Entity ID not specified", request)
+            throw HttpError(400, "Entity ID not specified", ctx)
         }
-        throw HttpError(404, "No handler found", request)
+        throw HttpError(404, "No handler found", ctx)
     }
 
     private fun CreateNode(path: HttpPath, fabric: () -> Node): Node

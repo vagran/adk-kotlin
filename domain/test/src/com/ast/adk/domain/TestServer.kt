@@ -9,7 +9,6 @@ import com.ast.adk.json.Json
 import com.ast.adk.json.TypeToken
 import com.ast.adk.log.LogConfiguration
 import com.ast.adk.log.LogManager
-import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.*
@@ -48,12 +47,12 @@ class WebServer {
         logManager.Shutdown()
     }
 
-    private fun DefaultHandler(request: HttpExchange): Nothing
+    private fun DefaultHandler(ctx: HttpRequestContext): Nothing
     {
-        throw HttpError(404, "Endpoint not found", request)
+        throw HttpError(404, "Endpoint not found", ctx)
     }
 
-    suspend fun Test(request: HttpExchange): String
+    suspend fun Test(ctx: HttpRequestContext): String
     {
         return "TestResponse"
     }
