@@ -425,4 +425,23 @@ private class ServerTest {
     {
         assertEquals(42, SendRequest<Int>("/domain/Test/Entity/12/MethodWithArg", 20))
     }
+
+    @Test
+    fun EntityNoIdArgTest1()
+    {
+        val e = SendRequest<TestEntity>("/domain/Test/EntityNoIdArg", null)!!
+        assertEquals(42, e.id)
+    }
+
+    @Test
+    fun EntityNoIdArgTest2()
+    {
+        CheckError(404) { SendRequest<TestEntity>("/domain/Test/EntityNoIdArg/12", null) }
+    }
+
+    @Test
+    fun EntityNoIdArgTest3()
+    {
+        assertEquals("TestEntity #42", SendRequest<String>("/domain/Test/EntityNoIdArg/SomeMethod", null))
+    }
 }
