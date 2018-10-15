@@ -10,9 +10,13 @@ import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
 import com.sun.net.httpserver.HttpServer
 import java.io.IOException
+import java.lang.reflect.InvocationTargetException
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
-import kotlin.reflect.full.*
+import kotlin.reflect.full.callSuspend
+import kotlin.reflect.full.declaredMemberFunctions
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
 /** Returned value is serialized into HTTP response body. Null can be returned instantly for null
@@ -24,7 +28,7 @@ typealias HttpRequestHandlerAsync<T> = suspend (request: HttpExchange) -> T
 typealias HttpRequestHook = suspend (request: HttpExchange) -> Unit
 
 /** Method node references to. */
-private typealias NodeMethod = (Array<Any?>) -> Deferred<*>?
+private typealias NodeMethod = suspend (Array<Any?>) -> Any?
 
 fun <T> HttpRequestHandlerAsync<T>.ToDeferredHandler(): HttpRequestHandler<T>
 {
@@ -132,7 +136,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
         var ctxArgIdx = -1
         /** Index of the argument for request data. */
         var dataArgIdx = -1
+        /** Serializer for data argument. */
         val dataSerializer: JsonSerializer<*>?
+        /** Entity class for repository endpoint node, null for other nodes. */
         val repoEntityClass: KClass<*>?
 
         init {
@@ -143,25 +149,31 @@ class HttpDomainServer(private val httpServer: HttpServer,
 
             } else {
                 val isRepository = annotation?.isRepository ?: false
-
+                val repoEntityClass: KClass<*>?
                 when {
                     func.isSuspend -> {
-                        method = { args -> Deferred.ForFunc { func.callSuspend(*args) } }
+                        method = { args -> func.callSuspend(*args) }
                         repoEntityClass = func.returnType.jvmErasure
                     }
                     func.returnType.jvmErasure.isSubclassOf(Deferred::class) -> {
-                        method = { args -> func.call(*args) as Deferred<*>? }
+                        method = { args -> (func.call(*args) as Deferred<*>?)?.Await() }
                         repoEntityClass = func.returnType.arguments[0].type?.jvmErasure ?:
                             throw Error("Star projection not allowed for returned deferred $func")
                     }
                     else -> {
-                        method = { args -> Deferred.ForResult(func.call(*args)) }
+                        method = { args -> func.call(*args) }
                         repoEntityClass = func.returnType.jvmErasure
                     }
                 }
 
                 if (func.parameters.size > 3) {
                     throw Error("Endpoint $func has too many arguments")
+                }
+
+                if (isRepository) {
+                    this.repoEntityClass = repoEntityClass
+                } else {
+                    this.repoEntityClass = null
                 }
 
                 var dataSerializer: JsonSerializer<*>? = null
@@ -175,7 +187,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
                         continue
                     }
                     if (dataArgIdx >= 0) {
-                        throw Error("Data argument specified more than once in func")
+                        throw Error("Data argument specified more than once in $func")
                     }
                     if (isRepository && !param.type.jvmErasure.isSubclassOf(String::class)) {
                         throw Error("Data argument type should be string for repository endpoint $func")
@@ -188,7 +200,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
 
         @Suppress("UNCHECKED_CAST")
-        fun InvokeMethod(ctx: RequestContext, controller: Any): Deferred<*>?
+        suspend fun InvokeMethod(ctx: RequestContext, controller: Any, entityId: String?): Any?
         {
             if (method == null) {
                 throw IllegalStateException("Non-executable node invoked")
@@ -200,7 +212,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
             val data =
                 if (dataArgIdx != -1) {
                     argSize++
-                    GetRequestBody(ctx.request, dataSerializer as JsonSerializer<Any>)
+                    entityId ?: GetRequestBody(ctx.request, dataSerializer as JsonSerializer<Any>)
                 } else {
                     if (ctx.request.requestMethod != "GET") {
                         throw HttpError(400, "GET method expected")
@@ -215,7 +227,16 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     else -> data
                 }
             }
-            return method.invoke(args)
+            try {
+                return method.invoke(args)
+            } catch (e: InvocationTargetException) {
+                val cause = e.cause
+                if (cause is HttpError) {
+                    throw cause
+                } else {
+                    throw e
+                }
+            }
         }
     }
 
@@ -271,27 +292,65 @@ class HttpDomainServer(private val httpServer: HttpServer,
         request.close()
     }
 
-    private fun HandleRequest(request: HttpExchange): Deferred<*>?
+    private suspend fun HandleRequest(request: HttpExchange): Any?
     {
         val ctx = RequestContext(request)
         val path = HttpPath(request.requestURI.rawPath)
         var controller: Any? = null
         var curNode: Node? = null
+        var repoNode: Node? = null
+
         for (compIdx in 0 until path.components.size) {
             val pathComp = path.components[compIdx]
-            val node = nodes[NodeKey(pathComp, curNode)]
-                ?: throw HttpError(404, "Path not found", request)
-            if (node.controller != null) {
-                controller = node.controller
+            val node: Node?
+
+            if (repoNode == null) {
+                node = nodes[NodeKey(pathComp, curNode)]
+                    ?: throw HttpError(404, "Path not found", request)
+                if (node.controller != null) {
+                    controller = node.controller
+                }
+                if (node.method != null) {
+                    if (controller == null) {
+                        throw HttpError(500, "Controller not specified", request)
+                    }
+                    if (node.repoEntityClass == null) {
+                        if (compIdx < path.components.size - 1) {
+                            throw HttpError(400, "Endpoint sub-path requested", request)
+                        }
+                        return node.InvokeMethod(ctx, controller, null)
+                    }
+                    repoNode = node
+                }
+            } else {
+                node = null
             }
-            //XXX
-            if (node.method != null) {
+
+            if (repoNode != null && (repoNode.dataArgIdx == -1 || node == null)) {
+                val entityId = if (repoNode.dataArgIdx == -1) {
+                    null
+                } else {
+                    pathComp
+                }
                 if (controller == null) {
                     throw HttpError(500, "Controller not specified", request)
                 }
-                return node.InvokeMethod(ctx, controller)
+                val entity = repoNode.InvokeMethod(ctx, controller, entityId)
+                    ?: throw HttpError(500, "Null entity returned", request)
+                repoNode = null
+                if (compIdx == path.components.size - 1) {
+                    return entity
+                }
+                controller = entity
             }
-            curNode = node
+
+            if (node != null) {
+                curNode = node
+            }
+        }
+
+        if (repoNode != null) {
+            throw HttpError(400, "Entity ID not specified", request)
         }
         throw HttpError(404, "No handler found", request)
     }
@@ -329,6 +388,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     ann.name
                 }
             nodes[NodeKey(name, ctrlNode)] = node
+            if (ann.isRepository) {
+                MountController(node, node.repoEntityClass!!)
+            }
         }
     }
 

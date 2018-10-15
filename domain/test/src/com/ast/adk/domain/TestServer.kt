@@ -12,12 +12,10 @@ import com.ast.adk.log.LogManager
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import java.lang.Exception
 import java.net.InetSocketAddress
 import java.net.URI
 import java.net.http.HttpClient
@@ -141,6 +139,30 @@ class TestController {
         }
     }
 
+    @Endpoint
+    fun Null1(): String?
+    {
+        return null
+    }
+
+    @Endpoint
+    fun Null2(): Deferred<String>?
+    {
+        return null
+    }
+
+    @Endpoint
+    fun Null3(): Deferred<String?>?
+    {
+        return Deferred.ForResult(null)
+    }
+
+    @Endpoint
+    suspend fun Null4(): String?
+    {
+        return null
+    }
+
     @Endpoint(isRepository = true)
     fun Entity(id: String): Deferred<TestEntity>
     {
@@ -148,11 +170,23 @@ class TestController {
         if (_id > 42) {
             throw HttpError(404, "Entity not found")
         }
-        return Deferred.ForResult(TestEntity(_id))
+        return Deferred.ForResult(TestEntity().also { it.id = _id })
+    }
+
+    @Endpoint(isRepository = true)
+    fun EntityNoIdArg(ctx: HttpRequestContext): TestEntity
+    {
+        val e = TestEntity()
+        e.id = 42
+        e.s = ctx.request.requestURI.toString()
+        return e
     }
 }
 
-class TestEntity(val id: Int) {
+
+class TestEntity {
+    var id: Int = 0
+    var s: String = ""
 
     @Endpoint
     fun Delete()
@@ -165,18 +199,14 @@ class TestEntity(val id: Int) {
     {
         return "TestEntity #$id"
     }
+
+    @Endpoint
+    suspend fun MethodWithArg(x: Int): Int
+    {
+        return x + id + 10
+    }
 }
 
-//fun main(args: Array<String>)
-//{
-//    WebServer().also {
-//        it.Start()
-//        Runtime.getRuntime().addShutdownHook(Thread(it::Stop))
-//    }
-//    while (true) {
-//        Thread.sleep(1000)
-//    }
-//}
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ServerTest {
@@ -216,6 +246,7 @@ private class ServerTest {
         val response = httpClient.send(req, HttpResponse.BodyHandlers.ofInputStream())
         val code = response.statusCode()
         if (code < 200 || code >= 300) {
+            response.body().copyTo(System.out)
             throw ResponseError(code)
         }
         return if (responseCls == Unit::class) {
@@ -272,6 +303,12 @@ private class ServerTest {
     }
 
     @Test
+    fun DomainEndpointSubPath()
+    {
+        CheckError(400) { SendRequest<String>("/domain/Test/Test1/sub/path", null) }
+    }
+
+    @Test
     fun DomainTest2()
     {
         assertEquals("test2", SendRequest<String>("/domain/Test/test_2", null))
@@ -315,9 +352,78 @@ private class ServerTest {
         assertEquals(54, result.i)
     }
 
+
+
     @Test
     fun UnexpectedPost()
     {
         CheckError(400) { SendRequest<String>("/domain/Test/Test3", "abc") }
+    }
+
+    @Test
+    fun NullTest1()
+    {
+        assertNull(SendRequest<String>("/domain/Test/Null1", null))
+    }
+
+    @Test
+    fun NullTest2()
+    {
+        assertNull(SendRequest<String>("/domain/Test/Null2", null))
+    }
+
+    @Test
+    fun NullTest3()
+    {
+        assertNull(SendRequest<String>("/domain/Test/Null3", null))
+    }
+
+    @Test
+    fun NullTest4()
+    {
+        assertNull(SendRequest<String>("/domain/Test/Null4", null))
+    }
+
+    @Test
+    fun EntityMissingId()
+    {
+        CheckError(400) { SendRequest<TestEntity>("/domain/Test/Entity", null) }
+    }
+
+    @Test
+    fun EntityTest1()
+    {
+        val e = SendRequest<TestEntity>("/domain/Test/Entity/12", null)!!
+        assertEquals(12, e.id)
+    }
+
+    @Test
+    fun EntityTest2()
+    {
+        CheckError(404) { SendRequest<TestEntity>("/domain/Test/Entity/43", null) }
+    }
+
+    @Test
+    fun EntityTest3()
+    {
+        assertEquals("TestEntity #12", SendRequest<String>("/domain/Test/Entity/12/SomeMethod", null))
+    }
+
+    @Test
+    fun EntityTest4()
+    {
+        CheckError(404) { SendRequest<TestEntity>("/domain/Test/Entity/43/SomeMethod", null) }
+    }
+
+    @Test
+    fun EntityTest5()
+    {
+        SendRequest<Unit>("/domain/Test/Entity/12/Delete", null)
+    }
+
+    @Test
+    fun EntityTest6()
+    {
+        assertEquals(42, SendRequest<Int>("/domain/Test/Entity/12/MethodWithArg", 20))
     }
 }
