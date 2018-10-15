@@ -116,7 +116,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
     {
         val path = domainPrefixPath.Append(HttpPath(prefix))
         val ctrlNode = CreateNode(path) { Node(controller = controller) }
-        MountController(ctrlNode, controller::class)
+        MountController(ctrlNode, controller::class, HashMap())
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -378,20 +378,31 @@ class HttpDomainServer(private val httpServer: HttpServer,
         throw Error("Not reached")
     }
 
-    private fun MountController(ctrlNode: Node, ctrlClass: KClass<*>)
+    private fun MountController(ctrlNode: Node, ctrlClass: KClass<*>,
+                                cache: HashMap<KFunction<*>, Node>)
     {
         for (func in ctrlClass.declaredMemberFunctions) {
             val ann = func.findAnnotation<Endpoint>() ?: continue
-            val node = Node(func = func, annotation = ann)
             val name =
                 if (ann.name.isEmpty()) {
                     func.name
                 } else {
                     ann.name
                 }
+            var isRecursive = false
+            val node: Node = run {
+                val existingNode = cache[func]
+                if (existingNode != null) {
+                    isRecursive = true
+                    return@run existingNode
+                }
+                val node = Node(func = func, annotation = ann)
+                cache[func] = node
+                return@run node
+            }
             nodes[NodeKey(name, ctrlNode)] = node
-            if (ann.isRepository) {
-                MountController(node, node.repoEntityClass!!)
+            if (!isRecursive && node.repoEntityClass != null) {
+                MountController(node, node.repoEntityClass, cache)
             }
         }
     }
