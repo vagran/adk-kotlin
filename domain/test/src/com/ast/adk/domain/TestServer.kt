@@ -41,7 +41,7 @@ class WebServer {
 
     fun Stop()
     {
-        httpServer.stop(1)
+        httpServer.stop(0)
         domainServer.Stop()
         ctx.Stop()
         logManager.Shutdown()

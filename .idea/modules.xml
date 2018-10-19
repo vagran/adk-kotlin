@@ -21,7 +21,7 @@
       <module fileurl="file://$PROJECT_DIR$/log/log.iml" filepath="$PROJECT_DIR$/log/log.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/slf4j/log.slf4j.iml" filepath="$PROJECT_DIR$/log/slf4j/log.slf4j.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/test/log.test.iml" filepath="$PROJECT_DIR$/log/test/log.test.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/wdk.iml" filepath="$PROJECT_DIR$/.idea/modules/wdk.iml" />
+      <module fileurl="file://$PROJECT_DIR$/wdk/wdk.iml" filepath="$PROJECT_DIR$/wdk/wdk.iml" />
     </modules>
   </component>
 </project>
