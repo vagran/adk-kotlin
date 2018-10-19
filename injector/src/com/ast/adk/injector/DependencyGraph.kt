@@ -394,8 +394,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
     {
         val qualifiers = ArrayList<Annotation>()
         for (ann in annotations) {
-            ann::class.findAnnotation<Qualifier>()?.also {
-                qualifiers.add(it)
+            ann.annotationClass.findAnnotation<Qualifier>()?.also {
+                qualifiers.add(ann)
             }
         }
         return qualifiers
