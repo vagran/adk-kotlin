@@ -29,5 +29,5 @@ interface DiFactory<T> {
      *
      * @param params Arguments for injectable constructor which have FactoryParam annotation.
      */
-    fun Create(vararg params: Any): T
+    fun Create(vararg params: Any?): T
 }
