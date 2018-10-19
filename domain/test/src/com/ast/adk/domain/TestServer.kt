@@ -177,8 +177,21 @@ class TestController {
     {
         val e = TestEntity()
         e.id = 42
-        e.s = ctx.request.requestURI.toString()
+        e.s = ctx.request.requestURI.path
         return e
+    }
+
+    @Endpoint(isRepository = true)
+    fun RecursiveEntity(id: String): RecursiveEntity
+    {
+        val _id = id.toInt()
+        if (_id > 42) {
+            throw HttpError(404, "Entity not found")
+        }
+        return RecursiveEntity().also {
+            it.id = _id
+            it.sum = _id
+        }
     }
 }
 
@@ -203,6 +216,31 @@ class TestEntity {
     suspend fun MethodWithArg(x: Int): Int
     {
         return x + id + 10
+    }
+}
+
+
+class RecursiveEntity {
+    var id: Int = 0
+    var sum: Int = 0
+
+    @Endpoint
+    fun SomeMethod(): String
+    {
+        return "RecursiveEntity #$id"
+    }
+
+    @Endpoint(isRepository = true)
+    fun Child(id: String): RecursiveEntity
+    {
+        val _id = id.toInt()
+        if (_id > 33) {
+            throw HttpError(404, "Entity not found")
+        }
+        return RecursiveEntity().also {
+            it.id = _id
+            it.sum = sum + _id
+        }
     }
 }
 
@@ -431,6 +469,7 @@ private class ServerTest {
     {
         val e = SendRequest<TestEntity>("/domain/Test/EntityNoIdArg", null)!!
         assertEquals(42, e.id)
+        assertEquals("/domain/Test/EntityNoIdArg", e.s)
     }
 
     @Test
@@ -443,5 +482,43 @@ private class ServerTest {
     fun EntityNoIdArgTest3()
     {
         assertEquals("TestEntity #42", SendRequest<String>("/domain/Test/EntityNoIdArg/SomeMethod", null))
+    }
+
+    @Test
+    fun RecursiveEntityTest1()
+    {
+        val e = SendRequest<RecursiveEntity>("/domain/Test/RecursiveEntity/5", null)!!
+        assertEquals(5, e.id)
+    }
+
+    @Test
+    fun RecursiveEntityTest2()
+    {
+        val s = SendRequest<String>("/domain/Test/RecursiveEntity/5/SomeMethod", null)
+        assertEquals("RecursiveEntity #5", s)
+    }
+
+    @Test
+    fun RecursiveEntityTest3()
+    {
+        val e = SendRequest<RecursiveEntity>("/domain/Test/RecursiveEntity/5/Child/7", null)!!
+        assertEquals(7, e.id)
+        assertEquals(12, e.sum)
+    }
+
+    @Test
+    fun RecursiveEntityTest4()
+    {
+        val e = SendRequest<RecursiveEntity>("/domain/Test/RecursiveEntity/5/Child/7/Child/17", null)!!
+        assertEquals(17, e.id)
+        assertEquals(29, e.sum)
+    }
+
+    @Test
+    fun RecursiveEntityTest5()
+    {
+        CheckError(404) {
+            SendRequest<RecursiveEntity>("/domain/Test/RecursiveEntity/5/Child/7/Child/45", null)!!
+        }
     }
 }
