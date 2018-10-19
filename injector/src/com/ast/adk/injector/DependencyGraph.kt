@@ -442,6 +442,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         } else {
             TypeKey(type, qualifiers)
         }
+        field.isAccessible = true
         return InjectableField(field, DepRef(key))
     }
 
@@ -515,19 +516,20 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         /* Non-constructor function has receiver as first parameter which should not be processed
          * here.
          */
-        val size = if (providerType != null) {
+        val hasReceiver = callable.parameters[0].kind != KParameter.Kind.VALUE
+        val size = if (hasReceiver) {
             callable.parameters.size - 1
         } else {
             callable.parameters.size
         }
         return Array(size) {
             i ->
-            val paramIdx = if (providerType != null) i + 1 else i
+            val paramIdx = if (hasReceiver) i + 1 else i
             val param = callable.parameters[paramIdx]
             val paramAnn = param.annotations
             val paramType = param.type
             if (IsFactoryParam(paramAnn)) {
-                if (providerType != null) {
+                if (hasReceiver) {
                     throw DiException(
                         "Factory parameters not allowed in provider method: " + callable.name)
                 }
