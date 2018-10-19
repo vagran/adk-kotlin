@@ -11,16 +11,12 @@ class DI {
 
         fun <T: Any> ComponentBuilder(cls: KClass<T>): ComponentBuilder<T>
         {
-            return ComponentBuilder(cls)
+            return com.ast.adk.injector.ComponentBuilder(cls)
         }
     }
 }
 
-class DiException: RuntimeException {
-    constructor(message: String, cause: Throwable): super(message, cause)
-    constructor(message: String): super(message)
-    constructor(cause: Throwable): super(cause)
-}
+class DiException(message: String, cause: Throwable? = null): RuntimeException(message, cause)
 
 /** Factory for creating some injectable type T.  */
 interface DiFactory<T> {

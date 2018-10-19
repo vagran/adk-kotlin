@@ -4,8 +4,7 @@ import java.util.*
 import java.util.function.Predicate
 import kotlin.Array
 import kotlin.reflect.*
-import kotlin.reflect.full.declaredMemberFunctions
-import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.*
 import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.jvmErasure
 
@@ -16,16 +15,67 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
     fun Compile()
     {
-        //XXX
+        val providers = GatherProviders()
+        providers.forEach { node -> nodes[node.key] = node }
+
+        val rootKey = TypeKey(rootClass, null)
+        nodes[rootKey]?.also {
+            throw DiException(
+                "Component class ${rootClass.qualifiedName} should not be provided by modules, " +
+                "found in ${it.origin}")
+        }
+
+        rootNode = CreateClassNode(rootKey, true)
+        nodes[rootKey] = rootNode
+
+        /* Resolve links in iterative passes. */
+        var numResolved: Int
+        do {
+            numResolved = 0
+            val nodesToCheck = ArrayList(nodes.values)
+            for (node in nodesToCheck) {
+                val deps = node.GetUnresolvedDependencies() ?: continue
+                for (dep in deps) {
+                    var depNode: Node? = nodes[dep.key]
+                    if (depNode == null) {
+                        if (dep.key.qualifiers != null) {
+                            throw DiException(
+                                "Unresolved qualified injection ${dep.key} in ${node.origin}")
+                        }
+                        depNode = CreateClassNode(dep.key, false)
+                        if (dep.key.type != TypeKey.Type.FACTORY && depNode.HasFactoryParams()) {
+                            throw DiException(
+                                "Direct injection not allowed for factory-produced class: " +
+                                "${depNode.origin} required from ${node.origin}")
+                        }
+                        nodes[depNode.key] = depNode
+                    }
+                    dep.node = depNode
+                }
+                numResolved++
+            }
+        } while (numResolved != 0)
+
+        /* Recursively traverse the graph and detect circular dependencies if any. */
+        val stack = ArrayDeque<Node>()
+        DetectCircularDeps(rootNode, stack)
+
+        isCompiled = true
     }
 
     fun CreateRoot(): Any
     {
-        //XXX
-        return Any()
+        if (!isCompiled) {
+            throw IllegalStateException("Should be compiled before instantiation")
+        }
+        return rootNode.Create()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
+    private val nodes = HashMap<TypeKey, Node>()
+    private lateinit var rootNode: Node
+    private var isCompiled = false
+
     private companion object {
         /** Represents placeholder for factory parameter in a constructor. */
         val FACTORY_PARAM = DepRef(TypeKey(Nothing::class, null, TypeKey.Type.FACTORY))
@@ -137,8 +187,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
     }
 
     private class InjectableField(
-        val field: KMutableProperty1<*, *>?,
-        val dep: DepRef?
+        val field: KMutableProperty1<Any, Any>,
+        val dep: DepRef
     )
 
     private class NodeParams(
@@ -222,8 +272,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             }
             if (injectFields != null) {
                 for (f in injectFields) {
-                    if (predicate == null || predicate.test(f.dep!!)) {
-                        result.add(f.dep!!)
+                    if (predicate == null || predicate.test(f.dep)) {
+                        result.add(f.dep)
                     }
                 }
             }
@@ -233,9 +283,13 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         /** Get list of unresolved dependencies. Null if all dependencies resolved.  */
         fun GetUnresolvedDependencies(): List<DepRef>?
         {
-            return GetDependencies(Predicate { dep -> dep.node == null })
+            return GetDependencies(Predicate { dep -> dep !== FACTORY_PARAM && dep.node == null })
         }
 
+        /** Prepare arguments array for injectable function. Required arguments specified via
+         * dependency references array. Constructor may contain factory parameters which are
+         * provided in factoryParams.
+         */
         private fun GetDependentParameters(deps: Array<DepRef>,
                                            factoryParams: Array<out Any?>?): Array<Any?>
         {
@@ -262,75 +316,75 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         /** Instantiate the node.  */
         fun Create(): Any
         {
-            return if (isSingleton) {
-                synchronized(this) {
-                    return singletonInstance ?: _Create(null).also { singletonInstance = it }
+            return when {
+                isSingleton -> synchronized(this) {
+                    singletonInstance ?: Create(null).also { singletonInstance = it }
                 }
-            } else if (key.type == TypeKey.Type.FACTORY) {
+
                 /* Factory instance is stored here during compilation. */
-                singletonInstance!!
-            } else {
-                _Create(null)
+                key.type == TypeKey.Type.FACTORY -> singletonInstance!!
+
+                else -> Create(null)
             }
         }
 
-        private fun _Create(factoryParams: Array<out Any?>?): Any
+        private fun Create(factoryParams: Array<out Any?>?): Any
         {
-            return Any()//XXX
+            val result: Any
 
-//            val result: Any
-//            if (providerModule != null) {
-//                if (providerMethod == null) {
-//                    throw IllegalStateException()
-//                }
-//                try {
-//                    if (providerDeps != null) {
-//                        return providerMethod.call(providerModule,
-//                                                   *GetDependentParameters(providerDeps, null))!!
-//                    } else {
-//                        return providerMethod.call(providerModule)!!
-//                    }
-//                } catch (e: IllegalAccessException) {
-//                    throw DiException("Failed to invoke provider: $origin", e)
-//                } catch (e: InvocationTargetException) {
-//                    throw DiException("Failed to invoke provider: $origin", e)
-//                }
-//
-//            } else {
-//                try {
-//                    result = injectCtr!!.call(*GetDependentParameters(ctrDeps, factoryParams)!!)
-//                } catch (e: InstantiationException) {
-//                    throw DiException("Failed to invoke constructor: $origin", e)
-//                } catch (e: IllegalAccessException) {
-//                    throw DiException("Failed to invoke constructor: $origin", e)
-//                } catch (e: InvocationTargetException) {
-//                    throw DiException("Failed to invoke constructor: $origin", e)
-//                }
-//            }
-//            /* Inject fields. */
-//            injectFields?.also {
-//                injectFields ->
-//                for (f in injectFields) {
-//                    try {
-//                        f.field!!.set(result, f.dep!!.node!!.Create())
-//                    } catch (e: IllegalAccessException) {
-//                        throw DiException("Failed to set injectable field: " + f.field!!.getName(), e)
-//                    }
-//
-//                }
-//            }
-//            return result
+            if (providerModule != null) {
+                if (providerMethod == null) {
+                    throw IllegalStateException()
+                }
+                return try {
+                    if (providerDeps != null) {
+                        providerMethod.call(providerModule,
+                                            *GetDependentParameters(providerDeps, null))!!
+                    } else {
+                        providerMethod.call(providerModule)!!
+                    }
+                } catch (e: Exception) {
+                    throw DiException("Failed to invoke provider: $origin", e)
+                }
+
+            } else {
+                if (injectCtr == null) {
+                    throw IllegalStateException()
+                }
+                result = try {
+                    if (ctrDeps != null) {
+                        injectCtr.call(*GetDependentParameters(ctrDeps, factoryParams))!!
+                    } else {
+                        injectCtr.call()!!
+                    }
+                } catch (e: Exception) {
+                    throw DiException("Failed to invoke constructor: $origin", e)
+                }
+            }
+
+            /* Inject fields. */
+            if (injectFields != null) {
+                for (f in injectFields) {
+                    try {
+                        f.field.set(result, f.dep.node!!.Create())
+                    } catch (e: Exception) {
+                        throw DiException("Failed to set injectable field: ${f.field.name}", e)
+                    }
+                }
+            }
+
+            return result
         }
 
         inner class FactoryImpl: DiFactory<Any> {
             override fun Create(vararg params: Any?): Any
             {
-                return _Create(params)
+                return this@Node.Create(params)
             }
         }
     }
 
-    private fun ThrowNotAnnotatedModule(moduleCls: KClass<*>)
+    private fun ThrowNotAnnotatedModule(moduleCls: KClass<*>): Nothing
     {
         throw DiException("Module class is not annotated with @Module: " + moduleCls.qualifiedName)
     }
@@ -347,6 +401,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         return qualifiers
     }
 
+    /** Check if parameter is factory parameter based on its annotations list. */
     private fun IsFactoryParam(annotations: List<Annotation>): Boolean
     {
         for (ann in annotations) {
@@ -356,7 +411,6 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         }
         return false
     }
-
 
     /** Get produced value type for factory parameter of provider or constructor. Null of not factory.  */
     private fun GetFactoryParamClass(paramType: KType): KClass<*>?
@@ -372,28 +426,24 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         return type.classifier as KClass<*>
     }
 
-//    private fun GetInjectableField(field: KProperty<*>): InjectableField
-//    {
-//        val nif = InjectableField()
-//        nif.field = field
-//        val type = field.type
-//        val qualifiers = GetQualifiers(field.declaredAnnotations)
-//        val key: TypeKey
-//        if (type == DiFactory<*>::class.java) {
-//            if (!qualifiers.isEmpty()) {
-//                throw DiException(String.format(
-//                    "Qualifiers not allowed for factory field: %s::%s",
-//                    field.declaringClass.name, field.name))
-//            }
-//            val factoryType =
-//                (field.genericType as ParameterizedType).actualTypeArguments[0] as Class<*>
-//            key = TypeKey(factoryType, null, TypeKey.Type.FACTORY)
-//        } else {
-//            key = TypeKey(type, qualifiers)
-//        }
-//        nif.dep = Node.DepRef(key)
-//        return nif
-//    }
+    private fun GetInjectableField(field: KMutableProperty1<Any, Any>): InjectableField
+    {
+        val type = field.returnType.jvmErasure
+        val qualifiers = GetQualifiers(field.annotations)
+        val key: TypeKey
+        key = if (type == DiFactory::class) {
+            if (!qualifiers.isEmpty()) {
+                throw DiException(
+                    "Qualifiers not allowed for factory field: " +
+                    "${field.parameters[0].type}::${field.name}")
+            }
+            val factoryType = GetFactoryParamClass(field.returnType)!!
+            TypeKey(factoryType, null, TypeKey.Type.FACTORY)
+        } else {
+            TypeKey(type, qualifiers)
+        }
+        return InjectableField(field, DepRef(key))
+    }
 
     private fun DetectCircularDeps(startNode: Node, stack: Deque<Node>)
     {
@@ -403,7 +453,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             var node: Node
             do {
                 node = stack.removeLast()
-                sb.append(String.format(" <- %s [%s]", node.key, node.origin))
+                sb.append(" <- ${node.key} [${node.origin}]")
             } while (node !== startNode)
             throw DiException("Circular dependency detected: <loop>" + sb.toString())
         }
@@ -442,7 +492,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         val type = method.returnType.jvmErasure
         val qualifiers = GetQualifiers(method.annotations)
         val key = TypeKey(type, qualifiers)
-        val origin = "Module " + method.name
+        val origin = "Module ${method.parameters[0].type}::${method.name}"
         val nodeParams = NodeParams(key, origin, method.findAnnotation<Singleton>() != null)
 
         nodeParams.providerModule = module
@@ -462,9 +512,18 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
     private fun NodeDepRefsFromParameters(callable: KCallable<*>,
                                           providerType: KClass<*>?): Array<DepRef>
     {
-        return Array(callable.parameters.size) {
+        /* Non-constructor function has receiver as first parameter which should not be processed
+         * here.
+         */
+        val size = if (providerType != null) {
+            callable.parameters.size - 1
+        } else {
+            callable.parameters.size
+        }
+        return Array(size) {
             i ->
-            val param = callable.parameters[i]
+            val paramIdx = if (providerType != null) i + 1 else i
+            val param = callable.parameters[paramIdx]
             val paramAnn = param.annotations
             val paramType = param.type
             if (IsFactoryParam(paramAnn)) {
@@ -496,5 +555,195 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         }
     }
 
+    /** Return all module classes declared for root component.  */
+    private fun GetComponentModules(): Set<KClass<*>>
+    {
+        val compAnn = rootClass.findAnnotation<Component>()
+            ?: throw DiException("Root component class is not annotated with @Component: " +
+                                     rootClass.qualifiedName)
+        val result = HashSet<KClass<*>>()
+        for (moduleCls in compAnn.modules) {
+            AddModuleWithIncludes(moduleCls, result)
+        }
+        return result
+    }
 
+    /** Add all declared module classes while recursively resolving includes. */
+    private fun AddModuleWithIncludes(moduleCls: KClass<*>, modules: MutableSet<KClass<*>>)
+    {
+        if (!modules.add(moduleCls)) {
+            return
+        }
+        val moduleAnn = moduleCls.findAnnotation<Module>()
+            ?: ThrowNotAnnotatedModule(moduleCls)
+        for (includeModuleCls in moduleAnn.include) {
+            AddModuleWithIncludes(includeModuleCls, modules)
+        }
+    }
+
+    /** Check if specified class is valid module instance class.
+     * @return Module class to register this module with. May be the moduleCls or its base class
+     * listed in component modules list. Null if the specified module class is not valid.
+     */
+    private fun CheckModuleInstance(moduleCls: KClass<*>,
+                                    componentModules: Collection<KClass<*>>): KClass<*>?
+    {
+        val moduleAnn = moduleCls.findAnnotation<Module>() ?: ThrowNotAnnotatedModule(moduleCls)
+        for (cls in componentModules) {
+            if (cls.isSubclassOf(moduleCls)) {
+                if (cls != moduleCls && moduleAnn.include.isNotEmpty()) {
+                    throw DiException("Include not allowed in inherited module instance: $moduleCls")
+                }
+                return cls
+            }
+        }
+        return null
+    }
+
+    /** Check if module instance of specific class (which may be its subclass) is present in the
+     * provided list.
+     */
+    private fun CheckModuleSpecified(declaredModuleCls: KClass<*>, modules: Collection<Any>): Boolean
+    {
+        for (module in modules) {
+            if (declaredModuleCls.isSuperclassOf(module::class)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun GatherProviders(): List<Node>
+    {
+        /* Sort out providers. Handle specified modules instances, then create all the rest
+         * specified in the component declaration, then override some providers by the specified
+         * override modules.
+         */
+        val modules = HashMap<KClass<*>, Any>()
+        val providers = HashMap<TypeKey, Node>()
+        val componentModules = GetComponentModules()
+
+        for (module in this.modules) {
+            val moduleCls = module::class
+            val declaredModuleCls = CheckModuleInstance(moduleCls, componentModules)
+                ?: throw DiException(
+                    "Specified module instance not declared in component modules: " +
+                    moduleCls.qualifiedName)
+            val prevModule = modules.put(declaredModuleCls, module)
+            if (prevModule != null) {
+                throw DiException("Module instance provided twice: $declaredModuleCls, " +
+                                  "provided $moduleCls, previous $prevModule")
+            }
+        }
+
+        /* Create instances for all declared modules which instances were not specified. */
+        for (moduleCls in componentModules) {
+            if (CheckModuleSpecified(moduleCls, modules.values)) {
+                continue
+            }
+            if (moduleCls.isInner) {
+                throw DiException(
+                    "Inner class not allowed, either make it static or provide module instance: " +
+                    moduleCls.qualifiedName)
+            }
+            if (moduleCls.isAbstract) {
+                throw DiException(
+                    "Cannot instantiate abstract module class: ${moduleCls.qualifiedName}")
+            }
+
+            val ctr = moduleCls.constructors.singleOrNull { it.parameters.all(KParameter::isOptional) }
+                ?: throw DiException("Module default constructor not found: ${moduleCls.qualifiedName}")
+
+            ctr.isAccessible = true
+            val module: Any
+            try {
+                module = ctr.callBy(emptyMap())
+            } catch (e: Exception) {
+                throw DiException("Module constructor failed for ${moduleCls.qualifiedName}")
+            }
+
+            modules[moduleCls] = module
+        }
+
+        val nodesAdder = {
+            node: Node, allowOverride: Boolean ->
+
+            val prev = providers.put(node.key, node)
+            if (!allowOverride && prev != null) {
+                throw DiException(
+                    "Duplicated provider:${node.key} at ${node.origin}, " +
+                    "previously defined at ${prev.origin}")
+            }
+        }
+
+        modules.values.forEach { module ->
+            CreateModuleNodes(module).forEach { node -> nodesAdder.invoke(node, false) }
+        }
+
+        overrideModules.forEach { module ->
+            CreateModuleNodes(module).forEach { node -> nodesAdder.invoke(node, true) }
+        }
+
+        return ArrayList(providers.values)
+    }
+
+    /** Create node for the specified injectable class.  */
+    private fun CreateClassNode(key: TypeKey, makeSingleton: Boolean): Node
+    {
+        val origin = "Class " + key.cls.qualifiedName
+        val nodeParams = NodeParams(key, origin,
+                                    makeSingleton || key.cls.findAnnotation<Singleton>() != null)
+
+        if (key.cls.isInner) {
+            throw DiException("Inner class not allowed, either make it static or define provider: " +
+                              key.cls.qualifiedName)
+        }
+
+        /* Find injectable constructor if any. */
+        for (ctr in key.cls.constructors) {
+            if (ctr.findAnnotation<Inject>() == null) {
+                continue
+            }
+            if (nodeParams.injectCtr != null) {
+                throw DiException(
+                    "More than one injectable constructor in class ${key.cls.qualifiedName}")
+            }
+            ctr.isAccessible = true
+            nodeParams.injectCtr = ctr
+            nodeParams.ctrDeps = NodeDepRefsFromParameters(ctr, null)
+        }
+
+        /* Use default constructor if no injectable one found. */
+        if (nodeParams.injectCtr == null) {
+            val ctr = key.cls.constructors.singleOrNull { it.parameters.isEmpty() }
+                ?: throw DiException("Class default constructor not found: ${key.cls.qualifiedName}")
+            ctr.isAccessible = true
+            nodeParams.injectCtr = ctr
+        }
+
+        /* Find any injectable fields. */
+        val fields = ArrayList<InjectableField>()
+        for (field in key.cls.memberProperties) {
+            if (field.findAnnotation<Inject>() == null) {
+                continue
+            }
+            if (field !is KMutableProperty1) {
+                throw DiException("Mutable property expected: $field")
+            }
+            @Suppress("UNCHECKED_CAST")
+            fields.add(GetInjectableField(field as KMutableProperty1<Any, Any>))
+        }
+
+        if (fields.size != 0) {
+            nodeParams.injectFields = fields.toTypedArray()
+        }
+
+        val node = Node(nodeParams)
+
+        if (key.type == TypeKey.Type.FACTORY) {
+            node.singletonInstance = node.FactoryImpl()
+        }
+
+        return node
+    }
 }
