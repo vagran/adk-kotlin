@@ -4,9 +4,19 @@ import kotlin.reflect.KClass
 
 class DI {
     companion object {
+        inline fun <reified T: Any> CreateComponent(): T
+        {
+            return CreateComponent(T::class)
+        }
+
         fun <T: Any> CreateComponent(cls: KClass<T>): T
         {
             return ComponentBuilder(cls).Build()
+        }
+
+        inline fun <reified T: Any> ComponentBuilder(): ComponentBuilder<T>
+        {
+            return ComponentBuilder(T::class)
         }
 
         fun <T: Any> ComponentBuilder(cls: KClass<T>): ComponentBuilder<T>

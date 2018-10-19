@@ -357,6 +357,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                     } else {
                         injectCtr.call()!!
                     }
+                } catch (e: DiException) {
+                    throw e
                 } catch (e: Exception) {
                     throw DiException("Failed to invoke constructor: $origin", e)
                 }
@@ -463,7 +465,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         val deps = startNode.GetDependencies()
         if (deps != null) {
             for (dep in deps) {
-                DetectCircularDeps(dep.node!!, stack)
+                if (dep !== FACTORY_PARAM) {
+                    DetectCircularDeps(dep.node!!, stack)
+                }
             }
         }
         stack.removeLast()
@@ -592,7 +596,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
     {
         val moduleAnn = moduleCls.findAnnotation<Module>() ?: ThrowNotAnnotatedModule(moduleCls)
         for (cls in componentModules) {
-            if (cls.isSubclassOf(moduleCls)) {
+            if (cls.isSuperclassOf(moduleCls)) {
                 if (cls != moduleCls && moduleAnn.include.isNotEmpty()) {
                     throw DiException("Include not allowed in inherited module instance: $moduleCls")
                 }

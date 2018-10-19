@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class Basic {
@@ -162,7 +163,7 @@ private class Basic {
 
     @Test
     fun BasicGraph() {
-        val comp = DI.ComponentBuilder(Comp::class).WithModule(M1(42)).Build()
+        val comp = DI.ComponentBuilder<Comp>().WithModule(M1(42)).Build()
         assertEquals(42, comp.GetC().GetInt1())
         assertEquals(42, comp.GetC().GetInt2())
         assertEquals("A1", comp.GetC().GetString1())
@@ -181,5 +182,36 @@ private class Basic {
 
         assertEquals(42, comp.GetC2().i3!!.GetInt())
         assertEquals("B4", comp.GetC2().b4!!.GetString())
+    }
+
+    @Test
+    fun NonDefaultModuleConstructorFailure()
+    {
+        val msg = assertThrows<DiException> {
+            DI.CreateComponent<Comp>()
+        }.message
+        assertEquals("Module default constructor not found: com.ast.adk.injector.test.Basic.M1", msg)
+    }
+
+    @Test
+    fun NonComponentConstructionFailure()
+    {
+        val msg = assertThrows<DiException> {
+            DI.CreateComponent<M1>()
+        }.message
+        assertEquals(
+            "Root component class is not annotated with @Component: com.ast.adk.injector.test.Basic.M1",
+            msg)
+    }
+
+    @Test
+    fun NotAnnotatedModuleFailure()
+    {
+        val msg = assertThrows<DiException> {
+            DI.ComponentBuilder<Comp>().WithModule(M1(42)).OverrideModule(B(0)).Build()
+        }.message
+        assertEquals(
+            "Module class is not annotated with @Module: com.ast.adk.injector.test.Basic.B",
+            msg)
     }
 }
