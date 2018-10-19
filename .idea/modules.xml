@@ -16,6 +16,8 @@
       <module fileurl="file://$PROJECT_DIR$/domain/test/domain.test.iml" filepath="$PROJECT_DIR$/domain/test/domain.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/gui-utils/gui-utils.iml" filepath="$PROJECT_DIR$/gui-utils/gui-utils.iml" />
       <module fileurl="file://$PROJECT_DIR$/gui-utils/test/gui-utils.test.iml" filepath="$PROJECT_DIR$/gui-utils/test/gui-utils.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/injector/injector.iml" filepath="$PROJECT_DIR$/injector/injector.iml" />
+      <module fileurl="file://$PROJECT_DIR$/injector/test/injector.test.iml" filepath="$PROJECT_DIR$/injector/test/injector.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/json/json.iml" filepath="$PROJECT_DIR$/json/json.iml" />
       <module fileurl="file://$PROJECT_DIR$/json/test/json.test.iml" filepath="$PROJECT_DIR$/json/test/json.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/log.iml" filepath="$PROJECT_DIR$/log/log.iml" />
