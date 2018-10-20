@@ -142,10 +142,7 @@ private class Basic {
 
         @Provides
         @Q_B(4)
-        fun GetA_B4(): A
-        {
-            return A("B4")
-        }
+        val a_B4: A get() = A("B4")
     }
 
     @Component(modules = [M1::class, M2::class])

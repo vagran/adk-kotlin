@@ -25,7 +25,7 @@ annotation class Named(
 /** Mark the type as singleton. Can be applied either to provider method or class itself.  */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION,
-        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY,
         AnnotationTarget.CLASS)
 annotation class Singleton
 
@@ -51,7 +51,7 @@ annotation class Module(
 /** Declares module factory method for injected instance construction.  */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION,
-        AnnotationTarget.PROPERTY_GETTER)
+        AnnotationTarget.PROPERTY)
 annotation class Provides
 
 

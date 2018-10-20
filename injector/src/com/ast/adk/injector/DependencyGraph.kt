@@ -482,23 +482,31 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         }
 
         val nodes = ArrayList<Node>()
-        val methods = moduleCls.declaredMemberFunctions
-        for (method in methods) {
+        for (method in moduleCls.declaredMemberFunctions) {
             if (method.findAnnotation<Provides>() != null) {
-                nodes.add(CreateProviderNode(module, method))
+                nodes.add(CreateProviderNode(module, method, method.annotations))
             }
         }
+
+        for (prop in moduleCls.declaredMemberProperties) {
+            if (prop.findAnnotation<Provides>() != null) {
+                nodes.add(CreateProviderNode(module, prop.getter, prop.annotations))
+            }
+        }
+
         return nodes
     }
 
     /** Create node for provider method in the specified module.  */
-    private fun CreateProviderNode(module: Any, method: KFunction<*>): Node
+    private fun CreateProviderNode(module: Any, method: KFunction<*>,
+                                   annotations: List<Annotation>): Node
     {
         val type = method.returnType.jvmErasure
-        val qualifiers = GetQualifiers(method.annotations)
+        val qualifiers = GetQualifiers(annotations)
         val key = TypeKey(type, qualifiers)
         val origin = "Module ${method.parameters[0].type}::${method.name}"
-        val nodeParams = NodeParams(key, origin, method.findAnnotation<Singleton>() != null)
+        val isSingleton = annotations.firstOrNull { it is Singleton } != null
+        val nodeParams = NodeParams(key, origin, isSingleton)
 
         nodeParams.providerModule = module
         method.isAccessible = true
