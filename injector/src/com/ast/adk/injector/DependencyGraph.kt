@@ -6,6 +6,7 @@ import kotlin.Array
 import kotlin.reflect.*
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.jvmErasure
 
 internal class DependencyGraph(private val rootClass: KClass<*>,
@@ -668,12 +669,14 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             val ctr = moduleCls.constructors.singleOrNull { it.parameters.all(KParameter::isOptional) }
                 ?: throw DiException("Module default constructor not found: ${moduleCls.qualifiedName}")
 
-            ctr.isAccessible = true
+            if (ctr.javaConstructor?.canAccess(null) == false) {
+                ctr.isAccessible = true
+            }
             val module: Any
             try {
                 module = ctr.callBy(emptyMap())
             } catch (e: Exception) {
-                throw DiException("Module constructor failed for ${moduleCls.qualifiedName}")
+                throw DiException("Module constructor failed for ${moduleCls.qualifiedName}", e)
             }
 
             modules[moduleCls] = module
@@ -722,7 +725,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 throw DiException(
                     "More than one injectable constructor in class ${key.cls.qualifiedName}")
             }
-            ctr.isAccessible = true
+            if (ctr.javaConstructor?.canAccess(null) == false) {
+                ctr.isAccessible = true
+            }
             nodeParams.injectCtr = ctr
             nodeParams.ctrDeps = NodeDepRefsFromParameters(ctr, null)
         }
@@ -731,7 +736,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         if (nodeParams.injectCtr == null) {
             val ctr = key.cls.constructors.singleOrNull { it.parameters.isEmpty() }
                 ?: throw DiException("Class default constructor not found: ${key.cls.qualifiedName}")
-            ctr.isAccessible = true
+            if (ctr.javaConstructor?.canAccess(null) == false) {
+                ctr.isAccessible = true
+            }
             nodeParams.injectCtr = ctr
         }
 
