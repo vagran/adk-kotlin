@@ -3,11 +3,8 @@ package com.ast.adk.async.db.mongo
 import com.ast.adk.async.Deferred
 import com.ast.adk.async.TaskThrottler
 import com.ast.adk.async.observable.One
-import com.ast.adk.log.LogConfiguration
+import com.ast.adk.log.*
 import com.ast.adk.log.LogConfiguration.Companion.DEFAULT_PATTERN
-import com.ast.adk.log.LogLevel
-import com.ast.adk.log.LogManager
-import com.ast.adk.log.LoggerName
 import com.ast.adk.log.slf4j.api.Slf4jLogManager
 import com.mongodb.MongoClientSettings
 import com.mongodb.ServerAddress
@@ -28,6 +25,7 @@ private class MongodbTest {
     private val numCores = Runtime.getRuntime().availableProcessors()
     private lateinit var client: MongoClient
     private lateinit var database: MongoDatabase
+    private lateinit var log: Logger
 
     @BeforeAll
     fun Setup()
@@ -55,6 +53,7 @@ private class MongodbTest {
         val logConfig = LogConfiguration(LogConfiguration.Settings(), appenders,
                                          listOf(rootLogger, mongoProtocolLogger))
         Slf4jLogManager.logManager = LogManager().apply { Initialize(logConfig) }
+        log = Slf4jLogManager.logManager.GetLogger("Test")
 
         client = MongoClients.create(
             MongoClientSettings.builder()
@@ -90,8 +89,9 @@ private class MongodbTest {
 
         assertEquals(0, MongoCall(collection::estimatedDocumentCount).WaitComplete().Get().toInt())
 
+        log.Info("Inserting...")
         val docIdx = AtomicInteger(1)
-        TaskThrottler(numCores * 2, {
+        TaskThrottler(numCores, {
             val i = docIdx.getAndIncrement()
             if (i > numDocs) {
                 return@TaskThrottler null
@@ -107,6 +107,7 @@ private class MongodbTest {
                     }
                 })
         }).Run().WaitComplete()
+        log.Info("Insertion done")
 
         run {
             val res = MongoCall(collection.find(MongoDoc("index", 42))::first)
@@ -117,6 +118,7 @@ private class MongodbTest {
         assertEquals(numDocs, MongoCall(collection::estimatedDocumentCount)
             .WaitComplete().Get().toInt())
 
+        log.Info("Verifying...")
         val docs = MongoObservable(collection.find())
         docs.SetBatchSize(1000)
         val done = Deferred.Create<Void?>()
@@ -137,6 +139,7 @@ private class MongodbTest {
         }
         done.WaitComplete().Get()
         assertEquals(numDocs, verified.size)
+        log.Info("Verification done")
     }
 
     interface I
