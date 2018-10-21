@@ -9,18 +9,17 @@ import com.ast.adk.log.LogLevel
 import com.ast.adk.log.LogManager
 import com.ast.adk.log.LoggerName
 import com.ast.adk.log.slf4j.api.Slf4jLogManager
+import com.mongodb.MongoClientSettings
 import com.mongodb.ServerAddress
 import com.mongodb.async.client.MongoClient
-import com.mongodb.async.client.MongoClientSettings
 import com.mongodb.async.client.MongoClients
 import com.mongodb.async.client.MongoDatabase
-import com.mongodb.connection.ClusterSettings
-import com.mongodb.connection.ConnectionPoolSettings
 import org.bson.*
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import java.util.*
+import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicInteger
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -59,14 +58,15 @@ private class MongodbTest {
 
         client = MongoClients.create(
             MongoClientSettings.builder()
-                .connectionPoolSettings(
-                    ConnectionPoolSettings.builder()
-                        .maxSize(numCores * 2)
-                        .maxWaitQueueSize(50000).build())
-                .clusterSettings(
-                    ClusterSettings.builder()
-                        .hosts(arrayOf(ServerAddress("localhost")).asList()).build())
-                .build())
+                .applyToConnectionPoolSettings {
+                    it.maxSize(numCores * 2)
+                    it.maxWaitQueueSize(50000)
+                }
+                .applyToClusterSettings {
+                    it.hosts(arrayOf(ServerAddress("localhost")).asList())
+                }
+                .build()
+        )
 
         database = client.getDatabase("local")
         for (name in arrayOf("mapped", "test")) {
@@ -88,15 +88,13 @@ private class MongodbTest {
 
         val numDocs = 50_000
 
-        assertEquals(0, MongoCall(collection::count).WaitComplete().Get().toInt())
+        assertEquals(0, MongoCall(collection::estimatedDocumentCount).WaitComplete().Get().toInt())
 
-        val it = (1..numDocs).iterator()
+        val docIdx = AtomicInteger(1)
         TaskThrottler(numCores * 2, {
-            val i = synchronized(it) {
-                if (!it.hasNext()) {
-                    return@TaskThrottler null
-                }
-                it.nextInt()
+            val i = docIdx.getAndIncrement()
+            if (i > numDocs) {
+                return@TaskThrottler null
             }
 
             return@TaskThrottler MongoCall(
@@ -116,12 +114,13 @@ private class MongodbTest {
             assertEquals(42, res.get("info", Document::class.java).getInteger("x"))
         }
 
-        assertEquals(numDocs, MongoCall(collection::count).WaitComplete().Get().toInt())
+        assertEquals(numDocs, MongoCall(collection::estimatedDocumentCount)
+            .WaitComplete().Get().toInt())
 
         val docs = MongoObservable(collection.find())
         docs.SetBatchSize(1000)
         val done = Deferred.Create<Void?>()
-        val verified = TreeSet<Int>()
+        val verified = ConcurrentSkipListSet<Int>()
         docs.SubscribeVoid { doc, error ->
             if (error != null) {
                 System.err.format("Collection iteration error:%n")
@@ -133,10 +132,8 @@ private class MongodbTest {
                 return@SubscribeVoid
             }
             val x = doc.value.get("info", Document::class.java).getInteger("x")
-            synchronized(verified) {
-                assertFalse(verified.contains(x))
-                verified.add(x)
-            }
+            assertFalse(verified.contains(x))
+            verified.add(x)
         }
         done.WaitComplete().Get()
         assertEquals(numDocs, verified.size)

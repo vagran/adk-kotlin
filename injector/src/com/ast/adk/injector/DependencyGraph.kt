@@ -483,6 +483,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         }
 
         val nodes = ArrayList<Node>()
+
         for (method in moduleCls.declaredMemberFunctions) {
             if (method.findAnnotation<Provides>() != null) {
                 nodes.add(CreateProviderNode(module, method, method.annotations))

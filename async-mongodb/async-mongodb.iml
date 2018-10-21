@@ -12,6 +12,6 @@
     <orderEntry type="module" module-name="async" />
     <orderEntry type="module" module-name="adk" />
     <orderEntry type="library" scope="TEST" name="org.junit.jupiter:junit-jupiter-api:5.2.0" level="project" />
-    <orderEntry type="library" exported="" name="org.mongodb:mongodb-driver-async:3.6.3" level="project" />
+    <orderEntry type="library" exported="" name="org.mongodb:mongodb-driver-async:3.8.2" level="project" />
   </component>
 </module>
