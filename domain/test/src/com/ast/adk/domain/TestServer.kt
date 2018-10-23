@@ -181,16 +181,21 @@ class TestController {
         return e
     }
 
-    @Endpoint(isRepository = true)
-    fun RecursiveEntity(id: String): RecursiveEntity
+    @RepositoryIdConverter(entityClass = RecursiveEntity::class)
+    fun RecursiveEntityIdConverter(s: String): Long
     {
-        val _id = id.toInt()
-        if (_id > 42) {
+        return s.toLong()
+    }
+
+    @Endpoint(isRepository = true)
+    fun RecursiveEntity(id: Long): RecursiveEntity
+    {
+        if (id > 42) {
             throw HttpError(404, "Entity not found")
         }
         return RecursiveEntity().also {
-            it.id = _id
-            it.sum = _id
+            it.id = id
+            it.sum = id
         }
     }
 }
@@ -221,8 +226,8 @@ class TestEntity {
 
 
 class RecursiveEntity {
-    var id: Int = 0
-    var sum: Int = 0
+    var id: Long = 0
+    var sum: Long = 0
 
     @Endpoint
     fun SomeMethod(): String
@@ -230,16 +235,21 @@ class RecursiveEntity {
         return "RecursiveEntity #$id"
     }
 
-    @Endpoint(isRepository = true)
-    fun Child(id: String): RecursiveEntity
+    @RepositoryIdConverter(entityClass = RecursiveEntity::class)
+    fun IdConverter(s: String): Long
     {
-        val _id = id.toInt()
-        if (_id > 33) {
+        return s.toLong()
+    }
+
+    @Endpoint(isRepository = true)
+    fun Child(id: Long): RecursiveEntity
+    {
+        if (id > 33) {
             throw HttpError(404, "Entity not found")
         }
         return RecursiveEntity().also {
-            it.id = _id
-            it.sum = sum + _id
+            it.id = id
+            it.sum = sum + id
         }
     }
 }

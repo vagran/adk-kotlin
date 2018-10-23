@@ -3,6 +3,7 @@ package com.ast.adk.domain.httpserver
 import com.ast.adk.GetStackTrace
 import com.ast.adk.async.Deferred
 import com.ast.adk.domain.Endpoint
+import com.ast.adk.domain.RepositoryIdConverter
 import com.ast.adk.json.Json
 import com.ast.adk.json.JsonSerializer
 import com.ast.adk.log.Logger
@@ -13,10 +14,7 @@ import java.io.IOException
 import java.lang.reflect.InvocationTargetException
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
-import kotlin.reflect.full.callSuspend
-import kotlin.reflect.full.declaredMemberFunctions
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.full.*
 import kotlin.reflect.jvm.jvmErasure
 
 /** Returned value is serialized into HTTP response body. Null can be returned instantly for null
@@ -125,13 +123,12 @@ class HttpDomainServer(private val httpServer: HttpServer,
     private val domainPrefixPath = HttpPath(domainPrefix)
 
     private inner class RequestContext (override val request: HttpExchange):
-        HttpRequestContext {
-
-    }
+        HttpRequestContext
 
     private inner class Node(val controller: Any? = null,
                              func: KFunction<*>? = null,
-                             annotation: Endpoint? = null) {
+                             annotation: Endpoint? = null,
+                             entityIdConverters: Map<KClass<*>, EntityIdConverter>? = null) {
         val method: NodeMethod?
         /** Index of the argument for HttpRequestContext. */
         var ctxArgIdx = -1
@@ -141,16 +138,21 @@ class HttpDomainServer(private val httpServer: HttpServer,
         val dataSerializer: JsonSerializer<*>?
         /** Entity class for repository endpoint node, null for other nodes. */
         val repoEntityClass: KClass<*>?
+        /** Converter for entity ID for repository endpoint, null if no converter or non-repository
+         * node.
+         */
+        val entityIdConverter: EntityIdConverter?
 
         init {
             if (func == null) {
                 method = null
                 dataSerializer = null
                 repoEntityClass = null
+                entityIdConverter = null
 
             } else {
                 val isRepository = annotation?.isRepository ?: false
-                val repoEntityClass: KClass<*>?
+                val repoEntityClass: KClass<*>
                 when {
                     func.isSuspend -> {
                         method = { args -> func.callSuspend(*args) }
@@ -178,6 +180,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
                 }
 
                 var dataSerializer: JsonSerializer<*>? = null
+                var entityIdConverter: EntityIdConverter? = null
                 for (i in 1 until func.parameters.size) {
                     val param = func.parameters[i]
                     if (param.type.jvmErasure.isSubclassOf(HttpRequestContext::class)) {
@@ -190,13 +193,29 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     if (dataArgIdx >= 0) {
                         throw Error("Data argument specified more than once in $func")
                     }
-                    if (isRepository && !param.type.jvmErasure.isSubclassOf(String::class)) {
-                        throw Error("Data argument type should be string for repository endpoint $func")
+
+                    if (isRepository) {
+                        entityIdConverter = entityIdConverters?.get(repoEntityClass)
+                        val entityIdClass = param.type.jvmErasure
+                        if (entityIdConverter == null) {
+                            if (!entityIdClass.isSubclassOf(String::class)) {
+                                throw Error(
+                                    "Entity ID argument type should be string for repository " +
+                                    "endpoint $func without entity ID converter defined")
+                            }
+
+                        } else if (!entityIdConverter.idType.isSubclassOf(entityIdClass)) {
+                            throw Error(
+                                "Entity ID argument for endpoint $func has incompatible type " +
+                                "with entity ID converter method ${entityIdConverter.func}")
+                        }
                     }
+
                     dataArgIdx = i
                     dataSerializer = json.GetSerializer<Any>(param.type)
                 }
                 this.dataSerializer = dataSerializer
+                this.entityIdConverter = entityIdConverter
             }
         }
 
@@ -213,7 +232,11 @@ class HttpDomainServer(private val httpServer: HttpServer,
             val data =
                 if (dataArgIdx != -1) {
                     argSize++
-                    entityId ?: GetRequestBody(ctx.request, dataSerializer as JsonSerializer<Any>)
+                    if (entityId != null) {
+                        entityIdConverter?.Convert(controller, entityId) ?: entityId
+                    } else {
+                        GetRequestBody(ctx.request, dataSerializer as JsonSerializer<Any>)
+                    }
                 } else {
                     if (ctx.request.requestMethod != "GET") {
                         throw HttpError(400, "GET method expected")
@@ -252,6 +275,26 @@ class HttpDomainServer(private val httpServer: HttpServer,
         override fun hashCode(): Int
         {
             return parent.hashCode() xor name.hashCode()
+        }
+    }
+
+    private class EntityIdConverter(val func: KFunction<*>) {
+        val idType get() = func.returnType.jvmErasure
+
+        init {
+            if (func.parameters.size != 2) {
+                throw Error("Entity ID converter method should accept one parameter: $func")
+            }
+            val paramType = func.parameters[1].type.jvmErasure
+            if (!paramType.isSuperclassOf(String::class)) {
+                throw Error("Entity ID converter method should accept string argument: $func")
+            }
+        }
+
+        fun Convert(receiver: Any, idStr: String): Any
+        {
+            return func.call(receiver, idStr)
+                ?: throw Error("Entity ID converter returned null for $idStr")
         }
     }
 
@@ -381,6 +424,18 @@ class HttpDomainServer(private val httpServer: HttpServer,
     private fun MountController(ctrlNode: Node, ctrlClass: KClass<*>,
                                 cache: HashMap<KFunction<*>, Node>)
     {
+        val entityIdConverters = HashMap<KClass<*>, EntityIdConverter>()
+        /* Find all entity ID converters first. */
+        for (func in ctrlClass.declaredMemberFunctions) {
+            val ann = func.findAnnotation<RepositoryIdConverter>() ?: continue
+            val prevConverter = entityIdConverters[ann.entityClass]
+            if (prevConverter != null) {
+                throw Error("Entity ID converter re-defined in $func, previous definition " +
+                            "in ${prevConverter.func}")
+            }
+            entityIdConverters[ann.entityClass] = EntityIdConverter(func)
+        }
+
         for (func in ctrlClass.declaredMemberFunctions) {
             val ann = func.findAnnotation<Endpoint>() ?: continue
             val name =
@@ -396,7 +451,8 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     isRecursive = true
                     return@run existingNode
                 }
-                val node = Node(func = func, annotation = ann)
+                val node = Node(func = func, annotation = ann,
+                                entityIdConverters = entityIdConverters)
                 cache[func] = node
                 return@run node
             }

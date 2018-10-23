@@ -1,5 +1,7 @@
 package com.ast.adk.domain
 
+import kotlin.reflect.KClass
+
 /**
  * Mark web service endpoint method. If the method has an argument, it is expected as JSON-encoded
  * POST body. Also it optionally may accept HttpRequestContext argument with the request context
@@ -16,9 +18,19 @@ package com.ast.adk.domain
  * @param isRepository Marks method for retrieving entity from a repository. It may optionally
  * accept string ID of the entity which is taken from URI as next path component after the endpoint
  * name. If ID argument is not specified then entity may be retrieved from the request context (e.g.
- * stored in session). The returned value is used for further path lookup.
+ * stored in session). The returned value is used for further path lookup. ID may have other than
+ * string type, converter method should be specified in such case by RepositoryIdConverter
+ * annotation.
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Endpoint(val name: String = "",
                           val isRepository: Boolean = false)
+
+
+/** Converter for entity ID. The method should accept string as its argument and return type which
+ * is used as ID in repository endpoints for the specified entity class.
+ */
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class RepositoryIdConverter(val entityClass: KClass<*>)
