@@ -8,4 +8,5 @@ module com.ast.adk.domain {
     requires com.ast.adk;
 
     exports com.ast.adk.domain;
+    exports com.ast.adk.domain.httpserver;
 }
