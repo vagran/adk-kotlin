@@ -95,6 +95,11 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
     }
 
+    fun CreateHandler(handler: HttpRequestHandlerAsync<*>): HttpHandler
+    {
+        return CreateHandler(handler.ToDeferredHandler())
+    }
+
     fun Start()
     {
         httpServer.createContext(domainPrefix, CreateHandler(this::HandleRequest))
@@ -103,11 +108,6 @@ class HttpDomainServer(private val httpServer: HttpServer,
     fun Stop()
     {
         httpServer.removeContext(domainPrefix)
-    }
-
-    fun CreateHandler(handler: HttpRequestHandlerAsync<*>): HttpHandler
-    {
-        return CreateHandler(handler.ToDeferredHandler())
     }
 
     fun MountController(prefix: String, controller: Any)
