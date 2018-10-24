@@ -3,11 +3,11 @@ package com.ast.adk.json
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.lang.reflect.WildcardType
-import kotlin.jvm.internal.Reflection
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.KTypeProjection
 import kotlin.reflect.full.createType
+import kotlin.reflect.full.starProjectedType
 import kotlin.reflect.jvm.jvmErasure
 
 
@@ -21,14 +21,7 @@ open class TypeToken<T> {
 
         fun <T: Any> Create(cls: KClass<T>): TypeToken<T>
         {
-            if (cls.typeParameters.isEmpty()) {
-                return TypeToken(cls.createType())
-            }
-            val projectionsList = ArrayList<KTypeProjection>(cls.typeParameters.size)
-            for (i in 0 until cls.typeParameters.size) {
-                projectionsList.add(KTypeProjection.STAR)
-            }
-            return TypeToken(cls.createType(projectionsList))
+            return TypeToken(cls.starProjectedType)
         }
     }
 

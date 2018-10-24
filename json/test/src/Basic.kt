@@ -70,6 +70,21 @@ private class BasicTest {
     }
 
     @Test
+    fun CollectionWrite()
+    {
+        val json = Json(true)
+        val values = mapOf(1 to "a", 2 to "b", 3 to "c").values
+        val result = json.ToJson(values)
+        assertEquals("""
+            [
+              "a",
+              "b",
+              "c"
+            ]
+        """.trimIndent(), result)
+    }
+
+    @Test
     fun IntListWrite()
     {
         val json = Json(true)
@@ -390,6 +405,22 @@ private class BasicTest {
         assertEquals("a", list[0])
         assertEquals("b", list[1])
         assertEquals("c", list[2])
+    }
+
+    @Test
+    fun CollectionRead()
+    {
+        val json = Json(true)
+        val sampleJson = """ [ "a", "b", "c"] """
+        val list = json.FromJson<Collection<String>>(sampleJson) ?: fail()
+        assertEquals(3, list.size)
+        for ((idx, value) in list.withIndex()) {
+            when (idx) {
+                0 -> assertEquals("a", value)
+                1 -> assertEquals("b", value)
+                2 -> assertEquals("c", value)
+            }
+        }
     }
 
     @Test

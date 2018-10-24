@@ -218,7 +218,7 @@ class Json(val prettyPrint: Boolean = false,
             }
         }
 
-        if (jvmErasure.isSubclassOf(List::class)) {
+        if (jvmErasure.isSubclassOf(List::class) || jvmErasure.isSubclassOf(Collection::class)) {
             return ListCodec(type)
         }
         if (jvmErasure.isSubclassOf(Map::class)) {
