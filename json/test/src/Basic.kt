@@ -10,8 +10,6 @@ import java.time.ZoneOffset
 import java.util.*
 import kotlin.reflect.full.createType
 import kotlin.reflect.jvm.jvmErasure
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 data class Custom(val i: Int)
 
@@ -551,6 +549,48 @@ private class BasicTest {
         val obj = AnnotatedOnlyClass()
         val json = Json(false)
         assertEquals("{\"i\":42}", json.ToJson(obj))
+    }
+
+    class ComputedPropertyClass {
+        @JsonTransient
+        var i = 0
+
+        val computed: String get() = "Computed #$i"
+    }
+
+    @Test
+    fun ComputedProperty()
+    {
+        val obj = ComputedPropertyClass()
+        obj.i = 42
+        val json = Json(false)
+        assertEquals("{\"computed\":\"Computed #42\"}", json.ToJson(obj))
+    }
+
+    class CodecViaAnnotationCodec: JsonCodec<CodecViaAnnotationClass> {
+        override fun WriteNonNull(obj: CodecViaAnnotationClass, writer: JsonWriter, json: Json)
+        {
+            writer.Write("Object #${obj.i}")
+        }
+
+        override fun ReadNonNull(reader: JsonReader, json: Json): CodecViaAnnotationClass
+        {
+            throw NotImplementedError()
+        }
+    }
+
+    @JsonClass(codec = CodecViaAnnotationCodec::class)
+    class CodecViaAnnotationClass {
+        var i = 0
+    }
+
+    @Test
+    fun CodecViaAnnotation()
+    {
+        val obj = CodecViaAnnotationClass()
+        obj.i = 42
+        val json = Json(false)
+        assertEquals("\"Object #42\"", json.ToJson(obj))
     }
 }
 

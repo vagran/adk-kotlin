@@ -13,6 +13,8 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
+import kotlin.reflect.full.createInstance
+import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
@@ -21,6 +23,8 @@ typealias JsonCodecProvider = (type: KType) -> JsonCodec<*>
 /** Encapsulates encoding/decoding parameters and codecs registry.
  * @param allowUnmatchedFields Default value for unmatched fields handling behaviour. Can be
  * overridden for a class by JsonClass.allowUnmatchedFields annotation.
+ * @param classCodecs Predefined codecs for specific classes.
+ * @param subclassCodecs Predefined codecs for a class and all its derived classes.
  */
 class Json(val prettyPrint: Boolean = false,
            val serializeNulls: Boolean = true,
@@ -201,6 +205,16 @@ class Json(val prettyPrint: Boolean = false,
         for ((cls, provider) in subclassCodecs) {
             if (jvmErasure.isSubclassOf(cls)) {
                 return provider(type)
+            }
+        }
+
+        jvmErasure.findAnnotation<JsonClass>()?.also {
+            ann ->
+            if (ann.codec != Unit::class) {
+                if (!ann.codec.isSubclassOf(JsonCodec::class)) {
+                    throw Error("Invalid codec class provided in annotation for $jvmErasure")
+                }
+                return ann.codec.createInstance() as JsonCodec<*>
             }
         }
 
