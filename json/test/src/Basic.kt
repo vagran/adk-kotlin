@@ -623,5 +623,28 @@ private class BasicTest {
         val json = Json(false)
         assertEquals("\"Object #42\"", json.ToJson(obj))
     }
+
+    class DelegatedRepresentationClass {
+        var a = "abc"
+        @JsonField(delegatedRepresentation = true)
+        var b = "cde"
+        var c = 42
+    }
+
+    @Test
+    fun DelegatedRepresentation()
+    {
+        val obj = DelegatedRepresentationClass()
+        val json = Json(false)
+        assertEquals("\"cde\"", json.ToJson(obj))
+    }
+
+    @Test
+    fun DelegatedRepresentationRead()
+    {
+        val json = Json(false)
+        val parsed = json.FromJson<DelegatedRepresentationClass>("\"test\"")!!
+        assertEquals("test", parsed.b)
+    }
 }
 

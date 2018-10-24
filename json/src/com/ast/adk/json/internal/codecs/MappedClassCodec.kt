@@ -21,6 +21,17 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
 
     override fun WriteNonNull(obj: T, writer: JsonWriter, json: Json)
     {
+        delegatedRepresentationField?.also {
+            desc ->
+            val value = desc.getter(obj as Any)
+            if (value == null) {
+                writer.WriteNull()
+            } else {
+                desc.codec.WriteNonNull(value, writer, json)
+            }
+            return
+        }
+
         writer.BeginObject()
         for ((name, desc) in fields) {
             val value = desc.getter(obj as Any)
@@ -42,6 +53,22 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
     {
         val obj = constructor?.invoke() ?:
             throw IllegalStateException("Mapped class constructor not available: $type")
+
+        delegatedRepresentationField?.also {
+            desc ->
+            if (desc.setter == null) {
+                throw JsonReadError(
+                    "Attempted to set read-only delegated representation field for $type")
+            }
+            val value = desc.codec.Read(reader, json)
+            if (value == null && !desc.isNullable) {
+                throw JsonReadError(
+                    "Null value for non-nullable delegated representation field in $type")
+            }
+            desc.setter.invoke(obj, value)
+            return obj as T
+        }
+
         reader.BeginObject()
         val setMask = BooleanArray(fields.size)
         while (true) {
@@ -113,8 +140,19 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
                     throw IllegalArgumentException(
                         "Duplicated field name: ${curCls.qualifiedName}::${prop.name}")
                 }
-                fields[name] = FieldDesc(prop, json, fieldAnn, requiredDefault, fields.size)
+                val field = FieldDesc(prop, json, fieldAnn, requiredDefault, fields.size)
+                if (fieldAnn != null && fieldAnn.delegatedRepresentation) {
+                    delegatedRepresentationField?.also {
+                        throw Error("Delegated representation field redefined in $prop")
+                    }
+                    delegatedRepresentationField = field
+                } else {
+                    fields[name] = field
+                }
             }
+        }
+        if (delegatedRepresentationField != null) {
+            fields.clear()
         }
     }
 
@@ -161,4 +199,5 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
     private var allowUnmatchedFields = false
     private val fields = HashMap<String, FieldDesc>()
     private var constructor: ConstructorFunc? = null
+    private var delegatedRepresentationField: FieldDesc? = null
 }

@@ -2,12 +2,16 @@ package com.ast.adk.json
 
 import kotlin.reflect.KClass
 
-/** Specify custom parameters for serialized field. */
+/** Specify custom parameters for serialized field.
+ * @param delegatedRepresentation The field marked with this annotation is used to fully represent
+ * the class. Only one field in a class may be marked with such annotation.
+ */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.PROPERTY)
 annotation class JsonField(val name: String = "",
                            val optional: Boolean = false,
-                           val required: Boolean = false)
+                           val required: Boolean = false,
+                           val delegatedRepresentation: Boolean = false)
 
 /** Do not serialize this property. */
 @Retention(AnnotationRetention.RUNTIME)
