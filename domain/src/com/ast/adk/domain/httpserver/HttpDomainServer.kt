@@ -12,6 +12,7 @@ import com.sun.net.httpserver.HttpHandler
 import com.sun.net.httpserver.HttpServer
 import java.io.IOException
 import java.lang.reflect.InvocationTargetException
+import java.nio.charset.StandardCharsets
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.*
@@ -69,10 +70,18 @@ interface HttpRequestContext {
 
 class HttpDomainServer(private val httpServer: HttpServer,
                        val domainPrefix: String,
-                       json: Json? = null) {
+                       json: Json? = null,
+                       private val unitResultMode: UnitResultMode = UnitResultMode.NO_CONTENT) {
 
     var requestValidationHook: HttpRequestHook? = null
     var log: Logger? = null
+
+    enum class UnitResultMode {
+        /** Empty body with HTTP 204 "No Content" result code. */
+        NO_CONTENT,
+        /** Null literal with HTTP 200 "OK" result code. */
+        NULL
+    }
 
     fun CreateHandler(handler: HttpRequestHandler<*>): HttpHandler
     {
@@ -256,7 +265,8 @@ class HttpDomainServer(private val httpServer: HttpServer,
                 return method.invoke(args)
             } catch (e: InvocationTargetException) {
                 val cause = e.cause
-                if (cause is HttpError) {
+                if (cause != null) {
+                    cause.addSuppressed(e)
                     throw cause
                 } else {
                     throw e
@@ -326,7 +336,15 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
         try {
             if (_result is Unit) {
-                request.sendResponseHeaders(code, -1)
+                when (unitResultMode) {
+                    UnitResultMode.NO_CONTENT -> {
+                        request.sendResponseHeaders(204, -1)
+                    }
+                    UnitResultMode.NULL -> {
+                        request.sendResponseHeaders(code, 0)
+                        request.responseBody.write("null".toByteArray(StandardCharsets.UTF_8))
+                    }
+                }
             } else {
                 request.sendResponseHeaders(code, 0)
                 request.responseBody.use { json.ToJson(_result, it) }
