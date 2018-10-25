@@ -71,7 +71,8 @@ interface HttpRequestContext {
 class HttpDomainServer(private val httpServer: HttpServer,
                        val domainPrefix: String,
                        json: Json? = null,
-                       private val unitResultMode: UnitResultMode = UnitResultMode.NO_CONTENT) {
+                       private val unitResultMode: UnitResultMode = UnitResultMode.NO_CONTENT,
+                       private val defaultErrorCode: Int = 500) {
 
     var requestValidationHook: HttpRequestHook? = null
     var log: Logger? = null
@@ -327,7 +328,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     headers.set("WWW-Authenticate", "Basic realm=\"${error.realm}\"")
                 }
             } else {
-                code = 500
+                code = defaultErrorCode
             }
             log?.Error(error,
                       "Request processing error ${request.requestMethod} ${request.requestURI}")
