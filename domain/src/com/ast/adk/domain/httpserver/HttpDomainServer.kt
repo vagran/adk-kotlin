@@ -385,7 +385,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
                 val entity = repoNode.InvokeMethod(ctx, controller, entityId, isLastComp)
                     ?: throw HttpError(500, "Null entity returned", ctx)
                 repoNode = null
-                if (compIdx == path.components.size - 1) {
+                if (isLastComp) {
                     return entity
                 }
                 controller = entity
