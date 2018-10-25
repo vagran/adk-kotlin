@@ -23,6 +23,8 @@ typealias JsonCodecProvider = (type: KType) -> JsonCodec<*>
 /** Encapsulates encoding/decoding parameters and codecs registry.
  * @param allowUnmatchedFields Default value for unmatched fields handling behaviour. Can be
  * overridden for a class by JsonClass.allowUnmatchedFields annotation.
+ * @param typeCodecs Predefined codes for specific types (with compile-time information e.g. about
+ * type parameters).
  * @param classCodecs Predefined codecs for specific classes.
  * @param subclassCodecs Predefined codecs for a class and all its derived classes.
  */
@@ -79,6 +81,11 @@ class Json(val prettyPrint: Boolean = false,
     }
 
     inline fun <reified T> GetSerializer(): JsonSerializer<T> = GetSerializer(TypeToken.Create())
+
+    fun <T> GetSerializer(codec: JsonCodec<T>): JsonSerializer<T>
+    {
+        return JsonSerializer(this, codec)
+    }
 
 
     fun GetReader(input: InputStream): JsonReader
