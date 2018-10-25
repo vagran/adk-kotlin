@@ -220,7 +220,8 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
 
         @Suppress("UNCHECKED_CAST")
-        suspend fun InvokeMethod(ctx: HttpRequestContext, controller: Any, entityId: String?): Any?
+        suspend fun InvokeMethod(ctx: HttpRequestContext, controller: Any, entityId: String?,
+                                 isTerminalNode: Boolean): Any?
         {
             if (method == null) {
                 throw IllegalStateException("Non-executable node invoked")
@@ -238,7 +239,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
                         GetRequestBody(ctx.request, dataSerializer as JsonSerializer<Any>)
                     }
                 } else {
-                    if (ctx.request.requestMethod != "GET") {
+                    if (isTerminalNode && ctx.request.requestMethod != "GET") {
                         throw HttpError(400, "GET method expected")
                     }
                     null
@@ -348,6 +349,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
         for (compIdx in 0 until path.components.size) {
             val pathComp = path.components[compIdx]
             val node: Node?
+            val isLastComp = compIdx == path.components.size - 1
 
             if (repoNode == null) {
                 node = nodes[NodeKey(pathComp, curNode)]
@@ -363,7 +365,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
                         if (compIdx < path.components.size - 1) {
                             throw HttpError(400, "Endpoint sub-path requested", ctx)
                         }
-                        return node.InvokeMethod(ctx, controller, null)
+                        return node.InvokeMethod(ctx, controller, null, isLastComp)
                     }
                     repoNode = node
                 }
@@ -380,7 +382,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
                 if (controller == null) {
                     throw HttpError(500, "Controller not specified", ctx)
                 }
-                val entity = repoNode.InvokeMethod(ctx, controller, entityId)
+                val entity = repoNode.InvokeMethod(ctx, controller, entityId, isLastComp)
                     ?: throw HttpError(500, "Null entity returned", ctx)
                 repoNode = null
                 if (compIdx == path.components.size - 1) {
