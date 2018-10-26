@@ -4,8 +4,7 @@ import com.ast.adk.GetStackTrace
 import com.ast.adk.async.Deferred
 import com.ast.adk.domain.Endpoint
 import com.ast.adk.domain.RepositoryIdConverter
-import com.ast.adk.json.Json
-import com.ast.adk.json.JsonSerializer
+import com.ast.adk.json.*
 import com.ast.adk.log.Logger
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
@@ -13,6 +12,7 @@ import com.sun.net.httpserver.HttpServer
 import java.io.IOException
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
+import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.*
@@ -142,7 +142,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
         val method: NodeMethod?
         /** Index of the argument for HttpRequestContext. */
         var ctxArgIdx = -1
-        /** Index of the argument for request data. */
+        /** Index of the argument for request data. Zero for unpacked arguments. -1 if no data
+         * arguments.
+         */
         var dataArgIdx = -1
         /** Serializer for data argument. */
         val dataSerializer: JsonSerializer<*>?
@@ -162,7 +164,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
 
             } else {
                 val isRepository = annotation?.isRepository ?: false
+                val unpackArgs = if (isRepository) false else annotation?.unpackArguments ?: true
                 val repoEntityClass: KClass<*>
+
                 when {
                     func.isSuspend -> {
                         method = { args -> func.callSuspend(*args) }
@@ -179,10 +183,6 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     }
                 }
 
-                if (func.parameters.size > 3) {
-                    throw Error("Endpoint $func has too many arguments")
-                }
-
                 if (isRepository) {
                     this.repoEntityClass = repoEntityClass
                 } else {
@@ -191,8 +191,11 @@ class HttpDomainServer(private val httpServer: HttpServer,
 
                 var dataSerializer: JsonSerializer<*>? = null
                 var entityIdConverter: EntityIdConverter? = null
+                val args = TreeMap<String, ArgumentEntry>()
+
                 for (i in 1 until func.parameters.size) {
                     val param = func.parameters[i]
+
                     if (param.type.jvmErasure.isSubclassOf(HttpRequestContext::class)) {
                         if (ctxArgIdx >= 0) {
                             throw Error("Context argument specified more than once in $func")
@@ -200,7 +203,8 @@ class HttpDomainServer(private val httpServer: HttpServer,
                         ctxArgIdx = i
                         continue
                     }
-                    if (dataArgIdx >= 0) {
+
+                    if (!unpackArgs && dataArgIdx >= 0) {
                         throw Error("Data argument specified more than once in $func")
                     }
 
@@ -221,9 +225,21 @@ class HttpDomainServer(private val httpServer: HttpServer,
                         }
                     }
 
-                    dataArgIdx = i
-                    dataSerializer = json.GetSerializer<Any>(param.type)
+                    if (unpackArgs) {
+                        args[param.name!!] = ArgumentEntry(i, json.GetCodec<Any?>(param.type))
+
+                    } else {
+                        dataArgIdx = i
+                        dataSerializer = json.GetSerializer<Any>(param.type)
+                    }
                 }
+
+                if (args.isNotEmpty()) {
+                    val codec = UnpackedArgumentsCodec(args, func)
+                    dataSerializer = json.GetSerializer(codec)
+                    dataArgIdx = 0
+                }
+
                 this.dataSerializer = dataSerializer
                 this.entityIdConverter = entityIdConverter
             }
@@ -236,44 +252,99 @@ class HttpDomainServer(private val httpServer: HttpServer,
             if (method == null) {
                 throw IllegalStateException("Non-executable node invoked")
             }
-            var argSize = 1
-            if (ctxArgIdx != -1) {
-                argSize++
-            }
-            val data =
-                if (dataArgIdx != -1) {
+            val args: Array<Any?> = if (dataArgIdx != 0) {
+                /* Packed arguments. */
+                var argSize = 1
+                if (ctxArgIdx != -1) {
                     argSize++
-                    if (entityId != null) {
-                        entityIdConverter?.Convert(controller, entityId) ?: entityId
+                }
+                val data =
+                    if (dataArgIdx != -1) {
+                        argSize++
+                        if (entityId != null) {
+                            entityIdConverter?.Convert(controller, entityId) ?: entityId
+                        } else {
+                            GetRequestBody(ctx.request, dataSerializer as JsonSerializer<Any>)
+                        }
                     } else {
-                        GetRequestBody(ctx.request, dataSerializer as JsonSerializer<Any>)
+                        if (isTerminalNode && ctx.request.requestMethod != "GET") {
+                            throw HttpError(400, "GET method expected")
+                        }
+                        null
                     }
-                } else {
-                    if (isTerminalNode && ctx.request.requestMethod != "GET") {
-                        throw HttpError(400, "GET method expected")
+                Array(argSize) { argIdx ->
+                    when (argIdx) {
+                        0 -> controller
+                        ctxArgIdx -> ctx
+                        else -> data
                     }
-                    null
                 }
-            val args = Array(argSize) {
-                argIdx ->
-                when (argIdx) {
-                    0 -> controller
-                    ctxArgIdx -> ctx
-                    else -> data
+
+            } else {
+                /* Unpacked arguments. */
+                val args = GetRequestBody(ctx.request, dataSerializer as JsonSerializer<Array<Any?>>)
+                args[0] = controller
+                if (ctxArgIdx != -1) {
+                    args[ctxArgIdx] = ctx
                 }
+                args
             }
+
             try {
                 return method.invoke(args)
             } catch (e: InvocationTargetException) {
                 val cause = e.cause
                 if (cause != null) {
-                    cause.addSuppressed(e)
                     throw cause
                 } else {
                     throw e
                 }
             }
         }
+    }
+
+    private class ArgumentEntry(val index: Int, val codec: JsonCodec<Any?>)
+
+    private class UnpackedArgumentsCodec(private val args: Map<String, ArgumentEntry>,
+                                         private val func: KFunction<*>):
+        JsonCodec<Array<Any?>> {
+
+        override fun WriteNonNull(obj: Array<Any?>, writer: JsonWriter, json: Json)
+        {
+            throw UnsupportedOperationException()
+        }
+
+        override fun ReadNonNull(reader: JsonReader, json: Json): Array<Any?>
+        {
+            val result = arrayOfNulls<Any?>(argsSize)
+
+            reader.BeginObject()
+            var numMatched = 0
+            while (reader.HasNext()) {
+                val name = reader.ReadName()
+                val arg = args[name]
+                if (arg == null) {
+                    if (json.allowUnmatchedFields) {
+                        continue
+                    }
+                    throw HttpError(400, "Unknown argument '$name' for $func")
+                }
+                result[arg.index] = arg.codec.Read(reader, json)
+                numMatched++
+            }
+            /* This does not prevent from specifying the same name twice and missing another one,
+             * but cost of having uniqueness check makes it worth to ignore this case and rely on
+             * other less explicit exceptions.
+             */
+            if (numMatched != args.size) {
+                throw HttpError(400, "Arguments number mismatch: $numMatched/${args.size}")
+            }
+            reader.EndObject()
+
+            return result
+        }
+
+        private val argsSize = func.parameters.size
     }
 
     private class NodeKey(val name: String, val parent: Node?) {

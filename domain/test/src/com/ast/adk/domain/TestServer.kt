@@ -20,6 +20,7 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import kotlin.math.roundToInt
 import kotlin.reflect.KClass
 
 
@@ -129,7 +130,7 @@ class TestController {
         }
     }
 
-    @Endpoint
+    @Endpoint(unpackArguments = false)
     suspend fun Test7(req: Request): Result
     {
         return Result().also {
@@ -221,6 +222,12 @@ class TestEntity {
     suspend fun MethodWithArg(x: Int): Int
     {
         return x + id + 10
+    }
+
+    @Endpoint
+    suspend fun MethodWithArgs(x: Int, y: Int, z: Double): Int
+    {
+        return ((id + x + y) * z).roundToInt()
     }
 }
 
@@ -471,7 +478,34 @@ private class ServerTest {
     @Test
     fun EntityTest6()
     {
-        assertEquals(42, SendRequest<Int>("/domain/Test/Entity/12/MethodWithArg", 20))
+        assertEquals(42, SendRequest<Int>("/domain/Test/Entity/12/MethodWithArg", mapOf("x" to 20)))
+    }
+
+    @Test
+    fun EntityTest7()
+    {
+        assertEquals(30, SendRequest<Int>("/domain/Test/Entity/12/MethodWithArgs",
+                                          mapOf("x" to 20,
+                                                "y" to 28,
+                                                "z" to 0.5)))
+    }
+
+    @Test
+    fun EntityTest8()
+    {
+        assertThrows(ResponseError::class.java) {
+            SendRequest<Int>("/domain/Test/Entity/12/MethodWithArg", 20)
+        }
+    }
+
+    @Test
+    fun EntityTest9()
+    {
+        val e = assertThrows(ResponseError::class.java) {
+            SendRequest<Int>("/domain/Test/Entity/12/MethodWithArg",
+                             mapOf("x" to 20, "y" to "a"))
+        }
+        assertEquals(400, e.code)
     }
 
     @Test
@@ -531,4 +565,6 @@ private class ServerTest {
             SendRequest<RecursiveEntity>("/domain/Test/RecursiveEntity/5/Child/7/Child/45", null)!!
         }
     }
+
+    //unpack args
 }
