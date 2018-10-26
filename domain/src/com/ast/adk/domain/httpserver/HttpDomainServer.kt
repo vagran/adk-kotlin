@@ -13,6 +13,7 @@ import java.io.IOException
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
 import java.util.*
+import kotlin.collections.HashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.*
@@ -68,11 +69,18 @@ interface HttpRequestContext {
     val request: HttpExchange
 }
 
+typealias EntityIdConverterFunc<T/*: Any*/> = (String) -> T
+
+/**
+ * @param defEntityIdConverters Default converters for specified ID types. Some types already have
+ * default converters pre-defined (however they still can be overridden).
+ */
 class HttpDomainServer(private val httpServer: HttpServer,
                        val domainPrefix: String,
                        json: Json? = null,
                        private val unitResultMode: UnitResultMode = UnitResultMode.NO_CONTENT,
-                       private val defaultErrorCode: Int = 500) {
+                       private val defaultErrorCode: Int = 500,
+                       defEntityIdConverters: Map<KClass<*>, EntityIdConverterFunc<*>> = emptyMap()) {
 
     var requestValidationHook: HttpRequestHook? = null
     var log: Logger? = null
@@ -131,6 +139,22 @@ class HttpDomainServer(private val httpServer: HttpServer,
     private val json: Json = json ?: Json()
     private val nodes = HashMap<NodeKey, Node>()
     private val domainPrefixPath = HttpPath(domainPrefix)
+    /** Indexed by ID type, not entity type. */
+    private val defEntityIdConverters: Map<KClass<*>, EntityIdConverter>
+
+    init {
+        val converters = HashMap<KClass<*>, EntityIdConverter>()
+
+        /* Pre-defined converters. */
+        converters[Int::class] = EntityIdConverterCbk(Int::class) { id -> id.toInt() }
+        converters[Long::class] = EntityIdConverterCbk(Long::class) { id -> id.toLong() }
+
+        for ((cls, func) in defEntityIdConverters) {
+            converters[cls] = EntityIdConverterCbk(cls, func)
+        }
+
+        this.defEntityIdConverters = converters
+    }
 
     private inner class RequestContext (override val request: HttpExchange):
         HttpRequestContext
@@ -212,7 +236,10 @@ class HttpDomainServer(private val httpServer: HttpServer,
                         entityIdConverter = entityIdConverters?.get(repoEntityClass)
                         val entityIdClass = param.type.jvmErasure
                         if (entityIdConverter == null) {
-                            if (!entityIdClass.isSubclassOf(String::class)) {
+                            entityIdConverter = defEntityIdConverters[entityIdClass]
+                            if (entityIdConverter == null &&
+                                !entityIdClass.isSubclassOf(String::class)) {
+
                                 throw Error(
                                     "Entity ID argument type should be string for repository " +
                                     "endpoint $func without entity ID converter defined")
@@ -221,12 +248,12 @@ class HttpDomainServer(private val httpServer: HttpServer,
                         } else if (!entityIdConverter.idType.isSubclassOf(entityIdClass)) {
                             throw Error(
                                 "Entity ID argument for endpoint $func has incompatible type " +
-                                "with entity ID converter method ${entityIdConverter.func}")
+                                "with entity ID converter method $entityIdConverter")
                         }
                     }
 
                     if (unpackArgs) {
-                        args[param.name!!] = ArgumentEntry(i, json.GetCodec<Any?>(param.type))
+                        args[param.name!!] = ArgumentEntry(i, json.GetCodec(param.type))
 
                     } else {
                         dataArgIdx = i
@@ -361,8 +388,13 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
     }
 
-    private class EntityIdConverter(val func: KFunction<*>) {
-        val idType get() = func.returnType.jvmErasure
+    private interface EntityIdConverter {
+        val idType: KClass<*>
+        fun Convert(receiver: Any, idStr: String): Any
+    }
+
+    private class EntityIdConverterMethod(val func: KFunction<*>): EntityIdConverter {
+        override val idType = func.returnType.jvmErasure
 
         init {
             if (func.parameters.size != 2) {
@@ -374,10 +406,29 @@ class HttpDomainServer(private val httpServer: HttpServer,
             }
         }
 
-        fun Convert(receiver: Any, idStr: String): Any
+        override fun Convert(receiver: Any, idStr: String): Any
         {
             return func.call(receiver, idStr)
                 ?: throw Error("Entity ID converter returned null for $idStr")
+        }
+
+        override fun toString(): String
+        {
+            return func.toString()
+        }
+    }
+
+    private class EntityIdConverterCbk(override val idType: KClass<*>,
+                                       val cbk: EntityIdConverterFunc<*>): EntityIdConverter {
+
+        override fun Convert(receiver: Any, idStr: String): Any
+        {
+            return cbk(idStr) as Any
+        }
+
+        override fun toString(): String
+        {
+            return cbk.toString()
         }
     }
 
@@ -523,9 +574,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
             val prevConverter = entityIdConverters[ann.entityClass]
             if (prevConverter != null) {
                 throw Error("Entity ID converter re-defined in $func, previous definition " +
-                            "in ${prevConverter.func}")
+                            "in $prevConverter")
             }
-            entityIdConverters[ann.entityClass] = EntityIdConverter(func)
+            entityIdConverters[ann.entityClass] = EntityIdConverterMethod(func)
         }
 
         for (func in ctrlClass.declaredMemberFunctions) {

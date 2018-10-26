@@ -182,12 +182,6 @@ class TestController {
         return e
     }
 
-    @RepositoryIdConverter(entityClass = RecursiveEntity::class)
-    fun RecursiveEntityIdConverter(s: String): Long
-    {
-        return s.toLong()
-    }
-
     @Endpoint(isRepository = true)
     fun RecursiveEntity(id: Long): RecursiveEntity
     {
