@@ -8,7 +8,7 @@ interface Awaitable<T> {
     /** Asynchronous wait for result. Continuation is bound to the specified context. */
     suspend fun Await(ctx: Context): T
     {
-        return ctx.ResumeIn({Await()})
+        return ctx.ResumeIn { Await() }
     }
 
     /** Asynchronous wait for result. Continuation is bound to the current context if any.
