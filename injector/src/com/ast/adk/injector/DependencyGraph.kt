@@ -233,7 +233,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         val injectFields: Array<InjectableField>? = params.injectFields
 
         /** Singleton instance stored here for singleton node. Factory instance for factory node. */
-        var singletonInstance: Any? = null
+        @Volatile var singletonInstance: Any? = null
 
 
         /** Check if node constructor (if any) has factory parameters placeholders.  */
@@ -318,8 +318,10 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         fun Create(): Any
         {
             return when {
-                isSingleton -> synchronized(this) {
-                    singletonInstance ?: Create(null).also { singletonInstance = it }
+                isSingleton -> {
+                    singletonInstance ?: synchronized(this) {
+                        singletonInstance ?: Create(null).also { singletonInstance = it }
+                    }
                 }
 
                 /* Factory instance is stored here during compilation. */
