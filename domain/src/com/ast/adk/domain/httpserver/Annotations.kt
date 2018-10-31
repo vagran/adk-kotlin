@@ -1,4 +1,4 @@
-package com.ast.adk.domain
+package com.ast.adk.domain.httpserver
 
 import kotlin.reflect.KClass
 
