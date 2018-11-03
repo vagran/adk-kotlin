@@ -23,6 +23,7 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
     )
 
     interface DefConstructor {
+        /** Outer class, null if not for inner class. */
         val outerCls: KClass<*>?
 
         fun Construct(outer: Any?): Any
@@ -148,6 +149,34 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
                 null
             }
             this.defCtrMissingReason = defCtrMissingReason
+        }
+    }
+
+    class FieldValue(
+        val fieldNode: OmmFieldNode,
+        val value: Any?
+    )
+
+    inner class DataClassArguments() {
+        val dataCtrParams = HashMap<KParameter, Any?>(fields.size)
+        val values = ArrayList<FieldValue>(fields.size)
+
+        fun Add(fieldNode: OmmFieldNode, value: Any?)
+        {
+            if (fieldNode.dataCtrParam != null) {
+                dataCtrParams[fieldNode.dataCtrParam] = value
+            } else {
+                values.add(FieldValue(fieldNode, value))
+            }
+        }
+
+        fun Construct(): Any
+        {
+            val obj = dataCtr!!.callBy(dataCtrParams) as Any
+            for (value in values) {
+                value.fieldNode.setter!!.invoke(obj, value.value)
+            }
+            return obj
         }
     }
 }
