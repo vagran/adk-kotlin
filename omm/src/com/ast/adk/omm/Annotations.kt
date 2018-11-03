@@ -14,6 +14,12 @@ enum class OmmOption {
         }
 }
 
+
+/**
+ * @param requireAllFields Require all fields to be set by mapper. Separate fields can be specified
+ * as optional with OmmField.optional parameter.
+ * @param annotatedOnlyFields Process only fields which are annotated by OmmField annotation.
+ */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.CLASS)
 annotation class OmmClass(
@@ -22,6 +28,11 @@ annotation class OmmClass(
     val walkBaseClasses: OmmOption = OmmOption.NOT_SET
 )
 
+
+/** Specify custom parameters for mapped field.
+ * @param delegatedRepresentation The field marked with this annotation is used to fully represent
+ * the class. Only one field in a class may be marked with such annotation.
+ */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.PROPERTY)
 annotation class OmmField(
@@ -32,6 +43,7 @@ annotation class OmmField(
 )
 
 
+/** Do not map this property. */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.PROPERTY)
 annotation class OmmIgnore
