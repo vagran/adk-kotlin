@@ -1,5 +1,9 @@
 
 import com.ast.adk.json.*
+import com.ast.adk.omm.OmmClass
+import com.ast.adk.omm.OmmField
+import com.ast.adk.omm.OmmIgnore
+import com.ast.adk.omm.OmmOption
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -10,6 +14,8 @@ import java.time.ZoneOffset
 import java.util.*
 import kotlin.reflect.full.createType
 import kotlin.reflect.jvm.jvmErasure
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 data class Custom(val i: Int)
 
@@ -225,12 +231,12 @@ private class BasicTest {
     class MappedClass {
         lateinit var a: String
         var b: Int = 0
-        @JsonField(name = "CCC")
+        @OmmField(name = "CCC")
         var c: Double = 0.0
         var d = false
         var e = 0L
         var f: String? = "aaa"
-        @JsonTransient val ignored = "ignored"
+        @OmmIgnore val ignored = "ignored"
     }
 
     @Test
@@ -279,6 +285,51 @@ private class BasicTest {
         assertTrue(result.d)
         assertEquals(123L, result.e)
         assertNull(result.f)
+    }
+
+    data class MappedDataClass(
+        val a: String,
+        val b: Int = 42,
+        @OmmField(name = "CCC")
+        val c: Int
+    ) {
+        lateinit var d: String
+    }
+
+    @Test
+    fun MappedDataWrite()
+    {
+        val obj = MappedDataClass("AAA", 43, 44)
+        obj.d = "abc"
+        val json = Json(true)
+        val result = json.ToJson(obj)
+        assertEquals("""
+            {
+              "a": "AAA",
+              "b": 43,
+              "CCC": 44,
+              "d": "abc"
+            }
+        """.trimIndent(), result)
+    }
+
+    @Test
+    fun MappedDataRead()
+    {
+        val json = Json(true)
+        val sampleJson = """
+            /* Sample comment * * / */
+            {
+                "a": "abc" ,
+                "CCC": 43,
+                "d": "test"
+            } /* EOF */
+        """
+        val result = json.FromJson<MappedDataClass>(sampleJson) ?: fail()
+        assertEquals("abc", result.a)
+        assertEquals(42, result.b)
+        assertEquals(43, result.c)
+        assertEquals("test", result.d)
     }
 
     @Test
@@ -566,9 +617,9 @@ private class BasicTest {
         assertEquals(obj.i, parsed.i)
     }
 
-    @JsonClass(annotatedOnly = true)
+    @OmmClass(annotatedOnlyFields = OmmOption.YES)
     class AnnotatedOnlyClass {
-        @JsonField
+        @OmmField
         var i = 42
         val s = "abc"
         var s2 = "def"
@@ -583,7 +634,7 @@ private class BasicTest {
     }
 
     class ComputedPropertyClass {
-        @JsonTransient
+        @OmmIgnore
         var i = 0
 
         val computed: String get() = "Computed #$i"
@@ -626,7 +677,7 @@ private class BasicTest {
 
     class DelegatedRepresentationClass {
         var a = "abc"
-        @JsonField(delegatedRepresentation = true)
+        @OmmField(delegatedRepresentation = true)
         var b = "cde"
         var c = 42
     }
@@ -646,5 +697,7 @@ private class BasicTest {
         val parsed = json.FromJson<DelegatedRepresentationClass>("\"test\"")!!
         assertEquals("test", parsed.b)
     }
+
+    //XXX data class
 }
 

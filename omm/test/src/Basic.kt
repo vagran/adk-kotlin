@@ -29,12 +29,12 @@ private class BasicTest {
         val clsNode = OmmClassNode<OmmClassNode.OmmFieldNode>(D1::class, params)
         clsNode.Initialize(params) { fp -> OmmClassNode.OmmFieldNode(fp) }
 
-        val args = clsNode.DataClassArguments()
-        args.Add(clsNode.fields["a"]!!, 42)
-        args.Add(clsNode.fields["bb"]!!, 43)
-        args.Add(clsNode.fields["d"]!!, "test1")
-        args.Add(clsNode.fields["e"]!!, "test2")
-        val obj = args.Construct() as D1
+        val setter = clsNode.SpawnObject(null)
+        setter.Set(clsNode.fields["a"]!!, 42)
+        setter.Set(clsNode.fields["bb"]!!, 43)
+        setter.Set(clsNode.fields["d"]!!, "test1")
+        setter.Set(clsNode.fields["e"]!!, "test2")
+        val obj = setter.Finalize() as D1
 
         assertEquals(42, obj.a)
         assertEquals(43, obj.b)
@@ -60,10 +60,30 @@ private class BasicTest {
         clsNode.Initialize(params) { fp -> OmmClassNode.OmmFieldNode(fp) }
 
         val outer = C1(42)
-        val obj = clsNode.defCtr!!.Construct(outer) as C1.Inner
-        clsNode.fields["s"]!!.setter!!.invoke(obj, "test")
+        val setter = clsNode.SpawnObject(outer)
+        setter.Set(clsNode.fields["s"]!!, "test")
+        val obj = setter.Finalize() as C1.Inner
 
         assertEquals("test", obj.s)
         assertEquals(42, obj.outerI)
+    }
+
+    class C2 {
+        lateinit var s: String
+        lateinit var s2: String
+    }
+
+    @Test
+    fun StaticClassTest1()
+    {
+        val params = OmmParams()
+        val clsNode = OmmClassNode<OmmClassNode.OmmFieldNode>(C2::class, params)
+        clsNode.Initialize(params) { fp -> OmmClassNode.OmmFieldNode(fp) }
+
+        val setter = clsNode.SpawnObject(null)
+        setter.Set(clsNode.fields["s"]!!, "test")
+        val obj = setter.Finalize() as C2
+
+        assertEquals("test", obj.s)
     }
 }

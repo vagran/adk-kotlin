@@ -5,6 +5,7 @@ import com.ast.adk.json.internal.AppendableWriter
 import com.ast.adk.json.internal.TextJsonReader
 import com.ast.adk.json.internal.TextJsonWriter
 import com.ast.adk.json.internal.codecs.*
+import com.ast.adk.omm.OmmParams
 import java.io.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
@@ -13,6 +14,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
+import kotlin.reflect.KVisibility
 import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubclassOf
@@ -33,8 +35,10 @@ class Json(val prettyPrint: Boolean = false,
            val prettyPrintIndent: Int = 2,
            val enableComments: Boolean = true,
            val allowUnmatchedFields: Boolean = false,
-           val requireAllFields: Boolean = false,
-           val annotatedOnly: Boolean = false,
+           requireAllFields: Boolean = false,
+           annotatedOnlyFields: Boolean = false,
+           acceptedVisibility: KVisibility = KVisibility.PUBLIC,
+           requireLateinitVars: Boolean = true,
            typeCodecs: Map<KType, JsonCodec<*>> = emptyMap(),
            classCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
            subclassCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap()) {
@@ -184,6 +188,11 @@ class Json(val prettyPrint: Boolean = false,
     inline fun <reified T> FromJson(input: InputStream): T? = FromJson(input, TypeToken.Create<T>().type)
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
+    internal val ommParams = OmmParams(requireAllFields = requireAllFields,
+                                       annotatedOnlyFields = annotatedOnlyFields,
+                                       acceptedVisibility = acceptedVisibility,
+                                       allowInnerClasses = false,
+                                       requireLateinitVars = requireLateinitVars)
     private val codecs = ConcurrentHashMap<KType, JsonCodec<*>>()
     private val classCodecs = HashMap<KClass<*>, JsonCodecProvider>()
     private val subclassCodecs = HashMap<KClass<*>, JsonCodecProvider>()

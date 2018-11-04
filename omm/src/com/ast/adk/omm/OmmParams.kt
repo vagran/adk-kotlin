@@ -11,5 +11,6 @@ data class OmmParams(
     val annotatedOnlyFields: Boolean = false,
     val acceptedVisibility: KVisibility = KVisibility.PUBLIC,
     val walkBaseClasses: Boolean = true,
-    val allowInnerClasses: Boolean = false
+    val allowInnerClasses: Boolean = false,
+    val requireLateinitVars: Boolean = true
 )

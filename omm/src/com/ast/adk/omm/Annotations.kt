@@ -25,7 +25,8 @@ enum class OmmOption {
 annotation class OmmClass(
     val requireAllFields: OmmOption = OmmOption.NOT_SET,
     val annotatedOnlyFields: OmmOption = OmmOption.NOT_SET,
-    val walkBaseClasses: OmmOption = OmmOption.NOT_SET
+    val walkBaseClasses: OmmOption = OmmOption.NOT_SET,
+    val requireLateinitVars: OmmOption = OmmOption.NOT_SET
 )
 
 
