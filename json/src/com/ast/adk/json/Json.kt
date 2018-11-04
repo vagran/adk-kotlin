@@ -6,6 +6,7 @@ import com.ast.adk.json.internal.TextJsonReader
 import com.ast.adk.json.internal.TextJsonWriter
 import com.ast.adk.json.internal.codecs.*
 import com.ast.adk.omm.OmmParams
+import com.ast.adk.omm.TypeToken
 import java.io.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
@@ -30,24 +31,25 @@ typealias JsonCodecProvider = (type: KType) -> JsonCodec<*>
  * @param classCodecs Predefined codecs for specific classes.
  * @param subclassCodecs Predefined codecs for a class and all its derived classes.
  */
-class Json(val prettyPrint: Boolean = false,
-           val serializeNulls: Boolean = true,
-           val prettyPrintIndent: Int = 2,
-           val enableComments: Boolean = true,
-           val allowUnmatchedFields: Boolean = false,
-           requireAllFields: Boolean = false,
-           annotatedOnlyFields: Boolean = false,
-           acceptedVisibility: KVisibility = KVisibility.PUBLIC,
-           requireLateinitVars: Boolean = true,
-           allowInnerClasses: Boolean = true,
-           typeCodecs: Map<KType, JsonCodec<*>> = emptyMap(),
-           classCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
-           subclassCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap()) {
+class Json(
+    val prettyPrint: Boolean = false,
+    val serializeNulls: Boolean = true,
+    val prettyPrintIndent: Int = 2,
+    val enableComments: Boolean = true,
+    val allowUnmatchedFields: Boolean = false,
+    requireAllFields: Boolean = false,
+    annotatedOnlyFields: Boolean = false,
+    acceptedVisibility: KVisibility = KVisibility.PUBLIC,
+    requireLateinitVars: Boolean = true,
+    allowInnerClasses: Boolean = true,
+    typeCodecs: Map<KType, JsonCodec<*>> = emptyMap(),
+    classCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
+    subclassCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap()) {
 
     @Suppress("UNCHECKED_CAST")
     fun <T> GetCodec(type: KType): JsonCodec<T>
     {
-        var codec = codecs.get(type)
+        var codec = codecs[type]
         if (codec != null) {
             return codec as JsonCodec<T>
         }
@@ -85,7 +87,8 @@ class Json(val prettyPrint: Boolean = false,
         return JsonSerializer(this, GetCodec(cls))
     }
 
-    inline fun <reified T> GetSerializer(): JsonSerializer<T> = GetSerializer(TypeToken.Create())
+    inline fun <reified T> GetSerializer(): JsonSerializer<T> = GetSerializer(
+        TypeToken.Create())
 
     fun <T> GetSerializer(codec: JsonCodec<T>): JsonSerializer<T>
     {

@@ -5,6 +5,7 @@ module com.ast.adk.async.mongodb {
     requires org.mongodb.driver.core;
     requires org.mongodb.bson;
     requires org.mongodb.driver.async.client;
+    requires transitive com.ast.adk.omm;
 
     exports com.ast.adk.async.db.mongo;
 }

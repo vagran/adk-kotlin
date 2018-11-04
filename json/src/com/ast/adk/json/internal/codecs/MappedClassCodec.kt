@@ -26,7 +26,7 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
         for ((name, desc) in clsNode.fields) {
             val value = desc.getter(obj as Any)
             if (value == null) {
-                if (json.serializeNulls) {
+                if (serializeNulls) {
                     writer.WriteName(name)
                     writer.WriteNull()
                 }
@@ -78,19 +78,21 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
     override fun Initialize(json: Json)
     {
         allowUnmatchedFields = clsAnn?.allowUnmatchedFields?.booleanValue ?: json.allowUnmatchedFields
+        serializeNulls = clsAnn?.serializeNulls?.booleanValue ?: json.serializeNulls
         clsNode = OmmClassNode(type.jvmErasure, json.ommParams)
         clsNode.Initialize(json.ommParams) { fp -> FieldDesc(fp, json) }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
+    private val clsAnn: JsonClass? = type.jvmErasure.findAnnotation()
+    private var allowUnmatchedFields = false
+    private var serializeNulls = false
+    private lateinit var clsNode: OmmClassNode<FieldDesc>
+
     @Suppress("UNCHECKED_CAST")
     private class FieldDesc(params: OmmClassNode.FieldParams,
                             json: Json): OmmClassNode.OmmFieldNode(params) {
 
         val codec: JsonCodec<Any> = json.GetCodec(property.returnType)
     }
-
-    private val clsAnn: JsonClass? = type.jvmErasure.findAnnotation()
-    private var allowUnmatchedFields = false
-    private lateinit var clsNode: OmmClassNode<FieldDesc>
 }

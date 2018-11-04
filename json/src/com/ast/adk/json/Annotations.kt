@@ -10,4 +10,5 @@ import kotlin.reflect.KClass
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.CLASS)
 annotation class JsonClass(val allowUnmatchedFields: OmmOption = OmmOption.NOT_SET,
+                           val serializeNulls: OmmOption = OmmOption.NOT_SET,
                            val codec: KClass<*> = Unit::class)

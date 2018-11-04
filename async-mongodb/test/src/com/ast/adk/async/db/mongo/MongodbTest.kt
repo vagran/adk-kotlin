@@ -148,21 +148,22 @@ private class MongodbTest {
         @MongoId var id: ObjectId? = null
         val i = 42
         @MongoField var j = 43
-        @MongoField var ia: Array<Int?> = arrayOf(44, 45, null, 46)
-        @MongoField val col = ArrayList<Int>()
+        var pia: IntArray = arrayOf(1, 2, 3).toIntArray()
+//        @MongoField var ia: Array<Int?> = arrayOf(44, 45, null, 46)
+//        @MongoField val col = ArrayList<Int>()
 
-        init {
-            col.add(47)
-            col.add(48)
-            col.add(49)
-        }
+//        init {
+//            col.add(47)
+//            col.add(48)
+//            col.add(49)
+//        }
     }
 
     @Test
     fun BasicMapping()
     {
-        val codecs = MongoMapper.ForClasses(A::class)
-        val doc = MongoMapper.EncodeObject(codecs, A())
+        val mapper = MongoMapper_new()
+        val doc = mapper.Encode(A())
         println(doc.toJson())
     }
 

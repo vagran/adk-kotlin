@@ -333,6 +333,10 @@ private fun CheckConstructor(cls: KClass<*>, ctr: KFunction<*>): OmmClassNode.De
 
                 override fun Construct(outer: Any?): Any
                 {
+                    if (outer == null) {
+                        throw OmmError(
+                            "Outer class instance not provided for inner class constructor: $cls")
+                    }
                     return ctr.callBy(mapOf(outerParam to outer)) as Any
                 }
             }
@@ -343,6 +347,10 @@ private fun CheckConstructor(cls: KClass<*>, ctr: KFunction<*>): OmmClassNode.De
 
                 override fun Construct(outer: Any?): Any
                 {
+                    if (outer == null) {
+                        throw OmmError(
+                            "Outer class instance not provided for inner class constructor: $cls")
+                    }
                     return ctr.call(outer) as Any
                 }
             }
