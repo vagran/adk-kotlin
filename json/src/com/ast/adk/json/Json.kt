@@ -39,6 +39,7 @@ class Json(val prettyPrint: Boolean = false,
            annotatedOnlyFields: Boolean = false,
            acceptedVisibility: KVisibility = KVisibility.PUBLIC,
            requireLateinitVars: Boolean = true,
+           allowInnerClasses: Boolean = true,
            typeCodecs: Map<KType, JsonCodec<*>> = emptyMap(),
            classCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
            subclassCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap()) {
@@ -191,7 +192,7 @@ class Json(val prettyPrint: Boolean = false,
     internal val ommParams = OmmParams(requireAllFields = requireAllFields,
                                        annotatedOnlyFields = annotatedOnlyFields,
                                        acceptedVisibility = acceptedVisibility,
-                                       allowInnerClasses = false,
+                                       allowInnerClasses = allowInnerClasses,
                                        requireLateinitVars = requireLateinitVars)
     private val codecs = ConcurrentHashMap<KType, JsonCodec<*>>()
     private val classCodecs = HashMap<KClass<*>, JsonCodecProvider>()
