@@ -7,32 +7,32 @@ import org.bson.codecs.Codec
 import org.bson.codecs.DecoderContext
 import org.bson.codecs.EncoderContext
 
-class IntArrayCodec: Codec<IntArray> {
-    override fun getEncoderClass(): Class<IntArray>
+class DoubleArrayCodec: Codec<DoubleArray> {
+    override fun getEncoderClass(): Class<DoubleArray>
     {
-        return IntArray::class.java
+        return DoubleArray::class.java
     }
 
-    override fun encode(writer: BsonWriter, obj: IntArray, encoderContext: EncoderContext)
+    override fun encode(writer: BsonWriter, obj: DoubleArray, encoderContext: EncoderContext)
     {
         writer.writeStartArray()
         for (element in obj) {
-            writer.writeInt32(element)
+            writer.writeDouble(element)
         }
         writer.writeEndArray()
     }
 
-    override fun decode(reader: BsonReader, decoderContext: DecoderContext): IntArray
+    override fun decode(reader: BsonReader, decoderContext: DecoderContext): DoubleArray
     {
-        val result = ArrayList<Int>()
+        val result = ArrayList<Double>()
         reader.readStartArray()
         while (true) {
             if (reader.readBsonType() == BsonType.END_OF_DOCUMENT) {
                 break
             }
-            result.add(reader.readInt32())
+            result.add(reader.readDouble())
         }
         reader.readEndArray()
-        return result.toIntArray()
+        return result.toDoubleArray()
     }
 }

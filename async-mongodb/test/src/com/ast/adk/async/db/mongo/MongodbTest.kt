@@ -149,14 +149,15 @@ private class MongodbTest {
         val i = 42
         @MongoField var j = 43
         var pia: IntArray = arrayOf(1, 2, 3).toIntArray()
-//        @MongoField var ia: Array<Int?> = arrayOf(44, 45, null, 46)
-//        @MongoField val col = ArrayList<Int>()
+        @MongoField var ia: Array<Int?> = arrayOf(44, 45, null, 46)
+        val s = "abc"
+        @MongoField val col = ArrayList<Int>()
 
-//        init {
-//            col.add(47)
-//            col.add(48)
-//            col.add(49)
-//        }
+        init {
+            col.add(47)
+            col.add(48)
+            col.add(49)
+        }
     }
 
     @Test
@@ -288,7 +289,7 @@ private class MongodbTest {
         item.id = id
         item.testName = testName
 
-        val registry = MongoMapper.ForClasses(item::class)
+        val registry = MongoMapper_new()
         val collection = database.getCollection("mapped", item.javaClass)
             .withCodecRegistry(registry)
 

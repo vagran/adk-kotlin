@@ -1,6 +1,8 @@
 package com.ast.adk.async.db.mongo
 
+import com.ast.adk.async.db.mongo.codecs.ArrayCodec
 import com.ast.adk.async.db.mongo.codecs.IntArrayCodec
+import com.ast.adk.async.db.mongo.codecs.ListCodec
 import com.ast.adk.async.db.mongo.codecs.MappedClassCodec
 import com.ast.adk.omm.OmmParams
 import com.ast.adk.omm.TypeToken
@@ -167,10 +169,18 @@ class MongoMapper_new(
             }
         }
 
+        if (jvmErasure.isSubclassOf(List::class) || jvmErasure.isSubclassOf(Collection::class)) {
+            return ListCodec(type, this)
+        }
+
         //XXX
 
         if (jvmErasure.isSubclassOf(IntArray::class)) {
             return IntArrayCodec()
+        }
+
+        if (jvmErasure.java.isArray) {
+            return ArrayCodec(type, this)
         }
 
         return MappedClassCodec<Any>(type)
