@@ -9,7 +9,9 @@ import com.ast.adk.omm.TypeToken
 import org.bson.BsonDocument
 import org.bson.BsonDocumentWriter
 import org.bson.codecs.*
+import org.bson.codecs.configuration.CodecConfigurationException
 import org.bson.codecs.configuration.CodecProvider
+import org.bson.codecs.configuration.CodecRegistries
 import org.bson.codecs.configuration.CodecRegistry
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -90,8 +92,9 @@ class MongoMapper_new(
     private val codecs = ConcurrentHashMap<KType, Codec<*>>()
     private val builtinCodecs = listOf(BsonValueCodecProvider(),
                                        ValueCodecProvider(),
-                                       DocumentCodecProvider(),
-                                       PrimitiveValueCodecProvider())
+                                       PrimitiveValueCodecProvider(),
+                                       DocumentCodecProvider())
+    private val builtinRegistry = CodecRegistries.fromProviders(builtinCodecs)
     private val classCodecs = HashMap<KClass<*>, MongoCodecProvider>()
     private val subclassCodecs = HashMap<KClass<*>, MongoCodecProvider>()
 
@@ -132,13 +135,11 @@ class MongoMapper_new(
 
     private fun GetBuiltinCodec(cls: KClass<*>): Codec<*>?
     {
-        for (provider in builtinCodecs) {
-            val codec = provider.get(cls.java, this)
-            if (codec != null) {
-                return codec
-            }
+        return try {
+            builtinRegistry.get(cls.java)
+        } catch (_: CodecConfigurationException) {
+            null
         }
-        return null
     }
 
     private fun CreateCodec(type: KType): Codec<*>

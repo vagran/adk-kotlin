@@ -43,7 +43,7 @@ class ListCodec(private val type: KType, private val mapper: MongoMapper_new): M
             } else {
                 mapper.GetCodec(element::class) as Codec<Any>
             }
-            encoderContext.encodeWithChildContext(codec, writer, element)
+            codec.encode(writer, element, encoderContext)
         }
         writer.writeEndArray()
     }

@@ -38,7 +38,7 @@ class ArrayCodec(type: KType, private val mapper: MongoMapper_new): MongoCodec<A
             } else {
                 mapper.GetCodec(element::class) as Codec<Any>
             }
-            encoderContext.encodeWithChildContext(codec, writer, element)
+            codec.encode(writer, element, encoderContext)
         }
         writer.writeEndArray()
     }

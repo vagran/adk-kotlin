@@ -47,7 +47,7 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
                 continue
             }
             writer.writeName(name)
-            encoderContext.encodeWithChildContext(desc.codec, writer, value)
+            desc.codec.encode(writer, value, encoderContext)
         }
         writer.writeEndDocument()
     }
