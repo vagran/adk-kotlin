@@ -70,7 +70,6 @@ private class BasicTest {
 
     class C2 {
         lateinit var s: String
-        lateinit var s2: String
     }
 
     @Test
