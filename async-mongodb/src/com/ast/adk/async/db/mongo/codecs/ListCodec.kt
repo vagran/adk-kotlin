@@ -61,6 +61,11 @@ class ListCodec(private val type: KType, private val mapper: MongoMapper_new): M
             if (type == BsonType.END_OF_DOCUMENT) {
                 break
             }
+            if (type == BsonType.NULL) {
+                reader.readNull()
+                result.add(null)
+                continue
+            }
             result.add(readElementCodec.decode(reader, decoderContext))
         }
         reader.readEndArray()

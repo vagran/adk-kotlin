@@ -49,8 +49,14 @@ class ArrayCodec(type: KType, private val mapper: MongoMapper_new): MongoCodec<A
         val result = ArrayList<Any?>()
         reader.readStartArray()
         while (true) {
-            if (reader.readBsonType() == BsonType.END_OF_DOCUMENT) {
+            val type = reader.readBsonType()
+            if (type == BsonType.END_OF_DOCUMENT) {
                 break
+            }
+            if (type == BsonType.NULL) {
+                reader.readNull()
+                result.add(null)
+                continue
             }
             result.add(readElementCodec.decode(reader, decoderContext))
         }

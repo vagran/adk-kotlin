@@ -2,6 +2,7 @@ package com.ast.adk.async.db.mongo.codecs
 
 import com.ast.adk.async.db.mongo.MongoClass
 import com.ast.adk.async.db.mongo.MongoCodec
+import com.ast.adk.async.db.mongo.MongoId
 import com.ast.adk.async.db.mongo.MongoMapper_new
 import com.ast.adk.omm.OmmClassNode
 import com.ast.adk.omm.OmmError
@@ -97,7 +98,14 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
         allowUnmatchedFields = clsAnn?.allowUnmatchedFields?.booleanValue ?: mapper.allowUnmatchedFields
         serializeNulls = clsAnn?.serializeNulls?.booleanValue ?: mapper.serializeNulls
         clsNode = OmmClassNode(type.jvmErasure, mapper.ommParams)
-        clsNode.Initialize(mapper.ommParams) { fp -> FieldDesc(fp, mapper) }
+        clsNode.Initialize(
+            mapper.ommParams,
+            { fp -> FieldDesc(fp, mapper) },
+            fieldNameHook = {
+                prop ->
+                if (prop.findAnnotation<MongoId>() != null) "_id" else null
+            },
+            additionalAnnotations = listOf(MongoId::class))
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

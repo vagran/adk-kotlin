@@ -80,7 +80,7 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
         allowUnmatchedFields = clsAnn?.allowUnmatchedFields?.booleanValue ?: json.allowUnmatchedFields
         serializeNulls = clsAnn?.serializeNulls?.booleanValue ?: json.serializeNulls
         clsNode = OmmClassNode(type.jvmErasure, json.ommParams)
-        clsNode.Initialize(json.ommParams) { fp -> FieldDesc(fp, json) }
+        clsNode.Initialize(json.ommParams, { fp -> FieldDesc(fp, json) })
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

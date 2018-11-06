@@ -1,5 +1,6 @@
 package com.ast.adk.async.db.mongo
 
+import com.ast.adk.omm.OmmField
 import com.mongodb.async.client.MongoCollection
 import com.mongodb.async.client.MongoDatabase
 import org.bson.*
@@ -605,7 +606,7 @@ class MongoMapper {
             for (curCls in GetClassHierarchy(cls)) {
                 val properties = curCls.declaredMemberProperties
                 for (prop in properties) {
-                    val fieldAnn = prop.findAnnotation<MongoField>()
+                    val fieldAnn = prop.findAnnotation<OmmField>()
                     val idAnn = prop.findAnnotation<MongoId>()
                     if (fieldAnn == null && idAnn == null) {
                         continue

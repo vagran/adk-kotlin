@@ -9,6 +9,11 @@ import kotlin.reflect.jvm.jvmErasure
 
 typealias OmmGetterFunc = (obj: Any) -> Any?
 typealias OmmSetterFunc = (obj: Any, value: Any?) -> Unit
+/**
+ * Override default name selection algorithm for the specified property.
+ * @return Custom name, null for default name.
+ */
+typealias OmmFieldNameHook = (prop: KProperty1<*, *>) -> String?
 
 /** Represents a mapped class. */
 @Suppress("UNCHECKED_CAST")
@@ -87,7 +92,13 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         }
     }
 
-    fun Initialize(params: OmmParams, fieldNodeFabric: (params: FieldParams) -> TFieldNode)
+    /**
+     * @param additionalAnnotations Additional annotations to check for presence and accept the
+     * field if annotatedOnlyFields option is set.
+     */
+    fun Initialize(params: OmmParams, fieldNodeFabric: (params: FieldParams) -> TFieldNode,
+                   fieldNameHook: OmmFieldNameHook? = null,
+                   additionalAnnotations: List<KClass<out Annotation>>? = null)
     {
         val clsAnn: OmmClass? = cls.findAnnotation()
 
@@ -110,7 +121,18 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
 
                 val fieldAnn = prop.findAnnotation<OmmField>()
                 if (fieldAnn == null && annotatedOnlyFields) {
-                    continue
+                    var found = false
+                    if (additionalAnnotations != null) {
+                        for (ann in additionalAnnotations) {
+                            if (prop.annotations.firstOrNull { ann.isSuperclassOf(it::class) } != null) {
+                                found = true
+                                break
+                            }
+                        }
+                    }
+                    if (!found) {
+                        continue
+                    }
                 }
 
                 val visibility = prop.visibility
@@ -125,11 +147,14 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
                     prop.isAccessible = true
                 }
 
-                val name = if (fieldAnn != null && !fieldAnn.name.isEmpty()) {
-                    fieldAnn.name
-                } else {
-                    prop.name
-                }
+                val customName = fieldNameHook?.invoke(prop)
+                val name = customName ?:
+                    if (fieldAnn != null && !fieldAnn.name.isEmpty()) {
+                        fieldAnn.name
+                    } else {
+                        prop.name
+                    }
+
                 if (name in fields) {
                     throw IllegalArgumentException("Duplicated field name: $prop")
                 }
