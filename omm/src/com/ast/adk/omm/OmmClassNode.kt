@@ -120,19 +120,24 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
                 }
 
                 val fieldAnn = prop.findAnnotation<OmmField>()
-                if (fieldAnn == null && annotatedOnlyFields) {
-                    var found = false
-                    if (additionalAnnotations != null) {
-                        for (ann in additionalAnnotations) {
-                            if (prop.annotations.firstOrNull { ann.isSuperclassOf(it::class) } != null) {
-                                found = true
-                                break
-                            }
+                var additionalAnnFound = false
+                if (additionalAnnotations != null) {
+                    for (ann in additionalAnnotations) {
+                        if (prop.annotations.firstOrNull { ann.isSuperclassOf(it::class) } != null) {
+                            additionalAnnFound = true
+                            break
                         }
                     }
-                    if (!found) {
-                        continue
+                }
+                if (fieldAnn == null && annotatedOnlyFields && !additionalAnnFound) {
+                    continue
+                }
+
+                if (Modifier.isStatic(prop.javaField?.modifiers ?: 0)) {
+                    if (fieldAnn != null || additionalAnnFound) {
+                        throw IllegalArgumentException("Static field annotated: $prop")
                     }
+                    continue
                 }
 
                 val visibility = prop.visibility

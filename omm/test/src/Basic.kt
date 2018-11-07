@@ -27,7 +27,7 @@ private class BasicTest {
     {
         val params = OmmParams()
         val clsNode = OmmClassNode<OmmClassNode.OmmFieldNode>(D1::class, params)
-        clsNode.Initialize(params) { fp -> OmmClassNode.OmmFieldNode(fp) }
+        clsNode.Initialize(params, { fp -> OmmClassNode.OmmFieldNode(fp) })
 
         val setter = clsNode.SpawnObject(null)
         setter.Set(clsNode.fields["a"]!!, 42)
@@ -57,7 +57,7 @@ private class BasicTest {
     {
         val params = OmmParams(allowInnerClasses = true)
         val clsNode = OmmClassNode<OmmClassNode.OmmFieldNode>(C1.Inner::class, params)
-        clsNode.Initialize(params) { fp -> OmmClassNode.OmmFieldNode(fp) }
+        clsNode.Initialize(params, { fp -> OmmClassNode.OmmFieldNode(fp) })
 
         val outer = C1(42)
         val setter = clsNode.SpawnObject(outer)
@@ -76,9 +76,9 @@ private class BasicTest {
     @Test
     fun StaticClassTest1()
     {
-        val params = OmmParams()
+        val params = OmmParams(requireLateinitVars = false)
         val clsNode = OmmClassNode<OmmClassNode.OmmFieldNode>(C2::class, params)
-        clsNode.Initialize(params) { fp -> OmmClassNode.OmmFieldNode(fp) }
+        clsNode.Initialize(params, { fp -> OmmClassNode.OmmFieldNode(fp) })
 
         val setter = clsNode.SpawnObject(null)
         setter.Set(clsNode.fields["s"]!!, "test")

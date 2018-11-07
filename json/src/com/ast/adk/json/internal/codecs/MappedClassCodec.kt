@@ -81,6 +81,9 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
         serializeNulls = clsAnn?.serializeNulls?.booleanValue ?: json.serializeNulls
         clsNode = OmmClassNode(type.jvmErasure, json.ommParams)
         clsNode.Initialize(json.ommParams, { fp -> FieldDesc(fp, json) })
+        if (clsNode.fields.isEmpty() && clsNode.delegatedRepresentationField == null) {
+            throw IllegalArgumentException("No mapped fields in $type")
+        }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

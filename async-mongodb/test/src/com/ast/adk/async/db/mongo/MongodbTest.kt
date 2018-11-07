@@ -219,6 +219,7 @@ private class MongodbTest {
 
     /* Static mapped field. */
     object Invalid7 {
+        @JvmStatic
         @OmmField
         var i: Int = 0
     }
@@ -231,7 +232,7 @@ private class MongodbTest {
         var i: Int = 0
     }
 
-    /* Multiple MongoId, on in base class. */
+    /* Multiple MongoId, one in base class. */
     class Invalid8 : InvalidBase() {
         @MongoId
         var _id: ObjectId? = null
@@ -254,18 +255,18 @@ private class MongodbTest {
     @Test
     fun TestMapper_InvalidClasses()
     {
-        MongoMapper.ForClasses(Valid::class)
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid1::class) }
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid2::class) }
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid3::class) }
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid4::class) }
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid5::class) }
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid6::class) }
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid7::class) }
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid8::class) }
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid9::class) }
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid10::class) }
-        assertThrows<Error> { MongoMapper.ForClasses(Invalid11::class) }
+        MongoMapper_new().GetCodec<Valid>()
+        assertThrows<IllegalArgumentException> { MongoMapper_new().GetCodec<Invalid1>() }
+//        assertThrows<Error> { MongoMapper.ForClasses(Invalid2::class) }
+        assertThrows<IllegalArgumentException> { MongoMapper_new().GetCodec<Invalid3>() }
+        assertThrows<IllegalArgumentException> { MongoMapper_new().GetCodec<Invalid4>() }
+        assertThrows<IllegalArgumentException> { MongoMapper_new().GetCodec<Invalid5>() }
+        assertThrows<IllegalArgumentException> { MongoMapper_new().GetCodec<Invalid6>() }
+        assertThrows<IllegalArgumentException> { MongoMapper_new().GetCodec<Invalid7>() }
+        assertThrows<IllegalArgumentException> { MongoMapper_new().GetCodec<Invalid8>() }
+        assertThrows<IllegalArgumentException> { MongoMapper_new().GetCodec<Invalid9>() }
+//        assertThrows<IllegalArgumentException> { MongoMapper_new().GetCodec<Invalid10>() }
+//        assertThrows<IllegalArgumentException> { MongoMapper_new().GetCodec<Invalid11>() }
     }
 
     open class ItemBase {
