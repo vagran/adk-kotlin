@@ -610,7 +610,7 @@ private class MongodbTest {
         var i: ArrayList<Int?>? = null
 
         @OmmField(name = "jj")
-        val j: MutableList<Int?> = ArrayList()
+        lateinit var j: MutableList<Int?>
     }
 
 
@@ -622,6 +622,7 @@ private class MongodbTest {
         item.i!!.add(1)
         item.i!!.add(null)
         item.i!!.add(2)
+        item.j = ArrayList()
         item.j.add(3)
         item.j.add(null)
         item.j.add(4)

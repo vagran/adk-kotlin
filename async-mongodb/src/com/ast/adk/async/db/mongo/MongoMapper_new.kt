@@ -37,7 +37,7 @@ class MongoMapper_new(
 
     override fun <T: Any> get(cls: Class<T>): Codec<T>
     {
-        return GetCodec(cls.kotlin)
+        return registry.get(cls)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -47,8 +47,11 @@ class MongoMapper_new(
         if (codec != null) {
             return codec as Codec<T>
         }
-        codec = CreateCodec(type)
-        codecs[type] = codec
+        codec = GetCustomCodec(type)
+        val existingCodec = codecs.putIfAbsent(type, codec)
+        if (existingCodec != null) {
+            return existingCodec as Codec<T>
+        }
         if (codec is MongoCodec) {
             codec.Initialize(this)
         }
@@ -87,11 +90,12 @@ class MongoMapper_new(
                                        allowInnerClasses = allowInnerClasses,
                                        requireLateinitVars = requireLateinitVars)
     private val codecs = ConcurrentHashMap<KType, Codec<*>>()
-    private val builtinCodecs = listOf(BsonValueCodecProvider(),
-                                       ValueCodecProvider(),
-                                       PrimitiveValueCodecProvider(),
-                                       DocumentCodecProvider())
-    private val builtinRegistry = CodecRegistries.fromProviders(builtinCodecs)
+    private val builtinCodecProviders = listOf(BsonValueCodecProvider(),
+                                               ValueCodecProvider(),
+                                               PrimitiveValueCodecProvider(),
+                                               DocumentCodecProvider())
+    private val registry =
+        CodecRegistries.fromProviders(builtinCodecProviders + MappedCodecProvider())
     private val classCodecs = HashMap<KClass<*>, MongoCodecProvider>()
     private val subclassCodecs = HashMap<KClass<*>, MongoCodecProvider>()
 
@@ -110,8 +114,7 @@ class MongoMapper_new(
 
         private val codecs: Map<KClass<*>, Codec<*>>
 
-        init
-        {
+        init {
             codecs = HashMap()
             codecs[Boolean::class] = BooleanCodec()
             codecs[Char::class] = CharacterCodec()
@@ -130,20 +133,29 @@ class MongoMapper_new(
         }
     }
 
-    private fun GetBuiltinCodec(cls: KClass<*>): Codec<*>?
-    {
-        return try {
-            builtinRegistry.get(cls.java)
-        } catch (_: CodecConfigurationException) {
-            null
+    private inner class MappedCodecProvider: CodecProvider {
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T: Any> get(cls: Class<T>, registry: CodecRegistry): Codec<T>
+        {
+            val type = TypeToken.Create(cls.kotlin).type
+            var codec = codecs[type]
+            if (codec != null) {
+                return codec as Codec<T>
+            }
+            codec = MappedClassCodec<T>(type)
+            val existingCodec = codecs.putIfAbsent(type, codec)
+            if (existingCodec != null) {
+                return existingCodec as Codec<T>
+            }
+            codec.Initialize(this@MongoMapper_new)
+            return codec
         }
     }
 
-    private fun CreateCodec(type: KType): Codec<*>
+    private fun GetCustomCodec(type: KType): Codec<*>
     {
         val jvmErasure = type.jvmErasure
-
-        GetBuiltinCodec(jvmErasure)?.also { return it }
 
         for ((cls, provider) in classCodecs) {
             if (jvmErasure == cls) {
@@ -186,10 +198,10 @@ class MongoMapper_new(
             return DoubleArrayCodec()
         }
 
-        if (jvmErasure.java.isArray) {
+        if (jvmErasure.java.isArray && !jvmErasure.java.componentType.isPrimitive) {
             return ArrayCodec(type, this)
         }
 
-        return MappedClassCodec<Any>(type)
+        return registry.get(jvmErasure.java)
     }
 }
