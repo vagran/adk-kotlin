@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import kotlin.test.assertNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class BasicTest {
@@ -85,5 +86,81 @@ private class BasicTest {
         val obj = setter.Finalize() as C2
 
         assertEquals("test", obj.s)
+    }
+
+    class C3 {
+        @OmmField(qualifier = "A")
+        var s1: String? = null
+        @OmmField(qualifier = "B")
+        var s2: String? = null
+        @OmmField
+        var s3: String? = null
+    }
+
+    @Test
+    fun QualifiersTest()
+    {
+        run {
+            val params = OmmParams(qualifier = "A", annotatedOnlyFields = true)
+            val clsNode = OmmClassNode<OmmClassNode.OmmFieldNode>(C3::class, params)
+            clsNode.Initialize(params, { fp -> OmmClassNode.OmmFieldNode(fp) })
+
+            assertEquals(2, clsNode.fields.size)
+            val setter = clsNode.SpawnObject(null)
+            setter.Set(clsNode.fields["s1"]!!, "test1")
+            setter.Set(clsNode.fields["s3"]!!, "test3")
+            val obj = setter.Finalize() as C3
+
+            assertEquals("test1", obj.s1)
+            assertNull(obj.s2)
+            assertEquals("test3", obj.s3)
+        }
+
+        run {
+            val params = OmmParams(qualifier = "B", annotatedOnlyFields = true)
+            val clsNode = OmmClassNode<OmmClassNode.OmmFieldNode>(C3::class, params)
+            clsNode.Initialize(params, { fp -> OmmClassNode.OmmFieldNode(fp) })
+
+            assertEquals(2, clsNode.fields.size)
+            val setter = clsNode.SpawnObject(null)
+            setter.Set(clsNode.fields["s2"]!!, "test2")
+            setter.Set(clsNode.fields["s3"]!!, "test3")
+            val obj = setter.Finalize() as C3
+
+            assertNull(obj.s1)
+            assertEquals("test2", obj.s2)
+            assertEquals("test3", obj.s3)
+        }
+
+        run {
+            val params = OmmParams(qualifier = "A", annotatedOnlyFields = true,
+                                   qualifiedOnly = true)
+            val clsNode = OmmClassNode<OmmClassNode.OmmFieldNode>(C3::class, params)
+            clsNode.Initialize(params, { fp -> OmmClassNode.OmmFieldNode(fp) })
+
+            assertEquals(1, clsNode.fields.size)
+            val setter = clsNode.SpawnObject(null)
+            setter.Set(clsNode.fields["s1"]!!, "test1")
+            val obj = setter.Finalize() as C3
+
+            assertEquals("test1", obj.s1)
+            assertNull(obj.s2)
+            assertNull(obj.s3)
+        }
+
+        run {
+            val params = OmmParams(annotatedOnlyFields = true)
+            val clsNode = OmmClassNode<OmmClassNode.OmmFieldNode>(C3::class, params)
+            clsNode.Initialize(params, { fp -> OmmClassNode.OmmFieldNode(fp) })
+
+            assertEquals(1, clsNode.fields.size)
+            val setter = clsNode.SpawnObject(null)
+            setter.Set(clsNode.fields["s3"]!!, "test3")
+            val obj = setter.Finalize() as C3
+
+            assertNull(obj.s1)
+            assertNull(obj.s2)
+            assertEquals("test3", obj.s3)
+        }
     }
 }

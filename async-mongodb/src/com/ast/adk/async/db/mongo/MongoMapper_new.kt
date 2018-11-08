@@ -30,6 +30,8 @@ class MongoMapper_new(
     acceptedVisibility: KVisibility = KVisibility.PUBLIC,
     requireLateinitVars: Boolean = true,
     allowInnerClasses: Boolean = true,
+    qualifier: String? = "mongo",
+    qualifiedOnly: Boolean = false,
     typeCodecs: Map<KType, Codec<*>> = emptyMap(),
     classCodecs: Map<KClass<*>, MongoCodecProvider> = emptyMap(),
     subclassCodecs: Map<KClass<*>, MongoCodecProvider> = emptyMap()
@@ -88,7 +90,9 @@ class MongoMapper_new(
                                        annotatedOnlyFields = annotatedOnlyFields,
                                        acceptedVisibility = acceptedVisibility,
                                        allowInnerClasses = allowInnerClasses,
-                                       requireLateinitVars = requireLateinitVars)
+                                       requireLateinitVars = requireLateinitVars,
+                                       qualifier = qualifier,
+                                       qualifiedOnly = qualifiedOnly)
     private val codecs = ConcurrentHashMap<KType, Codec<*>>()
     private val builtinCodecProviders = listOf(BsonValueCodecProvider(),
                                                ValueCodecProvider(),

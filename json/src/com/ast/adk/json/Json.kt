@@ -42,6 +42,8 @@ class Json(
     acceptedVisibility: KVisibility = KVisibility.PUBLIC,
     requireLateinitVars: Boolean = true,
     allowInnerClasses: Boolean = true,
+    qualifier: String? = "json",
+    qualifiedOnly: Boolean = false,
     typeCodecs: Map<KType, JsonCodec<*>> = emptyMap(),
     classCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
     subclassCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap()) {
@@ -196,7 +198,9 @@ class Json(
                                        annotatedOnlyFields = annotatedOnlyFields,
                                        acceptedVisibility = acceptedVisibility,
                                        allowInnerClasses = allowInnerClasses,
-                                       requireLateinitVars = requireLateinitVars)
+                                       requireLateinitVars = requireLateinitVars,
+                                       qualifier = qualifier,
+                                       qualifiedOnly = qualifiedOnly)
     private val codecs = ConcurrentHashMap<KType, JsonCodec<*>>()
     private val classCodecs = HashMap<KClass<*>, JsonCodecProvider>()
     private val subclassCodecs = HashMap<KClass<*>, JsonCodecProvider>()
