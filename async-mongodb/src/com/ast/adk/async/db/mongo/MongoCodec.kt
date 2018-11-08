@@ -6,5 +6,5 @@ import org.bson.codecs.Codec
  * implement this interface in such case.
  */
 interface MongoCodec<T>: Codec<T> {
-    fun Initialize(mapper: MongoMapper_new)
+    fun Initialize(mapper: MongoMapper)
 }

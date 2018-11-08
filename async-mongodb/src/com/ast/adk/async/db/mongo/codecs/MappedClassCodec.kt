@@ -3,7 +3,7 @@ package com.ast.adk.async.db.mongo.codecs
 import com.ast.adk.async.db.mongo.MongoClass
 import com.ast.adk.async.db.mongo.MongoCodec
 import com.ast.adk.async.db.mongo.MongoId
-import com.ast.adk.async.db.mongo.MongoMapper_new
+import com.ast.adk.async.db.mongo.MongoMapper
 import com.ast.adk.omm.OmmClassNode
 import com.ast.adk.omm.OmmError
 import org.bson.BsonReader
@@ -94,7 +94,7 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
         return setter.Finalize() as T
     }
 
-    override fun Initialize(mapper: MongoMapper_new)
+    override fun Initialize(mapper: MongoMapper)
     {
         allowUnmatchedFields = clsAnn?.allowUnmatchedFields?.booleanValue ?: mapper.allowUnmatchedFields
         serializeNulls = clsAnn?.serializeNulls?.booleanValue ?: mapper.serializeNulls
@@ -127,7 +127,7 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
 
     @Suppress("UNCHECKED_CAST")
     private class FieldDesc(params: OmmClassNode.FieldParams,
-                            mapper: MongoMapper_new): OmmClassNode.OmmFieldNode(params) {
+                            mapper: MongoMapper): OmmClassNode.OmmFieldNode(params) {
 
         val codec: Codec<Any> = mapper.GetCodec(property.returnType)
     }

@@ -1,7 +1,7 @@
 package com.ast.adk.async.db.mongo.codecs
 
 import com.ast.adk.async.db.mongo.MongoCodec
-import com.ast.adk.async.db.mongo.MongoMapper_new
+import com.ast.adk.async.db.mongo.MongoMapper
 import com.ast.adk.omm.GetDefaultConstructor
 import com.ast.adk.omm.OmmError
 import org.bson.BsonReader
@@ -17,7 +17,7 @@ import kotlin.reflect.jvm.jvmErasure
 
 private typealias ConstructorFunc = () -> Any
 
-class ListCodec(private val type: KType, private val mapper: MongoMapper_new): MongoCodec<Collection<*>> {
+class ListCodec(private val type: KType, private val mapper: MongoMapper): MongoCodec<Collection<*>> {
 
     @Suppress("UNCHECKED_CAST")
     override fun getEncoderClass(): Class<Collection<*>>
@@ -72,7 +72,7 @@ class ListCodec(private val type: KType, private val mapper: MongoMapper_new): M
         return result
     }
 
-    override fun Initialize(mapper: MongoMapper_new)
+    override fun Initialize(mapper: MongoMapper)
     {
         if (elementClass != null) {
             @Suppress("UNCHECKED_CAST")

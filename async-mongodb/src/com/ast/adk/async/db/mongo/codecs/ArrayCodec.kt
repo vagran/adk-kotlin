@@ -1,7 +1,7 @@
 package com.ast.adk.async.db.mongo.codecs
 
 import com.ast.adk.async.db.mongo.MongoCodec
-import com.ast.adk.async.db.mongo.MongoMapper_new
+import com.ast.adk.async.db.mongo.MongoMapper
 import org.bson.BsonReader
 import org.bson.BsonType
 import org.bson.BsonWriter
@@ -12,7 +12,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.jvm.jvmErasure
 
-class ArrayCodec(type: KType, private val mapper: MongoMapper_new): MongoCodec<Array<*>> {
+class ArrayCodec(type: KType, private val mapper: MongoMapper): MongoCodec<Array<*>> {
 
     @Suppress("UNCHECKED_CAST")
     override fun getEncoderClass(): Class<Array<*>>
@@ -68,7 +68,7 @@ class ArrayCodec(type: KType, private val mapper: MongoMapper_new): MongoCodec<A
         return result.toArray()
     }
 
-    override fun Initialize(mapper: MongoMapper_new)
+    override fun Initialize(mapper: MongoMapper)
     {
         if (elementClass != null) {
             @Suppress("UNCHECKED_CAST")
