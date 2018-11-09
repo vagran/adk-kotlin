@@ -11,6 +11,8 @@ import org.bson.codecs.*
 import org.bson.codecs.configuration.CodecProvider
 import org.bson.codecs.configuration.CodecRegistries
 import org.bson.codecs.configuration.CodecRegistry
+import java.nio.file.Path
+import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -95,10 +97,10 @@ class MongoMapper(
     private val subclassCodecs = HashMap<KClass<*>, MongoCodecProvider>()
 
     init {
-//        this.classCodecs[LocalDateTime::class] = { LocalDateTimeCodec() }
-//        this.classCodecs[BitSet::class] = { BitSetCodec() }
-//
-//        this.subclassCodecs[Path::class] = { PathCodec() }
+        this.classCodecs[LocalDateTime::class] = { LocalDateTimeCodec() }
+        this.classCodecs[BitSet::class] = { BitSetCodec() }
+
+        this.subclassCodecs[Path::class] = { PathCodec() }
 
         codecs.putAll(typeCodecs)
         this.classCodecs.putAll(classCodecs)
