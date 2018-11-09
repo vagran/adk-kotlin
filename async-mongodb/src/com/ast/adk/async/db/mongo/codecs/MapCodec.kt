@@ -13,23 +13,23 @@ import org.bson.codecs.EncoderContext
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.KVisibility
-import kotlin.reflect.jvm.javaType
 import kotlin.reflect.jvm.jvmErasure
 
-private typealias ListConstructorFunc = () -> Any
+private typealias MapConstructorFunc = () -> Any
 
-class ListCodec(private val type: KType, private val mapper: MongoMapper): MongoCodec<Collection<*>> {
+class MapCodec(private val type: KType, private val mapper: MongoMapper): MongoCodec<Map<*, *>> {
 
     @Suppress("UNCHECKED_CAST")
-    override fun getEncoderClass(): Class<Collection<*>>
+    override fun getEncoderClass(): Class<Map<*, *>>
     {
-        return type.jvmErasure.java as Class<Collection<*>>
+        return type.jvmErasure.java as Class<Map<*, *>>
     }
 
-    override fun encode(writer: BsonWriter, obj: Collection<*>, encoderContext: EncoderContext)
+    override fun encode(writer: BsonWriter, obj: Map<*, *>, encoderContext: EncoderContext)
     {
-        writer.writeStartArray()
-        for (element in obj) {
+        writer.writeStartDocument()
+        for ((key, element) in obj) {
+            writer.writeName(key.toString())
             if (element == null) {
                 writer.writeNull()
                 continue
@@ -46,30 +46,25 @@ class ListCodec(private val type: KType, private val mapper: MongoMapper): Mongo
             }
             codec.encode(writer, element, encoderContext)
         }
-        writer.writeEndArray()
+        writer.writeEndDocument()
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun decode(reader: BsonReader, decoderContext: DecoderContext): Collection<*>
+    override fun decode(reader: BsonReader, decoderContext: DecoderContext): Map<*, *>
     {
         if (constructor == null) {
             throw OmmError("No constructor found for $type")
         }
-        val result = constructor.invoke() as MutableCollection<Any?>
-        reader.readStartArray()
+        val result = constructor.invoke() as MutableMap<String, Any?>
+        reader.readStartDocument()
         while (true) {
             val type = reader.readBsonType()
             if (type == BsonType.END_OF_DOCUMENT) {
                 break
             }
-            if (type == BsonType.NULL) {
-                reader.readNull()
-                result.add(null)
-                continue
-            }
-            result.add(readElementCodec.decode(reader, decoderContext))
+            result[reader.readName()] = readElementCodec.decode(reader, decoderContext)
         }
-        reader.readEndArray()
+        reader.readEndDocument()
         return result
     }
 
@@ -88,7 +83,7 @@ class ListCodec(private val type: KType, private val mapper: MongoMapper): Mongo
     private val elementClass: KClass<*>? = GetElementClass(type)
     private lateinit var elementCodec: Codec<Any>
     private lateinit var readElementCodec: Codec<Any>
-    private val constructor: ListConstructorFunc?
+    private val constructor: MapConstructorFunc?
 
     init {
         val defCtr = try {
@@ -105,9 +100,8 @@ class ListCodec(private val type: KType, private val mapper: MongoMapper): Mongo
             defCtr != null -> {
                 { defCtr.Construct(null) }
             }
-            type.jvmErasure == List::class || type.jvmErasure == MutableList::class ||
-            type.jvmErasure == Collection::class || type.jvmErasure == MutableCollection::class -> {
-                { ArrayList<Any?>() }
+            type.jvmErasure == Map::class || type.jvmErasure == MutableMap::class -> {
+                { HashMap<String, Any?>() }
             }
             else -> null
         }
@@ -116,7 +110,10 @@ class ListCodec(private val type: KType, private val mapper: MongoMapper): Mongo
     private companion object {
         fun GetElementClass(type: KType): KClass<*>?
         {
-            return type.arguments[0].type?.jvmErasure
+            if (type.arguments.size < 2) {
+                return null
+            }
+            return type.arguments[1].type?.jvmErasure
         }
     }
 }

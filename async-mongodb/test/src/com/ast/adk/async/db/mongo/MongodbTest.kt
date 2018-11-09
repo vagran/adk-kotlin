@@ -19,6 +19,9 @@ import org.junit.jupiter.api.Assertions.*
 import java.util.*
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.test.assertNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class MongodbTest {
@@ -152,12 +155,16 @@ private class MongodbTest {
         var pia: IntArray = arrayOf(1, 2, 3).toIntArray()
         @OmmField var ia: Array<Int?> = arrayOf(44, 45, null, 46)
         val s = "abc"
-        @OmmField val col = ArrayList<Int>()
+        @OmmField val col = ArrayList<Int?>()
+        @OmmField val map = HashMap<String, Int?>()
 
         init {
             col.add(47)
+            col.add(null)
             col.add(48)
-            col.add(49)
+            map["a"] = 50
+            map["b"] = null
+            map["c"] = 51
         }
     }
 
@@ -166,7 +173,12 @@ private class MongodbTest {
     {
         val mapper = MongoMapper()
         val doc = mapper.Encode(A())
-        println(doc.toJson())
+        val json = doc.toJson()
+        println(json)
+        assertEquals("""
+            { "col" : [47, null, 48], "s" : "abc", "ia" : [44, 45, null, 46], "i" : 42,
+             "pia" : [1, 2, 3], "j" : 43, "map" : { "a" : 50, "b" : null, "c" : 51 } }
+        """.trimIndent().replace("\n", ""), json)
     }
 
     class Valid {
@@ -546,24 +558,24 @@ private class MongodbTest {
         }
     }
 
-    @Test
-    fun InnerClass()
-    {
-        var item = ItemInnerClass()
-        item.inner = item.InnerItem()
-        item.inner!!.i = 42
-        item.inner!!.inner = item.inner!!.Inner2Item()
-        item.inner!!.inner!!.j = 43
-        item = TestMapping(item, "Inner class")
-        assertNotNull(item.inner)
-        assertEquals(42, item.inner!!.i)
-        assertNotNull(item.inner!!.inner)
-        assertEquals(43, item.inner!!.inner!!.j)
-        assertEquals(44, item.inner!!.inner!!.k)
-        //XXX assertEquals(45, item.inner!!.inner!!.l)
-        assertEquals(item, item.inner!!.GetOuter())
-        assertEquals(item.inner, item.inner!!.inner!!.GetOuter())
-    }
+//    @Test
+//    fun InnerClass()
+//    {
+//        var item = ItemInnerClass()
+//        item.inner = item.InnerItem()
+//        item.inner!!.i = 42
+//        item.inner!!.inner = item.inner!!.Inner2Item()
+//        item.inner!!.inner!!.j = 43
+//        item = TestMapping(item, "Inner class")
+//        assertNotNull(item.inner)
+//        assertEquals(42, item.inner!!.i)
+//        assertNotNull(item.inner!!.inner)
+//        assertEquals(43, item.inner!!.inner!!.j)
+//        assertEquals(44, item.inner!!.inner!!.k)
+//        //XXX assertEquals(45, item.inner!!.inner!!.l)
+//        assertEquals(item, item.inner!!.GetOuter())
+//        assertEquals(item.inner, item.inner!!.inner!!.GetOuter())
+//    }
 
     class ItemInnerClassArray: ItemBase() {
 
@@ -590,20 +602,20 @@ private class MongodbTest {
         }
     }
 
-    @Test
-    fun InnerClassArray()
-    {
-        var item = ItemInnerClassArray()
-        item.inner = arrayOf(item.InnerItem(42), null, item.InnerItem(43))
-        item = TestMapping(item, "Inner class array")
-        assertNotNull(item.inner)
-        assertEquals(3, item.inner!!.size)
-        assertEquals(42, item.inner!![0]!!.i)
-        assertEquals(item, item.inner!![0]!!.GetOuter())
-        assertNull(item.inner!![1])
-        assertEquals(43, item.inner!![2]!!.i)
-        assertEquals(item, item.inner!![2]!!.GetOuter())
-    }
+//    @Test
+//    fun InnerClassArray()
+//    {
+//        var item = ItemInnerClassArray()
+//        item.inner = arrayOf(item.InnerItem(42), null, item.InnerItem(43))
+//        item = TestMapping(item, "Inner class array")
+//        assertNotNull(item.inner)
+//        assertEquals(3, item.inner!!.size)
+//        assertEquals(42, item.inner!![0]!!.i)
+//        assertEquals(item, item.inner!![0]!!.GetOuter())
+//        assertNull(item.inner!![1])
+//        assertEquals(43, item.inner!![2]!!.i)
+//        assertEquals(item, item.inner!![2]!!.GetOuter())
+//    }
 
     class ItemCollection: ItemBase() {
 
@@ -808,5 +820,43 @@ private class MongodbTest {
         assertEquals(10, item2.i)
         assertEquals("Test", item2.s)
         assertEquals(42, item2.j)
+    }
+
+    class AnyItemClass: ItemBase() {
+        @OmmField
+        lateinit var map: Map<String, *>
+        @OmmField
+        lateinit var list: List<*>
+    }
+
+    @Test
+    fun AnyItem()
+    {
+        var item = AnyItemClass()
+        item.map = HashMap<String, Any?>().also {
+            it["a"] = 42
+            it["b"] = null
+            it["c"] = "abc"
+            it["d"] = true
+        }
+        item.list = ArrayList<Any?>().also {
+            it.add(42)
+            it.add(null)
+            it.add("abc")
+            it.add(true)
+        }
+        item = TestMapping(item, "Any class")
+
+        assertEquals(4, item.map.size)
+        assertEquals(42, item.map["a"])
+        assertNull(item.map["b"])
+        assertEquals("abc", item.map["c"])
+        assertEquals(true, item.map["d"])
+
+        assertEquals(4, item.list.size)
+        assertEquals(42, item.list[0])
+        assertNull(item.list[1])
+        assertEquals("abc", item.list[2])
+        assertEquals(true, item.list[3])
     }
 }

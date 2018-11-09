@@ -1,10 +1,12 @@
 package com.ast.adk.async.db.mongo
 
 import com.ast.adk.async.db.mongo.codecs.*
+import com.ast.adk.async.db.mongo.codecs.MapCodec
 import com.ast.adk.omm.OmmParams
 import com.ast.adk.omm.TypeToken
 import org.bson.BsonDocument
 import org.bson.BsonDocumentWriter
+import org.bson.Document
 import org.bson.codecs.*
 import org.bson.codecs.configuration.CodecProvider
 import org.bson.codecs.configuration.CodecRegistries
@@ -185,8 +187,9 @@ class MongoMapper(
         if (jvmErasure.isSubclassOf(List::class) || jvmErasure.isSubclassOf(Collection::class)) {
             return ListCodec(type, this)
         }
-
-        //XXX
+        if (jvmErasure != Document::class && jvmErasure.isSubclassOf(Map::class)) {
+            return MapCodec(type, this)
+        }
 
         if (jvmErasure.isSubclassOf(IntArray::class)) {
             return IntArrayCodec()
@@ -203,6 +206,10 @@ class MongoMapper(
 
         if (jvmErasure.java.isArray && !jvmErasure.java.componentType.isPrimitive) {
             return ArrayCodec(type, this)
+        }
+
+        if (jvmErasure == Any::class) {
+            return AnyCodec(this)
         }
 
         return null

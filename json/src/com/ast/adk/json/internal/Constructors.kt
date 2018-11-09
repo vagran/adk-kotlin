@@ -1,5 +1,6 @@
 package com.ast.adk.json.internal
 
+import com.ast.adk.omm.GetDefaultConstructor
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KVisibility
@@ -8,28 +9,19 @@ typealias ConstructorFunc = () -> Any
 
 fun GetDefaultConstructor(cls: KClass<*>): ConstructorFunc?
 {
-    if (cls.isAbstract || cls.isSealed || cls.objectInstance != null) {
+    val defCtr = try {
+        val ctr = GetDefaultConstructor(cls, KVisibility.PUBLIC)
+        if (ctr.outerCls == null) {
+            ctr
+        } else {
+            null
+        }
+    } catch(e: Exception) {
+        null
+    }
+    if (defCtr != null) {
+        return { defCtr.Construct(null) }
+    } else {
         return null
     }
-    for (ctr in cls.constructors) {
-        val defCtr = CheckConstructor(ctr)
-        if (defCtr != null) {
-            if (ctr.visibility != KVisibility.PUBLIC) {
-                return null
-            }
-            return defCtr
-        }
-    }
-    return null
-}
-
-private fun CheckConstructor(ctr: KFunction<*>): ConstructorFunc?
-{
-    for (paramIdx in 0 until ctr.parameters.size) {
-        val param = ctr.parameters[paramIdx]
-        if (!param.isOptional) {
-            return null
-        }
-    }
-    return { ctr.callBy(emptyMap()) as Any }
 }
