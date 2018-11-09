@@ -60,14 +60,7 @@ class ArrayCodec(type: KType): JsonCodec<Array<*>> {
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    private val elementClass: KClass<*>? = GetElementClass(type)
+    private val elementClass: KClass<*>? = type.arguments[0].type?.jvmErasure
     private lateinit var elementCodec: JsonCodec<Any>
     private lateinit var readElementCodec: JsonCodec<Any>
-
-    private companion object {
-        fun GetElementClass(type: KType): KClass<*>?
-        {
-            return type.arguments[0].type?.jvmErasure
-        }
-    }
 }

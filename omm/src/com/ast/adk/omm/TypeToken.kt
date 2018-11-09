@@ -1,4 +1,4 @@
-package com.ast.adk.json
+package com.ast.adk.omm
 
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type

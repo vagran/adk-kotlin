@@ -1,9 +1,6 @@
 
 import com.ast.adk.json.*
-import com.ast.adk.omm.OmmClass
-import com.ast.adk.omm.OmmField
-import com.ast.adk.omm.OmmIgnore
-import com.ast.adk.omm.OmmOption
+import com.ast.adk.omm.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance

@@ -4,7 +4,7 @@ import com.ast.adk.async.Deferred
 import com.ast.adk.async.ThreadContext
 import com.ast.adk.domain.httpserver.*
 import com.ast.adk.json.Json
-import com.ast.adk.json.TypeToken
+import com.ast.adk.omm.TypeToken
 import com.ast.adk.log.LogConfiguration
 import com.ast.adk.log.LogManager
 import com.sun.net.httpserver.HttpServer
