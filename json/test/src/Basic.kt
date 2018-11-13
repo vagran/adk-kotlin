@@ -11,8 +11,6 @@ import java.time.ZoneOffset
 import java.util.*
 import kotlin.reflect.full.createType
 import kotlin.reflect.jvm.jvmErasure
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 data class Custom(val i: Int)
 
@@ -225,6 +223,12 @@ private class BasicTest {
         """.trimIndent(), result)
     }
 
+    enum class TestEnum {
+        A,
+        B,
+        C
+    }
+
     class MappedClass {
         lateinit var a: String
         var b: Int = 0
@@ -234,6 +238,9 @@ private class BasicTest {
         var e = 0L
         var f: String? = "aaa"
         @OmmIgnore val ignored = "ignored"
+        var g: TestEnum = TestEnum.A
+        @OmmField(enumByName = OmmOption.YES)
+        var h: TestEnum = TestEnum.A
     }
 
     @Test
@@ -246,6 +253,8 @@ private class BasicTest {
         obj.d = true
         obj.e = 123
         obj.f = null
+        obj.g = TestEnum.B
+        obj.h = TestEnum.C
         val json = Json(true)
         val result = json.ToJson(obj)
         assertEquals("""
@@ -255,7 +264,9 @@ private class BasicTest {
               "CCC": 2.5,
               "d": true,
               "e": 123,
-              "f": null
+              "f": null,
+              "g": 1,
+              "h": "C"
             }
         """.trimIndent(), result)
     }
@@ -272,7 +283,9 @@ private class BasicTest {
                 "CCC": 4.5,
                 "d": true,
                 "e": 123,
-                "f": null
+                "f": null,
+                "g": 1,
+                "h": "C"
             } /* EOF */
         """
         val result = json.FromJson<MappedClass>(sampleJson) ?: fail()
@@ -282,6 +295,8 @@ private class BasicTest {
         assertTrue(result.d)
         assertEquals(123L, result.e)
         assertNull(result.f)
+        assertEquals(TestEnum.B, result.g)
+        assertEquals(TestEnum.C, result.h)
     }
 
     data class MappedDataClass(
@@ -695,6 +710,18 @@ private class BasicTest {
         assertEquals("test", parsed.b)
     }
 
-    //XXX data class
+    data class DataClass(val a: Int, val b: String, val c: Int = 42)
+
+    @Test
+    fun DataClassTest()
+    {
+        val obj = DataClass(43, "abc")
+        val json = Json(true)
+        val sampleJson = json.ToJson(obj)
+        val parsed = json.FromJson<DataClass>(sampleJson) ?: fail()
+        assertEquals(obj.a, parsed.a)
+        assertEquals(obj.b, parsed.b)
+        assertEquals(obj.c, parsed.c)
+    }
 }
 

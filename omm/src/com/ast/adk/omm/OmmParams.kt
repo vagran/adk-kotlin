@@ -7,6 +7,7 @@ import kotlin.reflect.KVisibility
  * It also applies to constructor which is used for new instance creation by a mapper.
  * @param qualifier Qualifier to distinct annotations by.
  * @param qualifiedOnly Do not process annotations without the specified qualifier.
+ * @param enumByName Encode enums by name string instead of ordinal value.
  */
 data class OmmParams(
     val requireAllFields: Boolean = false,
@@ -16,7 +17,8 @@ data class OmmParams(
     val allowInnerClasses: Boolean = false,
     val requireLateinitVars: Boolean = true,
     val qualifier: String? = null,
-    val qualifiedOnly: Boolean = false
+    val qualifiedOnly: Boolean = false,
+    val enumByName: Boolean = false
 ) {
 
     init {

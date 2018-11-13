@@ -278,6 +278,10 @@ class Json(
             return BooleanCodec()
         }
 
+        if (jvmErasure.isSubclassOf(Enum::class)) {
+            return EnumCodec(type)
+        }
+
         if (jvmErasure == Any::class) {
             return AnyCodec()
         }

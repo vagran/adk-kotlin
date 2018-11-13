@@ -1,6 +1,7 @@
 package com.ast.adk.omm
 
 import java.lang.reflect.Modifier
+import java.util.*
 import kotlin.reflect.*
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.isAccessible
@@ -32,7 +33,8 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val requiredDefault: Boolean,
         val requireLateinitVars: Boolean,
         val index: Int,
-        val dataCtrParam: KParameter?
+        val dataCtrParam: KParameter?,
+        val enumByName: Boolean
     )
 
     interface DefConstructor {
@@ -43,6 +45,16 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         fun Construct(outer: Any?): Any
     }
 
+    /** Enum field encoding mode. */
+    enum class EnumMode {
+        /** Field is not enum. */
+        NONE,
+        /** Encode by ordinal value. */
+        ORDINAL,
+        /** Encode by name string. */
+        NAME
+    }
+
     open class OmmFieldNode(params: FieldParams) {
         val property = params.property
         val index = params.index
@@ -51,8 +63,19 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val dataCtrParam = params.dataCtrParam
         val getter: OmmGetterFunc
         val setter: OmmSetterFunc?
+        val enumMode: EnumMode
 
         init {
+            enumMode = if (property.returnType.jvmErasure.isSubclassOf(Enum::class)) {
+                if (params.enumByName) {
+                    EnumMode.NAME
+                } else {
+                    EnumMode.ORDINAL
+                }
+            } else {
+                EnumMode.NONE
+            }
+
             getter = { obj -> (property as KProperty1<Any, Any?>).get(obj) }
             setter =
                 if (property is KMutableProperty1) {
@@ -106,6 +129,7 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val annotatedOnlyFields = clsAnn?.annotatedOnlyFields?.booleanValue ?: params.annotatedOnlyFields
         val walkBaseClasses = clsAnn?.walkBaseClasses?.booleanValue ?: params.walkBaseClasses
         val requireLateinitVars = clsAnn?.requireLateinitVars?.booleanValue ?: params.requireLateinitVars
+        val enumByName = clsAnn?.enumByName?.booleanValue ?: params.enumByName
 
         for (curCls in if (walkBaseClasses) cls.allSuperclasses + cls else listOf(cls)) {
             if (curCls.isInner && !params.allowInnerClasses) {
@@ -166,7 +190,8 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
 
                 val fieldParams = FieldParams(prop, fieldAnn, requiredDefault, requireLateinitVars,
                                               fields.size,
-                                              dataCtr?.findParameterByName(prop.name))
+                                              dataCtr?.findParameterByName(prop.name),
+                                              fieldAnn?.enumByName?.booleanValue ?: enumByName)
                 val fieldNode = fieldNodeFabric(fieldParams)
 
                 if (fieldAnn != null && fieldAnn.delegatedRepresentation) {

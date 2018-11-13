@@ -33,7 +33,12 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
                 continue
             }
             writer.WriteName(name)
-            desc.codec.WriteNonNull(value, writer, json)
+            if (desc.enumMode != OmmClassNode.EnumMode.NONE) {
+                (desc.codec as EnumCodec).WriteEnumNonNull(value as Enum<*>, writer,
+                                                           desc.enumMode == OmmClassNode.EnumMode.NAME)
+            } else {
+                desc.codec.WriteNonNull(value, writer, json)
+            }
         }
         writer.EndObject()
     }
@@ -64,7 +69,12 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
                     reader.SkipValue()
                     continue
                 }
-                val value = desc.codec.Read(reader, json)
+                val value = if (desc.enumMode != OmmClassNode.EnumMode.NONE) {
+                    (desc.codec as EnumCodec).ReadEnum(reader,
+                                                       desc.enumMode == OmmClassNode.EnumMode.NAME)
+                } else {
+                    desc.codec.Read(reader, json)
+                }
                 setter.Set(desc, value)
             }
             reader.EndObject()

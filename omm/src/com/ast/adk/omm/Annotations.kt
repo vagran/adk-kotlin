@@ -37,6 +37,7 @@ annotation class OmmClass (
     val annotatedOnlyFields: OmmOption = OmmOption.NOT_SET,
     val walkBaseClasses: OmmOption = OmmOption.NOT_SET,
     val requireLateinitVars: OmmOption = OmmOption.NOT_SET,
+    val enumByName: OmmOption = OmmOption.NOT_SET,
     val qualifier: String = ""
 )
 
@@ -54,6 +55,7 @@ annotation class OmmField(
     val optional: Boolean = false,
     val required: Boolean = false,
     val delegatedRepresentation: Boolean = false,
+    val enumByName: OmmOption = OmmOption.NOT_SET,
     val qualifier: String = ""
 )
 
