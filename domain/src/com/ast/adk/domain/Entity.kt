@@ -1,11 +1,9 @@
 package com.ast.adk.domain
 
-import java.util.*
-import kotlin.collections.HashMap
 import kotlin.reflect.KCallable
 import kotlin.reflect.KParameter
 
-/** Use it with data class copy() method.
+/** Use it with data class instance copy() method.
  * @param params Map with parameters to override.
  */
 fun <T> MutateEntity(copyMethod: KCallable<T>, params: Map<String, Any?>): T
