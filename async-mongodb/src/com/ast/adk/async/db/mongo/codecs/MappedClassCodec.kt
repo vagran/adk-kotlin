@@ -33,7 +33,7 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
             if (value == null) {
                 writer.writeNull()
             } else {
-                desc.codec.encode(writer, value, encoderContext)
+                desc.Write(writer, value, encoderContext)
             }
             return
         }
@@ -42,14 +42,14 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
         for ((name, desc) in clsNode.fields) {
             val value = desc.getter(obj as Any)
             if (value == null) {
-                if (serializeNulls) {
+                if (desc.serializeNull) {
                     writer.writeName(name)
                     writer.writeNull()
                 }
                 continue
             }
             writer.writeName(name)
-            desc.codec.encode(writer, value, encoderContext)
+            desc.Write(writer, value, encoderContext)
         }
         writer.writeEndDocument()
     }
@@ -58,7 +58,7 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
     override fun decode(reader: BsonReader, decoderContext: DecoderContext): T
     {
         clsNode.delegatedRepresentationField?.also { desc ->
-            val value = desc.codec.decode(reader, decoderContext)
+            val value = desc.Read(reader, decoderContext)
             val setter = clsNode.SpawnObject(null)
             setter.Set(desc, value)
             return setter.Finalize() as T
@@ -71,11 +71,6 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
             if (type == BsonType.END_OF_DOCUMENT) {
                 break
             }
-            if (type == BsonType.NULL) {
-                reader.skipName()
-                reader.readNull()
-                continue
-            }
 
             val name = reader.readName()
             val desc = clsNode.fields[name]
@@ -86,7 +81,14 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
                 reader.skipValue()
                 continue
             }
-            val value = decoderContext.decodeWithChildContext(desc.codec, reader)
+
+            if (type == BsonType.NULL) {
+                reader.readNull()
+                setter.Set(desc, null)
+                continue
+            }
+
+            val value = desc.Read(reader, decoderContext)
             setter.Set(desc, value)
         }
         reader.readEndDocument()
@@ -97,7 +99,6 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
     override fun Initialize(mapper: MongoMapper)
     {
         allowUnmatchedFields = clsAnn?.allowUnmatchedFields?.booleanValue ?: mapper.allowUnmatchedFields
-        serializeNulls = clsAnn?.serializeNulls?.booleanValue ?: mapper.serializeNulls
         clsNode = OmmClassNode(type.jvmErasure, mapper.ommParams)
         clsNode.Initialize(
             mapper.ommParams,
@@ -122,7 +123,6 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val clsAnn: MongoClass? = type.jvmErasure.findAnnotation()
     private var allowUnmatchedFields = false
-    private var serializeNulls = false
     private lateinit var clsNode: OmmClassNode<FieldDesc>
 
     @Suppress("UNCHECKED_CAST")
@@ -130,5 +130,24 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
                             mapper: MongoMapper): OmmClassNode.OmmFieldNode(params) {
 
         val codec: Codec<Any> = mapper.GetCodec(property.returnType)
+
+        fun Read(reader: BsonReader, decoderContext: DecoderContext): Any?
+        {
+            return if (enumMode != OmmClassNode.EnumMode.NONE) {
+                (codec as EnumCodec).DecodeEnum(reader, enumMode == OmmClassNode.EnumMode.NAME)
+            } else {
+                codec.decode(reader, decoderContext)
+            }
+        }
+
+        fun Write(writer: BsonWriter, value: Any?, encoderContext: EncoderContext)
+        {
+            if (enumMode != OmmClassNode.EnumMode.NONE) {
+                (codec as EnumCodec).EncodeEnum(writer, value as Enum<*>,
+                                                enumMode == OmmClassNode.EnumMode.NAME)
+            } else {
+                codec.encode(writer, value, encoderContext)
+            }
+        }
     }
 }

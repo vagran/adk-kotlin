@@ -8,6 +8,7 @@ import kotlin.reflect.KVisibility
  * @param qualifier Qualifier to distinct annotations by.
  * @param qualifiedOnly Do not process annotations without the specified qualifier.
  * @param enumByName Encode enums by name string instead of ordinal value.
+ * @param serializeNulls Serialize null fields in mapped classes by default.
  */
 data class OmmParams(
     val requireAllFields: Boolean = false,
@@ -18,7 +19,8 @@ data class OmmParams(
     val requireLateinitVars: Boolean = true,
     val qualifier: String? = null,
     val qualifiedOnly: Boolean = false,
-    val enumByName: Boolean = false
+    val enumByName: Boolean = false,
+    val serializeNulls: Boolean = true
 ) {
 
     init {

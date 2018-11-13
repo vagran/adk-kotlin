@@ -33,7 +33,7 @@ typealias JsonCodecProvider = (type: KType) -> JsonCodec<*>
  */
 class Json(
     val prettyPrint: Boolean = false,
-    val serializeNulls: Boolean = true,
+    serializeNulls: Boolean = true,
     val prettyPrintIndent: Int = 2,
     val enableComments: Boolean = true,
     val allowUnmatchedFields: Boolean = false,
@@ -196,6 +196,7 @@ class Json(
     // /////////////////////////////////////////////////////////////////////////////////////////////
     internal val ommParams = OmmParams(requireAllFields = requireAllFields,
                                        annotatedOnlyFields = annotatedOnlyFields,
+                                       serializeNulls = serializeNulls,
                                        acceptedVisibility = acceptedVisibility,
                                        allowInnerClasses = allowInnerClasses,
                                        requireLateinitVars = requireLateinitVars,

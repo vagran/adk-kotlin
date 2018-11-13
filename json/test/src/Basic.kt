@@ -241,6 +241,7 @@ private class BasicTest {
         var g: TestEnum = TestEnum.A
         @OmmField(enumByName = OmmOption.YES)
         var h: TestEnum = TestEnum.A
+        var i: TestEnum? = TestEnum.A
     }
 
     @Test
@@ -255,6 +256,7 @@ private class BasicTest {
         obj.f = null
         obj.g = TestEnum.B
         obj.h = TestEnum.C
+        obj.i = null
         val json = Json(true)
         val result = json.ToJson(obj)
         assertEquals("""
@@ -266,7 +268,8 @@ private class BasicTest {
               "e": 123,
               "f": null,
               "g": 1,
-              "h": "C"
+              "h": "C",
+              "i": null
             }
         """.trimIndent(), result)
     }
@@ -285,7 +288,8 @@ private class BasicTest {
                 "e": 123,
                 "f": null,
                 "g": 1,
-                "h": "C"
+                "h": "C",
+                "i": null
             } /* EOF */
         """
         val result = json.FromJson<MappedClass>(sampleJson) ?: fail()
@@ -297,6 +301,7 @@ private class BasicTest {
         assertNull(result.f)
         assertEquals(TestEnum.B, result.g)
         assertEquals(TestEnum.C, result.h)
+        assertNull(result.i)
     }
 
     data class MappedDataClass(

@@ -7,6 +7,7 @@ import com.ast.adk.log.*
 import com.ast.adk.log.LogConfiguration.Companion.DEFAULT_PATTERN
 import com.ast.adk.log.slf4j.api.Slf4jLogManager
 import com.ast.adk.omm.OmmField
+import com.ast.adk.omm.OmmOption
 import com.mongodb.MongoClientSettings
 import com.mongodb.ServerAddress
 import com.mongodb.async.client.MongoClient
@@ -16,11 +17,8 @@ import org.bson.*
 import org.bson.types.ObjectId
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import java.util.*
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 import kotlin.test.assertNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -327,6 +325,12 @@ private class MongodbTest {
         }
     }
 
+    enum class TestEnum {
+        A,
+        B,
+        C
+    }
+
     class ItemBasic: ItemBase() {
 
         var derivedCtor: Int = 43
@@ -357,6 +361,15 @@ private class MongodbTest {
 
         @OmmField
         var nullArray: IntArray? = null
+
+        @OmmField
+        var e1: TestEnum = TestEnum.A
+
+        @OmmField(enumByName = OmmOption.YES)
+        var e2: TestEnum = TestEnum.A
+
+        @OmmField(serializeNull = OmmOption.YES)
+        var e3: TestEnum? = TestEnum.A
     }
 
     @Test
@@ -368,6 +381,9 @@ private class MongodbTest {
         item.sh = 44
         item.f = 45.5f
         item.s = "test string"
+        item.e1 = TestEnum.B
+        item.e2 = TestEnum.C
+        item.e3 = null
         item = TestMapping(item, "Basic")
         assertNotNull(item.mongoId)
         assertEquals(42, item.i.toLong())
@@ -380,6 +396,9 @@ private class MongodbTest {
         assertNull(item.nullS)
         assertNull(item.nullBoxed)
         assertNull(item.nullArray)
+        assertEquals(TestEnum.B, item.e1)
+        assertEquals(TestEnum.C, item.e2)
+        assertNull(item.e3)
     }
 
     class ItemBoxed: ItemBase() {

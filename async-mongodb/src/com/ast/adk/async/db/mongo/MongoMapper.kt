@@ -26,7 +26,7 @@ import kotlin.reflect.jvm.jvmErasure
 typealias MongoCodecProvider = (type: KType) -> Codec<*>
 
 class MongoMapper(
-    val serializeNulls: Boolean = false,
+    serializeNulls: Boolean = false,
     val allowUnmatchedFields: Boolean = false,
     requireAllFields: Boolean = false,
     annotatedOnlyFields: Boolean = false,
@@ -79,7 +79,8 @@ class MongoMapper(
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    internal val ommParams = OmmParams(requireAllFields = requireAllFields,
+    internal val ommParams = OmmParams(serializeNulls = serializeNulls,
+                                       requireAllFields = requireAllFields,
                                        annotatedOnlyFields = annotatedOnlyFields,
                                        acceptedVisibility = acceptedVisibility,
                                        allowInnerClasses = allowInnerClasses,
@@ -208,6 +209,10 @@ class MongoMapper(
 
         if (jvmErasure.java.isArray && !jvmErasure.java.componentType.isPrimitive) {
             return ArrayCodec(type, this)
+        }
+
+        if (jvmErasure.isSubclassOf(Enum::class)) {
+            return EnumCodec(type, this)
         }
 
         if (jvmErasure == Any::class) {

@@ -17,7 +17,7 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
             if (value == null) {
                 writer.WriteNull()
             } else {
-                desc.codec.WriteNonNull(value, writer, json)
+                desc.Write(value, writer, json)
             }
             return
         }
@@ -26,19 +26,14 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
         for ((name, desc) in clsNode.fields) {
             val value = desc.getter(obj as Any)
             if (value == null) {
-                if (serializeNulls) {
+                if (desc.serializeNull) {
                     writer.WriteName(name)
                     writer.WriteNull()
                 }
                 continue
             }
             writer.WriteName(name)
-            if (desc.enumMode != OmmClassNode.EnumMode.NONE) {
-                (desc.codec as EnumCodec).WriteEnumNonNull(value as Enum<*>, writer,
-                                                           desc.enumMode == OmmClassNode.EnumMode.NAME)
-            } else {
-                desc.codec.WriteNonNull(value, writer, json)
-            }
+            desc.Write(value, writer, json)
         }
         writer.EndObject()
     }
@@ -48,7 +43,7 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
     {
         try {
             clsNode.delegatedRepresentationField?.also { desc ->
-                val value = desc.codec.Read(reader, json)
+                val value = desc.Read(reader, json)
                 val setter = clsNode.SpawnObject(null)
                 setter.Set(desc, value)
                 return setter.Finalize() as T
@@ -69,12 +64,7 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
                     reader.SkipValue()
                     continue
                 }
-                val value = if (desc.enumMode != OmmClassNode.EnumMode.NONE) {
-                    (desc.codec as EnumCodec).ReadEnum(reader,
-                                                       desc.enumMode == OmmClassNode.EnumMode.NAME)
-                } else {
-                    desc.codec.Read(reader, json)
-                }
+                val value = desc.Read(reader, json)
                 setter.Set(desc, value)
             }
             reader.EndObject()
@@ -88,7 +78,6 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
     override fun Initialize(json: Json)
     {
         allowUnmatchedFields = clsAnn?.allowUnmatchedFields?.booleanValue ?: json.allowUnmatchedFields
-        serializeNulls = clsAnn?.serializeNulls?.booleanValue ?: json.serializeNulls
         clsNode = OmmClassNode(type.jvmErasure, json.ommParams)
         clsNode.Initialize(json.ommParams, { fp -> FieldDesc(fp, json) })
         if (clsNode.fields.isEmpty() && clsNode.delegatedRepresentationField == null) {
@@ -99,7 +88,6 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val clsAnn: JsonClass? = type.jvmErasure.findAnnotation()
     private var allowUnmatchedFields = false
-    private var serializeNulls = false
     private lateinit var clsNode: OmmClassNode<FieldDesc>
 
     @Suppress("UNCHECKED_CAST")
@@ -107,5 +95,24 @@ class MappedClassCodec<T>(private val type: KType): JsonCodec<T> {
                             json: Json): OmmClassNode.OmmFieldNode(params) {
 
         val codec: JsonCodec<Any> = json.GetCodec(property.returnType)
+
+        fun Read(reader: JsonReader, json: Json): Any?
+        {
+            return if (enumMode != OmmClassNode.EnumMode.NONE) {
+                (codec as EnumCodec).ReadEnum(reader, enumMode == OmmClassNode.EnumMode.NAME)
+            } else {
+                codec.Read(reader, json)
+            }
+        }
+
+        fun Write(value: Any, writer: JsonWriter, json: Json)
+        {
+            if (enumMode != OmmClassNode.EnumMode.NONE) {
+                (codec as EnumCodec).WriteEnumNonNull(value as Enum<*>, writer,
+                                                      enumMode == OmmClassNode.EnumMode.NAME)
+            } else {
+                codec.WriteNonNull(value, writer, json)
+            }
+        }
     }
 }

@@ -34,7 +34,8 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val requireLateinitVars: Boolean,
         val index: Int,
         val dataCtrParam: KParameter?,
-        val enumByName: Boolean
+        val enumByName: Boolean,
+        val serializeNull: Boolean
     )
 
     interface DefConstructor {
@@ -64,6 +65,7 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val getter: OmmGetterFunc
         val setter: OmmSetterFunc?
         val enumMode: EnumMode
+        val serializeNull = params.serializeNull
 
         init {
             enumMode = if (property.returnType.jvmErasure.isSubclassOf(Enum::class)) {
@@ -130,6 +132,7 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val walkBaseClasses = clsAnn?.walkBaseClasses?.booleanValue ?: params.walkBaseClasses
         val requireLateinitVars = clsAnn?.requireLateinitVars?.booleanValue ?: params.requireLateinitVars
         val enumByName = clsAnn?.enumByName?.booleanValue ?: params.enumByName
+        val serializeNulls = clsAnn?.serializeNulls?.booleanValue ?: params.serializeNulls
 
         for (curCls in if (walkBaseClasses) cls.allSuperclasses + cls else listOf(cls)) {
             if (curCls.isInner && !params.allowInnerClasses) {
@@ -191,7 +194,8 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
                 val fieldParams = FieldParams(prop, fieldAnn, requiredDefault, requireLateinitVars,
                                               fields.size,
                                               dataCtr?.findParameterByName(prop.name),
-                                              fieldAnn?.enumByName?.booleanValue ?: enumByName)
+                                              fieldAnn?.enumByName?.booleanValue ?: enumByName,
+                                              fieldAnn?.serializeNull?.booleanValue ?: serializeNulls)
                 val fieldNode = fieldNodeFabric(fieldParams)
 
                 if (fieldAnn != null && fieldAnn.delegatedRepresentation) {
