@@ -19,7 +19,6 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.createInstance
-import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
@@ -177,7 +176,7 @@ class MongoMapper(
             }
         }
 
-        jvmErasure.findAnnotation<MongoClass>()?.also {
+        ommParams.FindAnnotation<MongoClass>(jvmErasure)?.also {
             ann ->
             if (ann.codec != Unit::class) {
                 if (!ann.codec.isSubclassOf(Codec::class)) {

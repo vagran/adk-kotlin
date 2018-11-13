@@ -125,7 +125,7 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
                    fieldNameHook: OmmFieldNameHook? = null,
                    additionalAnnotations: List<KClass<out Annotation>>? = null)
     {
-        val clsAnn: OmmClass? = FindAnnotation(cls)
+        val clsAnn: OmmClass? = params.FindAnnotation(cls)
 
         val requiredDefault = clsAnn?.requireAllFields?.booleanValue ?: params.requireAllFields
         val annotatedOnlyFields = clsAnn?.annotatedOnlyFields?.booleanValue ?: params.annotatedOnlyFields
@@ -141,12 +141,12 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
 
             for (prop in curCls.declaredMemberProperties) {
                 if (Modifier.isTransient(prop.javaField?.modifiers ?: 0) ||
-                    FindAnnotation<OmmIgnore>(prop) != null) {
+                    params.FindAnnotation<OmmIgnore>(prop) != null) {
 
                     continue
                 }
 
-                val fieldAnn = FindAnnotation<OmmField>(prop)
+                val fieldAnn = params.FindAnnotation<OmmField>(prop)
                 var additionalAnnFound = false
                 if (additionalAnnotations != null) {
                     for (ann in additionalAnnotations) {
@@ -341,51 +341,6 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
 
         private val dataCtrParams = HashMap<KParameter, Any?>(fields.size)
         private val values = ArrayList<FieldValue>(fields.size)
-    }
-
-    private inline fun <reified T: Annotation> FindAnnotation(elem: KAnnotatedElement): T?
-    {
-        return FindAnnotation(T::class, elem)
-    }
-
-    private fun <T: Annotation> FindAnnotation(annCls: KClass<T>, elem: KAnnotatedElement): T?
-    {
-        val isQualified = annCls.findAnnotation<OmmQualifiedAnnotation>() != null
-        if (!isQualified) {
-            return elem.annotations.firstOrNull { annCls.isInstance(it) } as T?
-        }
-
-        var nonQualified: Annotation? = null
-        var qualified: Annotation? = null
-        for (ann in elem.annotations) {
-            if (!annCls.isInstance(ann)) {
-                continue
-            }
-            val qualifierProp = annCls.memberProperties.first { it.name == "qualifier" }
-            val qualifier = qualifierProp.get(ann as T) as String
-            if (qualifier.isEmpty()) {
-                if (nonQualified != null) {
-                    throw OmmError("Duplicated non-qualified annotation ${annCls.simpleName} for $elem")
-                }
-                nonQualified = ann
-                continue
-            }
-            if (params.qualifier == null || qualifier != params.qualifier) {
-                continue
-            }
-            if (qualified != null) {
-                throw OmmError("Duplicated qualified annotation ${annCls.simpleName}:$qualifier for $elem")
-            }
-            qualified = ann
-        }
-
-        if (qualified != null) {
-            return qualified as T
-        }
-        if (params.qualifiedOnly) {
-            return null
-        }
-        return nonQualified as T?
     }
 }
 
