@@ -29,7 +29,7 @@ class MongoObservable<T> (private val source: MongoIterable<T>,
                 val r = Deferred.Create<Observable.Value<T>>()
                 curRequest = r
                 if (cursor == null) {
-                    iterable.batchCursor { cursor, error -> this.OnCursorProvided(cursor, error) }
+                    iterable.batchCursor(this::OnCursorProvided)
                 } else {
                     GetNextItem()
                 }
@@ -37,7 +37,7 @@ class MongoObservable<T> (private val source: MongoIterable<T>,
             }
         }
 
-        private fun OnCursorProvided(cursor: AsyncBatchCursor<T>, error: Throwable?)
+        private fun OnCursorProvided(cursor: AsyncBatchCursor<T>?, error: Throwable?)
         {
             synchronized(this) {
                 if (error != null) {
@@ -45,8 +45,8 @@ class MongoObservable<T> (private val source: MongoIterable<T>,
                     curRequest = null
                     return
                 }
-                this.cursor = cursor
-                cursor.next { batch, error -> this.OnNextBatch(batch, error) }
+                this.cursor = cursor!!
+                cursor.next(this::OnNextBatch)
             }
         }
 
@@ -79,7 +79,7 @@ class MongoObservable<T> (private val source: MongoIterable<T>,
                 return
             }
             curBatchIterator = null
-            cursor!!.next { batch, error -> this.OnNextBatch(batch, error) }
+            cursor!!.next(this::OnNextBatch)
         }
     }
 
