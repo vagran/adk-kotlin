@@ -11,7 +11,7 @@ goog.provide("wdk.components.EditableField");
         <span v-else ><a :href="value" @click.stop rel="noreferrer">{{value}}</a> <i class="editButton fas fa-edit"></i></span>
     </template>
     <form v-else class="input-group" @submit.prevent="_OnEdited">
-        <input ref="input" type="text" class="form-control form-control-sm" v-model="editedValue" @keypress.esc.stop="_OnCancel"/>
+        <input ref="input" type="text" class="form-control form-control-sm" v-model="editedValue" @keydown.esc.stop="_OnCancel"/>
         <div class="input-group-append">
             <button class="btn btn-sm btn-outline-danger" type="button" @click.stop="_OnCancel"><i class="fas fa-times"></i></button>
             <button class="btn btn-sm btn-outline-success" type="submit"><i class="fas fa-check"></i></button>
@@ -49,8 +49,11 @@ goog.provide("wdk.components.EditableField");
             },
 
             _OnEdited() {
-                this.$emit("updated", this.editedValue);
                 this.editing = false;
+                // noinspection EqualityComparisonWithCoercionJS
+                if (this.value != this.editedValue) {
+                    this.$emit("updated", this.editedValue);
+                }
             }
         }
     });
