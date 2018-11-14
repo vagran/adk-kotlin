@@ -134,83 +134,62 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val enumByName = clsAnn?.enumByName?.booleanValue ?: params.enumByName
         val serializeNulls = clsAnn?.serializeNulls?.booleanValue ?: params.serializeNulls
 
-        for (curCls in if (walkBaseClasses) cls.allSuperclasses + cls else listOf(cls)) {
-            if (curCls.isInner && !params.allowInnerClasses) {
-                throw IllegalArgumentException("Inner classes not allowed: $curCls")
+        val classes = if (walkBaseClasses) cls.allSuperclasses + cls else listOf(cls)
+
+        /* First check if delegated representation field is present. */
+        var drFieldPresent = false
+        IterateFields(classes, params, additionalAnnotations, annotatedOnlyFields) {
+            prop, _, fieldAnn ->
+
+            if (fieldAnn != null && fieldAnn.delegatedRepresentation) {
+                if (drFieldPresent) {
+                    throw Error("Delegated representation field redefined in $prop")
+                }
+                drFieldPresent = true
             }
 
-            for (prop in curCls.declaredMemberProperties) {
-                if (Modifier.isTransient(prop.javaField?.modifiers ?: 0) ||
-                    params.FindAnnotation<OmmIgnore>(prop) != null) {
-
-                    continue
-                }
-
-                val fieldAnn = params.FindAnnotation<OmmField>(prop)
-                var additionalAnnFound = false
-                if (additionalAnnotations != null) {
-                    for (ann in additionalAnnotations) {
-                        if (prop.annotations.firstOrNull { ann.isInstance(it) } != null) {
-                            additionalAnnFound = true
-                            break
-                        }
-                    }
-                }
-                if (fieldAnn == null && annotatedOnlyFields && !additionalAnnFound) {
-                    continue
-                }
-
-                if (Modifier.isStatic(prop.javaField?.modifiers ?: 0)) {
-                    if (fieldAnn != null || additionalAnnFound) {
-                        throw IllegalArgumentException("Static field annotated: $prop")
-                    }
-                    continue
-                }
-
-                val visibility = prop.visibility
-                if (visibility == null || visibility > params.acceptedVisibility) {
-                    if (fieldAnn != null) {
-                        throw IllegalArgumentException(
-                            "Insufficient visibility for mapped field: $prop")
-                    }
-                    continue
-                }
-                if (visibility > KVisibility.PUBLIC) {
-                    prop.isAccessible = true
-                }
-
-                val customName = fieldNameHook?.invoke(prop)
-                val name = customName ?:
-                    if (fieldAnn != null && !fieldAnn.name.isEmpty()) {
-                        fieldAnn.name
-                    } else {
-                        prop.name
-                    }
-
-                if (name in fields) {
-                    throw IllegalArgumentException("Duplicated field name: $prop")
-                }
-
-                val fieldParams = FieldParams(prop, fieldAnn, requiredDefault, requireLateinitVars,
-                                              fields.size,
-                                              dataCtr?.findParameterByName(prop.name),
-                                              fieldAnn?.enumByName?.booleanValue ?: enumByName,
-                                              fieldAnn?.serializeNull?.booleanValue ?: serializeNulls)
-                val fieldNode = fieldNodeFabric(fieldParams)
-
-                if (fieldAnn != null && fieldAnn.delegatedRepresentation) {
-                    delegatedRepresentationField?.also {
-                        throw Error("Delegated representation field redefined in $prop")
-                    }
-                    delegatedRepresentationField = fieldNode
-                } else {
-                    fields[name] = fieldNode
-                }
-            }
+            return@IterateFields true
         }
 
-        if (delegatedRepresentationField != null) {
-            fields.clear()
+        IterateFields(classes, params, additionalAnnotations, annotatedOnlyFields) {
+            prop, visibility, fieldAnn ->
+
+            if (drFieldPresent && (fieldAnn == null || !fieldAnn.delegatedRepresentation)) {
+                return@IterateFields true
+            }
+
+            if (visibility > KVisibility.PUBLIC) {
+                prop.isAccessible = true
+            }
+
+            val customName = fieldNameHook?.invoke(prop)
+            val name = customName ?:
+            if (fieldAnn != null && !fieldAnn.name.isEmpty()) {
+                fieldAnn.name
+            } else {
+                prop.name
+            }
+
+            if (name in fields) {
+                throw IllegalArgumentException("Duplicated field name: $prop")
+            }
+
+            val fieldParams = FieldParams(prop, fieldAnn, requiredDefault, requireLateinitVars,
+                                          fields.size,
+                                          dataCtr?.findParameterByName(prop.name),
+                                          fieldAnn?.enumByName?.booleanValue ?: enumByName,
+                                          fieldAnn?.serializeNull?.booleanValue ?: serializeNulls)
+            val fieldNode = fieldNodeFabric(fieldParams)
+
+
+
+            return@IterateFields if (drFieldPresent) {
+                delegatedRepresentationField = fieldNode
+                false
+            } else {
+                fields[name] = fieldNode
+                true
+            }
         }
     }
 
@@ -341,6 +320,63 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
 
         private val dataCtrParams = HashMap<KParameter, Any?>(fields.size)
         private val values = ArrayList<FieldValue>(fields.size)
+    }
+
+    private fun IterateFields(classes: List<KClass<*>>,
+                              params: OmmParams,
+                              additionalAnnotations: List<KClass<out Annotation>>?,
+                              annotatedOnlyFields: Boolean,
+                              handler: (prop: KProperty1<*, *>,
+                                        visibility: KVisibility,
+                                        fieldAnn: OmmField?) -> Boolean)
+    {
+        for (curCls in classes) {
+            if (curCls.isInner && !params.allowInnerClasses) {
+                throw IllegalArgumentException("Inner classes not allowed: $curCls")
+            }
+
+            for (prop in curCls.declaredMemberProperties) {
+                if (Modifier.isTransient(prop.javaField?.modifiers ?: 0) ||
+                    params.FindAnnotation<OmmIgnore>(prop) != null) {
+
+                    continue
+                }
+
+                val fieldAnn = params.FindAnnotation<OmmField>(prop)
+                var additionalAnnFound = false
+                if (additionalAnnotations != null) {
+                    for (ann in additionalAnnotations) {
+                        if (prop.annotations.firstOrNull { ann.isInstance(it) } != null) {
+                            additionalAnnFound = true
+                            break
+                        }
+                    }
+                }
+                if (fieldAnn == null && annotatedOnlyFields && !additionalAnnFound) {
+                    continue
+                }
+
+                if (Modifier.isStatic(prop.javaField?.modifiers ?: 0)) {
+                    if (fieldAnn != null || additionalAnnFound) {
+                        throw IllegalArgumentException("Static field annotated: $prop")
+                    }
+                    continue
+                }
+
+                val visibility = prop.visibility
+                if (visibility == null || visibility > params.acceptedVisibility) {
+                    if (fieldAnn != null) {
+                        throw IllegalArgumentException(
+                            "Insufficient visibility for mapped field: $prop")
+                    }
+                    continue
+                }
+
+                if (!handler(prop, visibility, fieldAnn)) {
+                    return
+                }
+            }
+        }
     }
 }
 
