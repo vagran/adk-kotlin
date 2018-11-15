@@ -12,7 +12,6 @@ import org.bson.BsonWriter
 import org.bson.codecs.Codec
 import org.bson.codecs.DecoderContext
 import org.bson.codecs.EncoderContext
-import org.bson.types.ObjectId
 import kotlin.reflect.KType
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.jvmErasure
@@ -106,9 +105,6 @@ class MappedClassCodec<T>(private val type: KType): MongoCodec<T> {
             fieldNameHook = {
                 prop ->
                 if (prop.findAnnotation<MongoId>() != null) {
-                    if (prop.returnType.jvmErasure != ObjectId::class) {
-                        throw IllegalArgumentException("@MongoId field should be of type ObjectId: $prop")
-                    }
                     "_id"
                 } else {
                     null

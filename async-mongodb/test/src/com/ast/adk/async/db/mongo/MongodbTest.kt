@@ -197,12 +197,6 @@ private class MongodbTest {
         var i: Int = 0
     }
 
-    /* Invalid type for MongoId, should be ObjectId. */
-    class Invalid3 {
-        @MongoId
-        var i: Int = 0
-    }
-
     /* Multiple MongoId */
     class Invalid4 {
         @MongoId
@@ -268,7 +262,6 @@ private class MongodbTest {
         MongoMapper().GetCodec<Valid>()
         assertThrows<IllegalArgumentException> { MongoMapper().GetCodec<Invalid1>() }
 //        assertThrows<Error> { MongoMapper.ForClasses(Invalid2::class) }
-        assertThrows<IllegalArgumentException> { MongoMapper().GetCodec<Invalid3>() }
         assertThrows<IllegalArgumentException> { MongoMapper().GetCodec<Invalid4>() }
         assertThrows<IllegalArgumentException> { MongoMapper().GetCodec<Invalid5>() }
         assertThrows<IllegalArgumentException> { MongoMapper().GetCodec<Invalid6>() }
