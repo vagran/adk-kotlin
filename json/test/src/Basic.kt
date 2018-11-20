@@ -715,18 +715,22 @@ private class BasicTest {
         assertEquals("test", parsed.b)
     }
 
-    data class DataClass(val a: Int, val b: String, val c: Int = 42)
+    data class DataClass(val a: Int, val b: String, val c: Int = 42) {
+        var d: Int = 0
+    }
 
     @Test
     fun DataClassTest()
     {
         val obj = DataClass(43, "abc")
+        obj.d = 44
         val json = Json(true)
         val sampleJson = json.ToJson(obj)
         val parsed = json.FromJson<DataClass>(sampleJson) ?: fail()
         assertEquals(obj.a, parsed.a)
         assertEquals(obj.b, parsed.b)
         assertEquals(obj.c, parsed.c)
+        assertEquals(obj.d, parsed.d)
     }
 }
 
