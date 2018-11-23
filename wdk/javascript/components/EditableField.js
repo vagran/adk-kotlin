@@ -17,14 +17,25 @@ goog.provide("wdk.components.EditableField");
             <button class="btn btn-sm btn-outline-success" type="submit"><i class="fas fa-check"></i></button>
         </div>
     </form>
+
+    <message-box ref="msgBox" />
 </div>
 `;
     Vue.component("editable-field", {
         template: tpl,
 
         props: {
-            value: null,
-            isLink: false
+            value: {
+                default: null
+            },
+            isLink: {
+                default: false
+            },
+            /* Accepts new name and may throw exception with error text. */
+            validator: {
+                type: Function,
+                default: null
+            }
         },
 
         data() {
@@ -49,6 +60,14 @@ goog.provide("wdk.components.EditableField");
             },
 
             _OnEdited() {
+                if (this.validator !== null) {
+                    try {
+                        this.validator(this.editedValue);
+                    } catch (e) {
+                        this.$refs.msgBox.Show("error", e.message);
+                        return;
+                    }
+                }
                 this.editing = false;
                 // noinspection EqualityComparisonWithCoercionJS
                 if (this.value != this.editedValue) {
