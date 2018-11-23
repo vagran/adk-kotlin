@@ -242,6 +242,7 @@ private class BasicTest {
         @OmmField(enumByName = OmmOption.YES)
         var h: TestEnum = TestEnum.A
         var i: TestEnum? = TestEnum.A
+        var j: Float? = null
     }
 
     @Test
@@ -269,7 +270,8 @@ private class BasicTest {
               "f": null,
               "g": 1,
               "h": "C",
-              "i": null
+              "i": null,
+              "j": null
             }
         """.trimIndent(), result)
     }
@@ -289,7 +291,8 @@ private class BasicTest {
                 "f": null,
                 "g": 1,
                 "h": "C",
-                "i": null
+                "i": null,
+                "j": 0.5
             } /* EOF */
         """
         val result = json.FromJson<MappedClass>(sampleJson) ?: fail()
@@ -302,6 +305,7 @@ private class BasicTest {
         assertEquals(TestEnum.B, result.g)
         assertEquals(TestEnum.C, result.h)
         assertNull(result.i)
+        assertEquals(0.5f, result.j!!, 0.0001f)
     }
 
     data class MappedDataClass(

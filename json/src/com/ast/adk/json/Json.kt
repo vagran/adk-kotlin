@@ -271,6 +271,9 @@ class Json(
         if (jvmErasure.isSubclassOf(Long::class)) {
             return LongCodec()
         }
+        if (jvmErasure.isSubclassOf(Float::class)) {
+            return FloatCodec()
+        }
         if (jvmErasure.isSubclassOf(Double::class)) {
             return DoubleCodec()
         }
