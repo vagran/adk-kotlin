@@ -66,12 +66,17 @@ class HttpAuthError(val realm: String, req: HttpRequestContext? = null):
 interface HttpRequestContext {
     val request: HttpExchange
 
+    fun <T: Any> GetNode(cls: Class<T>): T
+
     fun <T: Any> GetNode(cls: KClass<T>): T
+    {
+        return GetNode(cls.java)
+    }
 }
 
 inline fun <reified T: Any> HttpRequestContext.GetNode(): T
 {
-    return GetNode(T::class)
+    return GetNode(T::class.java)
 }
 
 typealias EntityIdConverterFunc<T/*: Any*/> = (String) -> T
@@ -165,17 +170,17 @@ class HttpDomainServer(private val httpServer: HttpServer,
         HttpRequestContext {
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T: Any> GetNode(cls: KClass<T>): T
+        override fun <T: Any> GetNode(cls: Class<T>): T
         {
             return (nodes?.get(cls) ?: throw Error("No node found for $cls")) as T
         }
 
         fun RegisterNode(node: Any)
         {
-            (nodes ?: (HashMap<KClass<*>, Any>().also { nodes = it }))[node::class] = node
+            (nodes ?: (HashMap<Class<*>, Any>().also { nodes = it }))[node::class.java] = node
         }
 
-        private var nodes: HashMap<KClass<*>, Any>? = null
+        private var nodes: HashMap<Class<*>, Any>? = null
     }
 
     private inner class Node(val controller: Any? = null,
