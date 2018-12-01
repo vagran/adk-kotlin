@@ -129,8 +129,40 @@ goog.provide("wdk.components.StatusView");
                         result.text += " " + obj.statusText;
                     }
                     return result;
+
+                } else if (obj.hasOwnProperty("text")) {
+                    /* Generic status object. */
+                    result.text = obj.text;
+                    if (obj.hasOwnProperty("details")) {
+                        result.details = obj.details;
+                    }
+                    if (obj.hasOwnProperty("level")) {
+                        result.alertClass = this._GetAlertClass(obj.level);
+                    } else {
+                        result.alertClass = "alert-secondary";
+                    }
+                    return result;
                 }
                 return null;
+            },
+
+            _GetAlertClass(name) {
+                if (name === "info") {
+                    return "alert-info";
+                } else if (name === "warn" || name === "warning") {
+                    return "alert-warning";
+                } else if (name === "error" || name === "danger") {
+                    return "alert-danger";
+                } else if (name === "primary") {
+                    return "alert-primary";
+                } else if (name === "success") {
+                    return "alert-success";
+                } else if (name === "secondary") {
+                    return "alert-secondary";
+                } else {
+                    console.warn("Unrecognized ")
+                    return "alert-secondary";
+                }
             }
         }
     });
