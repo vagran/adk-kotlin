@@ -10,6 +10,9 @@ goog.require("wdk.components.MessageBox");
  *          type: "number", // "string", "check", "radio",
  *          disabled: true,
  *          order: 1
+ *      },
+ *      linkField: {
+ *          isLink: true
  *      }
  * }
  */
@@ -62,24 +65,19 @@ goog.require("wdk.components.MessageBox");
         computed: {
             sortedFields() {
                 let fields = [];
-                if (this.fields === null) {
-                    for (let fieldName in this.data) {
-                        if (!this.data.hasOwnProperty(fieldName)) {
-                            continue;
-                        }
-                        fields.push({label: fieldName, name: fieldName})
+                for (let fieldName in this.data) {
+                    if (!this.data.hasOwnProperty(fieldName)) {
+                        continue;
                     }
-                } else {
-                    for (let fieldName in this.fields) {
-                        if (!this.fields.hasOwnProperty(fieldName)) {
-                            continue;
-                        }
-                        let field = this.fields[fieldName];
-                        if (!field.hasOwnProperty("name")) {
-                            field.name = fieldName;
-                        }
-                        fields.push(field);
+                    if (this.fields === null || !this.fields.hasOwnProperty(fieldName)) {
+                        fields.push({label: fieldName, name: fieldName});
+                        continue;
                     }
+                    let field = this.fields[fieldName];
+                    if (!field.hasOwnProperty("name")) {
+                        field.name = fieldName;
+                    }
+                    fields.push(field);
                 }
                 fields.sort((f1, f2) => {
                     if (f1.hasOwnProperty("order")) {
