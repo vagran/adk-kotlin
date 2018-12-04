@@ -124,7 +124,11 @@ goog.provide("wdk.components.TemplateForm");
                 fields.sort((f1, f2) => {
                     if (f1.hasOwnProperty("order")) {
                         if (f2.hasOwnProperty("order")) {
-                            return f1.order - f2.order;
+                            let diff = f1.order - f2.order;
+                            if (diff === 0) {
+                                return f1.name.localeCompare(f2.name);
+                            }
+                            return diff;
                         }
                         return -1;
                     }
