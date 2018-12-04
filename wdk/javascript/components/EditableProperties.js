@@ -1,11 +1,13 @@
-goog.provide("wdk.components.TemplateForm");
+goog.provide("wdk.components.EditableProperties");
+
+goog.require("wdk.components.EditableField");
+goog.require("wdk.components.MessageBox");
 
 /* Example of fields object:
  * {
  *      someField: {
  *          label: "Some field",
  *          type: "number", // "string", "check", "radio",
- *          placeholder: "Input value",
  *          disabled: true,
  *          order: 1
  *      }
@@ -15,28 +17,24 @@ goog.provide("wdk.components.TemplateForm");
 
     // language=HTML
     let tpl = `
-<form @submit.prevent="_OnSubmit" :id="id">
-    <table style="border-collapse: separate; border-spacing: 4px 2px; width: 100%;">
+<div class="EditableProperties">
+    <table >
         <tbody>
         <tr v-for="field in sortedFields">
-            <td><span :class="labelSizeClass">{{field.type !== "check" ? field.label : " "}}</span></td>
+            <td class="label">{{field.label}}:</td>
             <td>
-                <input v-if="!field.hasOwnProperty('type') || field.type === 'string'" type="text" 
-                       class="form-control" :class="controlSizeClass" v-model.trim="data[field.name]"
-                       :placeholder="field.placehoder !== undefined ? field.placeholder : null" 
-                       :disabled="field.hasOwnProperty('disabled') && field.disabled" />
-                
-                <input v-else-if="field.type === 'number'" type="text" class="form-control"
-                       :class="controlSizeClass" v-model.number="data[field.name]"
-                       :placeholder="field.placehoder !== undefined ? field.placeholder : null"
-                       :disabled="field.hasOwnProperty('disabled') && field.disabled"/>
+                <template v-if="field.hasOwnProperty('disabled') && field.disabled">
+                    {{data[field.name]}}
+                </template>
+                <editable-field v-else-if="IsTextField(field)"
+                                :value="data[field.name]"
+                                :isLink="field.hasOwnProperty('isLink') && field.isLink"
+                                @updated="(value) => _OnUpdated(field, value)"/>
                 
                 <div v-else-if="field.type === 'check'" class="form-check">
-                    <input type="checkbox" v-model="data[field.name]" class="form-check-input"
-                           :class="controlSizeClass" :id="id + '_' + field.name"
+                    <input type="checkbox"  class="form-check-input position-static"
+                           @change="(e) => _OnUpdated(field, e.target.checked)"
                            :disabled="field.hasOwnProperty('disabled') && field.disabled"/>
-                    <label class="form-check-label" :class="labelSizeClass"
-                           :for="id + '_' + field.name">{{field.label}}</label>
                 </div>
                 
                 <!-- radio not yet implemented -->
@@ -45,58 +43,23 @@ goog.provide("wdk.components.TemplateForm");
         </tr>
         </tbody>
     </table>
-</form>
+    <message-box ref="msgBox" />
+</div>
 `;
 
-    Vue.component("template-form", {
+    Vue.component("editable-properties", {
         template: tpl,
 
         props: {
-            id: {
-                required: true,
-                type: String
-            },
             fields: {
                 default: null
             },
             data: {
                 required: true
-            },
-            /** 0 - small, 1 - normal, 2 - large */
-            size: {
-                default: 1
             }
         },
 
         computed: {
-            controlSizeClass() {
-                switch (this.size) {
-                case 0:
-                    return {"form-control-sm": 1};
-                case 1:
-                    return {};
-                case 2:
-                    return {"form-control-lg": 1};
-                case 3:
-                    console.warn("Unrecognized size value: " + this.size);
-                    return {};
-                }
-            },
-
-            labelSizeClass() {
-                switch (this.size) {
-                    case 0:
-                        return {"col-form-label-sm": 1};
-                    case 1:
-                        return {};
-                    case 2:
-                        return {"col-form-label-lg": 1};
-                    case 3:
-                        console.warn("Unrecognized size value: " + this.size);
-                        return {};
-                }
-            },
-
             sortedFields() {
                 let fields = [];
                 if (this.fields === null) {
@@ -139,8 +102,36 @@ goog.provide("wdk.components.TemplateForm");
         },
 
         methods: {
-            _OnSubmit() {
-                this.$emit("submit", this.data);
+            /** @return {boolean} */
+            IsTextField(field) {
+                return !field.hasOwnProperty('type') ||
+                    field.type === 'string' ||
+                    field.type === 'number' ||
+                    field.type === 'integer' ||
+                    field.type === 'float';
+            },
+
+            _OnUpdated(field, value) {
+                if (field.type === "number") {
+                    value = Number(value);
+                } else if (field.type === "integer") {
+                    value = parseInt(value);
+                } else if (field.type === "float") {
+                    value = parseFloat(value);
+                }
+                if (Number.isNaN(value)) {
+                    this.$refs.msgBox.Show("error", `Invalid number value for ${field.name}`);
+                    return;
+                }
+                if (field.hasOwnProperty("validator") && field.validator !== null) {
+                    try {
+                        field.validator(value);
+                    } catch (e) {
+                        this.$refs.msgBox.Show("error", e.message);
+                        return;
+                    }
+                }
+                this.$emit("updated", field.name, value);
             }
         }
     });
