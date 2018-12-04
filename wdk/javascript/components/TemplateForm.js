@@ -25,20 +25,23 @@ goog.provide("wdk.components.TemplateForm");
             <td><span :class="labelSizeClass">{{field.type !== "check" ? field.label : " "}}</span></td>
             <td>
                 <input v-if="!field.hasOwnProperty('type') || field.type === 'string'" type="text" 
-                       class="form-control" :class="controlSizeClass" v-model.trim="field.value"
+                       class="form-control" :class="controlSizeClass" v-model.trim="data[field.name]"
                        :placeholder="field.placehoder !== undefined ? field.placeholder : null" 
                        :disabled="field.hasOwnProperty('disabled') && field.disabled" />
+                
                 <input v-else-if="field.type === 'number'" type="text" class="form-control"
-                       :class="controlSizeClass" v-model.number="field.value"
+                       :class="controlSizeClass" v-model.number="data[field.name]"
                        :placeholder="field.placehoder !== undefined ? field.placeholder : null"
                        :disabled="field.hasOwnProperty('disabled') && field.disabled"/>
+                
                 <div v-else-if="field.type === 'check'" class="form-check">
-                    <input type="checkbox" v-model="field.value" class="form-check-input"
+                    <input type="checkbox" v-model="data[field.name]" class="form-check-input"
                            :class="controlSizeClass" :id="id + '_' + field.name"
                            :disabled="field.hasOwnProperty('disabled') && field.disabled"/>
                     <label class="form-check-label" :class="labelSizeClass"
                            :for="id + '_' + field.name">{{field.label}}</label>
                 </div>
+                
                 <!-- radio not yet implemented -->
                 <div v-else style="color: #d00;">Unrecognized field type {{field.type}}</div>
             </td>
@@ -55,6 +58,9 @@ goog.provide("wdk.components.TemplateForm");
             id: {
                 required: true,
                 type: String
+            },
+            fields: {
+                default: null
             },
             data: {
                 required: true
@@ -96,15 +102,24 @@ goog.provide("wdk.components.TemplateForm");
 
             sortedFields() {
                 let fields = [];
-                for (let fieldName in this.data.fields) {
-                    if (!this.data.fields.hasOwnProperty(fieldName)) {
-                        continue;
+                if (this.fields === null) {
+                    for (let fieldName in this.data) {
+                        if (!this.data.hasOwnProperty(fieldName)) {
+                            continue;
+                        }
+                        fields.push({label: fieldName, name: fieldName})
                     }
-                    let field = this.data.fields[fieldName];
-                    if (!field.hasOwnProperty("name")) {
-                        field.name = fieldName;
+                } else {
+                    for (let fieldName in this.fields) {
+                        if (!this.fields.hasOwnProperty(fieldName)) {
+                            continue;
+                        }
+                        let field = this.fields[fieldName];
+                        if (!field.hasOwnProperty("name")) {
+                            field.name = fieldName;
+                        }
+                        fields.push(field);
                     }
-                    fields.push(field);
                 }
                 fields.sort((f1, f2) => {
                     if (f1.hasOwnProperty("order")) {
@@ -128,44 +143,5 @@ goog.provide("wdk.components.TemplateForm");
             }
         }
     });
-
-    app.TemplateForm = {
-        CreateFields(desc, valueObj) {
-            let fields = {};
-            for (let fieldName in valueObj) {
-                if (!valueObj.hasOwnProperty(fieldName) ||
-                    !desc.hasOwnProperty(fieldName)) {
-                    continue;
-                }
-                let field = Object.assign({}, desc[fieldName]);
-                field.value = valueObj[fieldName];
-                field.name = fieldName;
-                fields[fieldName] = field;
-            }
-            return fields;
-        },
-
-        SetFields(desc, valueObj) {
-            for (let fieldName in valueObj) {
-                if (!valueObj.hasOwnProperty(fieldName) ||
-                    !desc.hasOwnProperty(fieldName)) {
-                    continue;
-                }
-                desc[fieldName].value = valueObj[fieldName];
-                desc[fieldName].name = fieldName;
-            }
-        },
-
-        GetFields(desc) {
-            let result = {};
-            for (let fieldName in desc) {
-                if (!desc.hasOwnProperty(fieldName)) {
-                    continue;
-                }
-                result[fieldName] = desc[fieldName].value;
-            }
-            return result;
-        }
-    };
 
 })(window.app || (window.app = {}));
