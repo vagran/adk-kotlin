@@ -24,26 +24,26 @@ fun <T> MutateEntity(copyMethod: KCallable<T>, params: Map<String, Any?>): T
                 /* All numbers are represented as Double in JSON so convert them to other numeric
                 * type if necessary.
                 */
-                convert@do {
+                run convert@{
                     if (value is Double) {
                         when (paramCls) {
                             Int::class -> {
                                 _value = value.roundToInt()
-                                break@convert
+                                return@convert
                             }
                             Long::class -> {
                                 _value = value.roundToLong()
-                                break@convert
+                                return@convert
                             }
                             Float::class -> {
                                 _value = value.toFloat()
-                                break@convert
+                                return@convert
                             }
                         }
                     }
                     throw Error(
                         "Parameter ${param.name} type mismatch: have $valCls, expected $paramCls")
-                } while (false)
+                }
             }
         }
         args[param] = _value
