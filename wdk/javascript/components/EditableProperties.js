@@ -35,7 +35,8 @@ goog.require("wdk.components.MessageBox");
                                 @updated="(value) => _OnUpdated(field, value)"/>
                 
                 <div v-else-if="field.type === 'check'" class="form-check">
-                    <input type="checkbox"  class="form-check-input position-static"
+                    <input type="checkbox" class="form-check-input position-static"
+                           :checked="data[field.name]"
                            @change="(e) => _OnUpdated(field, e.target.checked)"
                            :disabled="field.hasOwnProperty('disabled') && field.disabled"/>
                 </div>
