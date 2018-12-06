@@ -66,6 +66,8 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val setter: OmmSetterFunc?
         val enumMode: EnumMode
         val serializeNull = params.serializeNull
+        val setList: Boolean
+        val setMap: Boolean
 
         init {
             enumMode = if (property.returnType.jvmErasure.isSubclassOf(Enum::class)) {
@@ -114,6 +116,8 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
             }
 
             this.isRequired = isRequired && setter != null
+            setList = setter == null && property.returnType.jvmErasure.isSubclassOf(MutableList::class)
+            setMap = setter == null && property.returnType.jvmErasure.isSubclassOf(MutableMap::class)
         }
     }
 
@@ -267,11 +271,23 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
 
         override fun Set(fieldNode: OmmFieldNode, value: Any?)
         {
-            if (fieldNode.setter == null) {
+            if (fieldNode.setter == null && !fieldNode.setList && !fieldNode.setMap) {
                 throw OmmError("Attempted to set read-only field ${fieldNode.property}")
             }
             CheckValueSet(fieldNode, value)
-            fieldNode.setter.invoke(obj, value)
+            when {
+                fieldNode.setList -> {
+                    val list = fieldNode.getter(obj) as MutableList<Any>
+                    list.clear()
+                    list.addAll(value as List<Any>)
+                }
+                fieldNode.setMap -> {
+                    val map = fieldNode.getter(obj) as MutableMap<Any, Any>
+                    map.clear()
+                    map.putAll(value as Map<Any, Any>)
+                }
+                else -> fieldNode.setter!!.invoke(obj, value)
+            }
         }
 
         override fun Finalize(): Any
