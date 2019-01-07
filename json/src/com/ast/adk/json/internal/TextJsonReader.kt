@@ -28,7 +28,7 @@ class TextJsonReader(json: Json,
     private var state = State.BEFORE_VALUE
     private val stack = ArrayDeque<StackItem>()
     private var commentState = CommentState.NONE
-    private var curCol = 1
+    private var curCol = 0
     private var curLine = 1
     private var lastCharCr = false
     private var stringEscape = false
@@ -382,7 +382,7 @@ class TextJsonReader(json: Json,
             if (c == 0xd) {
                 lastCharCr = true
                 curLine++
-                curCol = 1
+                curCol = 0
                 return 0xa
             }
             if (c == 0xa && lastCharCr) {
@@ -391,7 +391,7 @@ class TextJsonReader(json: Json,
             }
             if (c == 0xa) {
                 curLine++
-                curCol = 1
+                curCol = 0
             } else {
                 curCol++
             }
