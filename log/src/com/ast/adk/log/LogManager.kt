@@ -4,6 +4,8 @@ import java.io.PrintStream
 import java.util.*
 import kotlin.collections.ArrayList
 
+
+
 class LogManager {
 
     fun Initialize(config: LogConfiguration)
@@ -41,6 +43,19 @@ class LogManager {
     fun RedirectStderr(loggerName: String = "STDERR", level: LogLevel = LogLevel.ERROR)
     {
         System.setErr(PrintStream(LoggingOutputStream(GetLogger(loggerName), level), true))
+    }
+
+    /** Redirect messages logged via java.util.logging facilities.
+     * @param loggerName One specific logger is created for accepting all
+     */
+    fun RedirectBuiltinLog(loggerName: String? = null)
+    {
+        //XXX
+//        LogManager.getLogManager().reset()
+//        val rootLogger = LogManager.getLogManager().getLogger("")
+//
+//        rootLogger.addHandler(MyLogHandler())
+        //XXX
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

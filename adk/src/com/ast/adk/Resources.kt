@@ -31,7 +31,9 @@ object Resources {
      */
     fun GetAsset(path: String): InputStream?
     {
-        return baseClassLoader!!.getResourceAsStream("$packagePath/assets/$path")
+        val loader = baseClassLoader ?:
+            throw Exception("Base class not set via SetBaseClass() method")
+        return loader.getResourceAsStream("$packagePath/assets/$path")
     }
 
     /** Get properties by path in assets directory. Should be used only for reading.

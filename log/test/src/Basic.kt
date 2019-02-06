@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import java.time.*
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.logging.Level
 import kotlin.concurrent.thread
 
 
@@ -282,5 +283,27 @@ class Basic {
 
         assertEquals("15:20:30.423 [TestThread] WARN  TestLogger - Test message\n",
                      pat.FormatMessage(msg))
+    }
+
+    @Test
+    fun JavaUtilLoggingTest()
+    {
+        val config = LogConfiguration.FromJson(testConfigStr)
+        val logManager = LogManager()
+        logManager.Initialize(config)
+
+        run {
+            val logger = java.util.logging.Logger.getLogger("TestLogger")
+            logger.level = Level.ALL
+            logger.warning("Test message")
+        }
+
+        run {
+            val logger = java.util.logging.LogManager.getLogManager().getLogger("TestLogger")
+            logger.level = Level.ALL
+            logger.warning("Test message")
+        }
+
+        logManager.Shutdown()
     }
 }
