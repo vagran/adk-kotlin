@@ -1,6 +1,7 @@
 package com.ast.adk.log
 
 import java.io.PrintStream
+import java.lang.ref.ReferenceQueue
 import java.lang.ref.WeakReference
 import java.util.*
 import java.util.logging.Handler
@@ -45,7 +46,7 @@ class LogManager {
                 return@synchronized logger
             }
             val newLogger = CreateLogger(name)
-            loggers[name] = WeakReference(newLogger)
+            loggers[name] = WeakReference(newLogger, loggersRefQueue)
             return newLogger
         }
     }
@@ -94,6 +95,7 @@ class LogManager {
     private val appenderThread = Thread(this::AppenderThreadFunc, "AdkLogAppender")
     private val loggers = HashMap<String, WeakReference<Logger>>()
     private var lastCleanup: Long = System.currentTimeMillis()
+    private val loggersRefQueue = ReferenceQueue<Logger>()
 
     companion object {
         private const val LOGGERS_CLEANUP_PERIOD = 20_000L
@@ -180,6 +182,13 @@ class LogManager {
 
     private fun CleanupLoggers()
     {
+        var refSeen = false
+        while (loggersRefQueue.poll() != null) {
+            refSeen = true
+        }
+        if (!refSeen) {
+            return
+        }
         synchronized(loggers) {
             val it = loggers.iterator()
             while (it.hasNext()) {
