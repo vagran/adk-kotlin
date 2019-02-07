@@ -67,6 +67,8 @@ class LogManager {
         val rootLogger = builtinLogManager.getLogger("")
 
         rootLogger.addHandler(object: Handler() {
+            val formatter = java.util.logging.SimpleFormatter()
+
             override fun publish(record: LogRecord)
             {
                 val intLevel = record.level.intValue()
@@ -78,7 +80,7 @@ class LogManager {
                     else -> LogLevel.TRACE
                 }
                 logger.Log(level, record.thrown) {
-                    "${record.loggerName} - ${record.message}"
+                    "${record.loggerName} - ${formatter.formatMessage(record)}"
                 }
             }
 

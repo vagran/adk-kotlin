@@ -288,6 +288,9 @@ class Basic {
     @Test
     fun JavaUtilLoggingTest()
     {
+        java.util.logging.Logger.getLogger("TestLogger")
+            .log(Level.WARNING, "aaa {0} {1}", arrayOf(42, "abc"))
+
         val config = LogConfiguration.FromJson(testConfigStr)
         val logManager = LogManager()
         logManager.Initialize(config)
@@ -295,7 +298,7 @@ class Basic {
 
         val logger = java.util.logging.Logger.getLogger("TestLogger")
         logger.level = Level.ALL
-        logger.warning("Test message")
+        logger.log(Level.WARNING, "Test message {0} {1}", arrayOf(42, "abc"))
 
         logManager.Shutdown()
     }
