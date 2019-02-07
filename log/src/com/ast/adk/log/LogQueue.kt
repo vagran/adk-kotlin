@@ -77,8 +77,9 @@ class LogQueue<T>(private val maxSize: Int,
 
     /** Pop the message from the queue. May block if queue is empty and running. Returns null if
      * no more message after the queue is stopped.
+     * @param idleFunc Invoked when there are no more messages in the queue and it is about to wait.
      */
-    fun Pop(): T?
+    fun Pop(idleFunc: (() -> Unit)? = null): T?
     {
         while (true) {
             val curState = state.get()
@@ -106,7 +107,7 @@ class LogQueue<T>(private val maxSize: Int,
 
             if (msg == null) {
                 state.set(STATE_WAIT_EMPTY)
-                WaitEmpty()
+                WaitEmpty(idleFunc)
                 continue
             }
 
@@ -169,11 +170,14 @@ class LogQueue<T>(private val maxSize: Int,
     }
 
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
-    private fun WaitEmpty()
+    private fun WaitEmpty(idleFunc: (() -> Unit)?)
     {
-        synchronized(queue) {
-            while (state.get() == STATE_WAIT_EMPTY) {
-                (queue as java.lang.Object).wait(emptyCheckInterval)
+        while (state.get() == STATE_WAIT_EMPTY) {
+            idleFunc?.invoke()
+            synchronized(queue) {
+                if (state.get() == STATE_WAIT_EMPTY) {
+                    (queue as java.lang.Object).wait(emptyCheckInterval)
+                }
             }
         }
     }

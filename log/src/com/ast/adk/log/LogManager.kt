@@ -1,6 +1,7 @@
 package com.ast.adk.log
 
 import java.io.PrintStream
+import java.lang.ref.WeakReference
 import java.util.*
 import java.util.logging.Handler
 import java.util.logging.Level
@@ -39,7 +40,13 @@ class LogManager {
     fun GetLogger(name: String): Logger
     {
         return synchronized(loggers) {
-            loggers.computeIfAbsent(name) { CreateLogger(name) }
+            val logger = loggers[name]?.get()
+            if (logger != null) {
+                return@synchronized logger
+            }
+            val newLogger = CreateLogger(name)
+            loggers[name] = WeakReference(newLogger)
+            return newLogger
         }
     }
 
@@ -85,7 +92,13 @@ class LogManager {
     private lateinit var queue: LogQueue<LogMessage>
     private val appenders = TreeMap<String, Appender>()
     private val appenderThread = Thread(this::AppenderThreadFunc, "AdkLogAppender")
-    private val loggers = HashMap<String, Logger>()
+    private val loggers = HashMap<String, WeakReference<Logger>>()
+    private var lastCleanup: Long = System.currentTimeMillis()
+
+    companion object {
+        private const val LOGGERS_CLEANUP_PERIOD = 20_000L
+    }
+
 
     inner class LoggerImpl(name: String,
                            thresholdLevel: LogLevel,
@@ -127,7 +140,13 @@ class LogManager {
     private fun AppenderThreadFunc()
     {
         while (true) {
-            val msg = queue.Pop() ?: break
+            val msg = queue.Pop {
+                val now = System.currentTimeMillis()
+                if (now - lastCleanup >= LOGGERS_CLEANUP_PERIOD) {
+                    lastCleanup = now
+                    CleanupLoggers()
+                }
+            } ?: break
             for (appender in msg.appenders) {
                 appender.AppendMessage(msg)
             }
@@ -157,5 +176,17 @@ class LogManager {
         }
 
         return LoggerImpl(name, level, appenders)
+    }
+
+    private fun CleanupLoggers()
+    {
+        synchronized(loggers) {
+            val it = loggers.iterator()
+            while (it.hasNext()) {
+                if (it.next().value.get() == null) {
+                    it.remove()
+                }
+            }
+        }
     }
 }
