@@ -291,18 +291,11 @@ class Basic {
         val config = LogConfiguration.FromJson(testConfigStr)
         val logManager = LogManager()
         logManager.Initialize(config)
+        logManager.RedirectBuiltinLog("internal")
 
-        run {
-            val logger = java.util.logging.Logger.getLogger("TestLogger")
-            logger.level = Level.ALL
-            logger.warning("Test message")
-        }
-
-        run {
-            val logger = java.util.logging.LogManager.getLogManager().getLogger("TestLogger")
-            logger.level = Level.ALL
-            logger.warning("Test message")
-        }
+        val logger = java.util.logging.Logger.getLogger("TestLogger")
+        logger.level = Level.ALL
+        logger.warning("Test message")
 
         logManager.Shutdown()
     }

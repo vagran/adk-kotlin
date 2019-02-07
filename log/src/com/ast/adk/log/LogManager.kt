@@ -2,6 +2,9 @@ package com.ast.adk.log
 
 import java.io.PrintStream
 import java.util.*
+import java.util.logging.Handler
+import java.util.logging.Level
+import java.util.logging.LogRecord
 import kotlin.collections.ArrayList
 
 
@@ -46,16 +49,34 @@ class LogManager {
     }
 
     /** Redirect messages logged via java.util.logging facilities.
-     * @param loggerName One specific logger is created for accepting all
+     * @param loggerName Logger name for all messages from built-in logging.
      */
-    fun RedirectBuiltinLog(loggerName: String? = null)
+    fun RedirectBuiltinLog(loggerName: String)
     {
-        //XXX
-//        LogManager.getLogManager().reset()
-//        val rootLogger = LogManager.getLogManager().getLogger("")
-//
-//        rootLogger.addHandler(MyLogHandler())
-        //XXX
+        val logger = GetLogger(loggerName)
+        val builtinLogManager = java.util.logging.LogManager.getLogManager()
+        builtinLogManager.reset()
+        val rootLogger = builtinLogManager.getLogger("")
+
+        rootLogger.addHandler(object: Handler() {
+            override fun publish(record: LogRecord)
+            {
+                val intLevel = record.level.intValue()
+                val level = when {
+                    intLevel >= Level.SEVERE.intValue() -> LogLevel.ERROR
+                    intLevel >= Level.WARNING.intValue() -> LogLevel.WARNING
+                    intLevel >= Level.INFO.intValue() -> LogLevel.INFO
+                    intLevel >= Level.CONFIG.intValue() -> LogLevel.DEBUG
+                    else -> LogLevel.TRACE
+                }
+                logger.Log(level, record.thrown) {
+                    "${record.loggerName} - ${record.message}"
+                }
+            }
+
+            override fun flush() {}
+            override fun close() {}
+        })
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
