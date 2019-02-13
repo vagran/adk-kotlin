@@ -7,7 +7,7 @@ goog.provide("wdk.components.Card");
 <div class="card">
     <div v-if="header !== null" class="card-header" :class="headerClass">{{header}}</div>
     <div v-if="$slots.header" class="card-header" :class="headerClass"><slot name="header"></slot></div>
-    <div class="card-body">
+    <div class="card-body" :class="bodyClass">
         <slot></slot>
     </div>
 </div>`;
@@ -23,15 +23,24 @@ goog.provide("wdk.components.Card");
             /* Decrease header height. */
             lowHeader: {
                 default: false
+            },
+            compact: {
+                default: false
             }
         },
 
         computed: {
             headerClass() {
                 return {
-                    "px-2": this.lowHeader,
-                    "py-1": this.lowHeader
+                    "px-2": this.lowHeader || this.compact,
+                    "py-1": this.lowHeader || this.compact
                 };
+            },
+
+            bodyClass() {
+                return {
+                    "p-2": this.compact
+                }
             }
         }
     });
