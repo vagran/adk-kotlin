@@ -103,6 +103,12 @@ goog.provide("wdk.components.StatusView");
                         result.alertClass = "alert-secondary";
                         result.text = obj.substr(2);
                         result.inProgress = true;
+                    } else if (obj.startsWith("D>")) {
+                        result.alertClass = "alert-dark";
+                        result.text = obj.substr(2);
+                    } else if (obj.startsWith("L>")) {
+                        result.alertClass = "alert-light";
+                        result.text = obj.substr(2);
                     } else {
                         result.alertClass = "alert-secondary";
                         result.text = obj;

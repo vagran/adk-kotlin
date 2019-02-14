@@ -164,6 +164,25 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
 
         this.defEntityIdConverters = converters
+
+        this.json.RegisterSubclassCodec<Throwable> { ThrowableCodec() }
+    }
+
+    private class ThrowableCodec: JsonCodec<Throwable> {
+        override fun WriteNonNull(obj: Throwable, writer: JsonWriter, json: Json)
+        {
+            writer.BeginObject()
+            writer.WriteName("message")
+            writer.Write(obj.message ?: obj::class.simpleName ?: "Unknown error")
+            writer.WriteName("fullText")
+            writer.Write(obj.GetStackTrace())
+            writer.EndObject()
+        }
+
+        override fun ReadNonNull(reader: JsonReader, json: Json): Throwable
+        {
+            throw NotImplementedError()
+        }
     }
 
     private inner class RequestContext (override val request: HttpExchange):
@@ -465,9 +484,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
         headers.set("Content-Type", "application/json; charset=UTF-8")
         val code: Int
         if (error != null) {
-            val msg = error.message
-            _result = mapOf("fullText" to error.GetStackTrace(),
-                            "message" to (msg ?: error::class.simpleName))
+            _result = error
             if (error is HttpError) {
                 code = error.code
                 if (error is HttpAuthError) {

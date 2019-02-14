@@ -190,7 +190,47 @@ class Json(
 
     inline fun <reified T> FromJson(input: Reader): T? = FromJson(input, TypeToken.Create<T>().type)
 
-    inline fun <reified T> FromJson(input: InputStream): T? = FromJson(input, TypeToken.Create<T>().type)
+    inline fun <reified T> FromJson(input: InputStream): T? =
+        FromJson(input, TypeToken.Create<T>().type)
+
+
+    fun RegisterCodec(type: KType, codec: JsonCodec<*>)
+    {
+        codecs[type] = codec
+    }
+
+    fun <T> RegisterCodec(type: TypeToken<T>, codec: JsonCodec<T>)
+    {
+        return RegisterCodec(type.type, codec)
+    }
+
+    fun <T: Any> RegisterCodec(cls: KClass<T>, codec: JsonCodec<T>)
+    {
+        return RegisterCodec(TypeToken.Create(cls), codec)
+    }
+
+    inline fun <reified T> RegisterCodec(codec: JsonCodec<T>) =
+        RegisterCodec(TypeToken.Create(), codec)
+
+
+    /** Register codec provider for a specific class. */
+    fun RegisterClassCodec(cls: KClass<*>, codecProvider: JsonCodecProvider)
+    {
+        classCodecs[cls] = codecProvider
+    }
+
+    inline fun <reified T> RegisterClassCodec(noinline codecProvider: JsonCodecProvider) =
+        RegisterClassCodec(T::class, codecProvider)
+
+
+    /** Register codec provider for a class and all its derived classes. */
+    fun RegisterSubclassCodec(cls: KClass<*>, codecProvider: JsonCodecProvider)
+    {
+        subclassCodecs[cls] = codecProvider
+    }
+
+    inline fun <reified T> RegisterSubclassCodec(noinline codecProvider: JsonCodecProvider) =
+        RegisterSubclassCodec(T::class, codecProvider)
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     internal val ommParams = OmmParams(requireAllFields = requireAllFields,
