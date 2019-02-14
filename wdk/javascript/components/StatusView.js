@@ -7,7 +7,8 @@ goog.provide("wdk.components.StatusView");
 <div v-if="hasVisibleItems" class="wdk_StatusView">
     <div v-for="(item, index) in items" class="alert" :class="item.alertClass" role="alert">
         <span v-if="item.inProgress" class="SpinIndicator"></span>
-        {{item.text}}
+        <template v-if="!item.isHtml">{{item.text}}</template>
+        <span v-else v-html="item.text" />
         <button type="button" class="close" @click="_OnDismiss(index)">
             <span>&times;</span>
         </button>
@@ -21,7 +22,11 @@ goog.provide("wdk.components.StatusView");
 
     Vue.component("status-view", {
         template: tpl,
-        props: ["status"],
+        props: {
+            "status": {
+                default: null
+            }
+        },
 
         data() {
             return {
@@ -103,11 +108,11 @@ goog.provide("wdk.components.StatusView");
                         result.alertClass = "alert-secondary";
                         result.text = obj.substr(2);
                         result.inProgress = true;
-                    } else if (obj.startsWith("D>")) {
-                        result.alertClass = "alert-dark";
-                        result.text = obj.substr(2);
                     } else if (obj.startsWith("L>")) {
                         result.alertClass = "alert-light";
+                        result.text = obj.substr(2);
+                    } else if (obj.startsWith("D>")) {
+                        result.alertClass = "alert-dark";
                         result.text = obj.substr(2);
                     } else {
                         result.alertClass = "alert-secondary";
@@ -139,6 +144,7 @@ goog.provide("wdk.components.StatusView");
                 } else if (obj.hasOwnProperty("text")) {
                     /* Generic status object. */
                     result.text = obj.text;
+                    result.isHtml = obj.isHtml;
                     if (obj.hasOwnProperty("details")) {
                         result.details = obj.details;
                     }
@@ -165,8 +171,12 @@ goog.provide("wdk.components.StatusView");
                     return "alert-success";
                 } else if (name === "secondary") {
                     return "alert-secondary";
+                } else if (name === "light") {
+                    return "alert-light";
+                } else if (name === "dark") {
+                    return "alert-dark";
                 } else {
-                    console.warn("Unrecognized ")
+                    console.warn("Unrecognized alert class");
                     return "alert-secondary";
                 }
             }

@@ -48,4 +48,13 @@ goog.require("wdk.class");
         return result;
     };
 
+    wdk.EscapeHtml = function (s) {
+        return s
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
 })(window.wdk || (window.wdk = {}));
