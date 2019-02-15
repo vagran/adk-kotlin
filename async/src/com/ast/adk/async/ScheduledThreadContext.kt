@@ -1,25 +1,23 @@
 package com.ast.adk.async
 
 import java.util.*
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 /** Allows timed scheduling of submitted messages via SubmitScheduled() method. */
 class ScheduledThreadContext(name: String,
                              failHandler: ContextFailHandler? = null):
-    ThreadContext(name, failHandler) {
+    ThreadContext(name, failHandler), ScheduledContext {
 
     /** Token which can be used for scheduled message cancellation.
      * @param fireTime Firing time as returned by System.nanoTime().
      */
-    inner class Token internal constructor(internal val message: Message,
-                                           internal val fireTime: Long) {
+    inner class TokenImpl
+        internal constructor(internal val message: Message, internal val fireTime: Long):
+            ScheduledContext.Token {
 
         /** Cancel scheduled message if possible.
          * @return True if cancelled, false if cannot cancel (already submitted for execution).
          */
-        fun Cancel(): Boolean
+        override fun Cancel(): Boolean
         {
             return LockQueue {
                 if (!isScheduled) {
@@ -54,7 +52,7 @@ class ScheduledThreadContext(name: String,
             }
         }
 
-        internal var next: Token? = null
+        internal var next: TokenImpl? = null
         internal var isScheduled = true
         private var isCancelled = false
     }
@@ -62,9 +60,9 @@ class ScheduledThreadContext(name: String,
     /** Submit a message which will be invoked with the specified delay.
      * @param delay Delay in milliseconds.
      */
-    fun SubmitScheduled(message: Message, delay: Long): Token
+    override fun SubmitScheduled(message: Message, delay: Long): ScheduledContext.Token
     {
-        val token = Token(message, System.nanoTime() + delay * 1_000_000)
+        val token = TokenImpl(message, System.nanoTime() + delay * 1_000_000)
         LockQueue {
             if (stopRequested) {
                 throw Message.RejectedError("Context is already stopped")
@@ -78,47 +76,15 @@ class ScheduledThreadContext(name: String,
         return token
     }
 
-    /** Suspend current coroutine for the specified delay.
-     * @param delay Delay in milliseconds.
-     */
-    suspend fun Delay(delay: Long)
-    {
-        return suspendCoroutine {
-            cont ->
-
-            SubmitScheduled(object: Message {
-                override fun Invoke()
-                {
-                    cont.resume(Unit)
-                }
-
-                override fun Reject(error: Throwable)
-                {
-                    cont.resumeWithException(error)
-                }
-            }, delay)
-        }
-    }
-
-    /** Suspend current coroutine for the specified delay ensuring the continuation runs in the
-     * specified context.
-     * @param delay Delay in milliseconds.
-     * @param ctx Continuation context.
-     */
-    suspend fun Delay(delay: Long, ctx: Context)
-    {
-        ctx.ResumeIn({Delay(delay)})
-    }
-
     override fun Stop()
     {
         super.Stop()
         while (true) {
-            var tokens: Token? =
+            var tokens: TokenImpl? =
                 LockQueue {
                     val tokens = scheduledMessages.firstEntry() ?: return@LockQueue null
                     scheduledMessages.remove(tokens.key)
-                    var t: Token? = tokens.value
+                    var t: TokenImpl? = tokens.value
                     while (t != null) {
                         t.isScheduled = false
                         t = t.next
@@ -139,7 +105,7 @@ class ScheduledThreadContext(name: String,
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     /** Scheduled messages indexed by firing time. */
-    private val scheduledMessages: TreeMap<Long, Token> = TreeMap()
+    private val scheduledMessages: TreeMap<Long, TokenImpl> = TreeMap()
 
     override fun WaitAndProcess(timeout: Long): Boolean
     {
@@ -164,7 +130,7 @@ class ScheduledThreadContext(name: String,
     {
         val curTime = System.nanoTime()
         while (true) {
-            var tokens: Token? = null
+            var tokens: TokenImpl? = null
             val time = LockQueue {
                 val e = scheduledMessages.firstEntry() ?: return@LockQueue 0L
                 val fireTime = e.key

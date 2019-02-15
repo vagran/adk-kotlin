@@ -10,7 +10,6 @@ import java.util.logging.LogRecord
 import kotlin.collections.ArrayList
 
 
-
 class LogManager {
 
     fun Initialize(config: LogConfiguration)

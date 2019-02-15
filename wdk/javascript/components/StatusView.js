@@ -9,7 +9,7 @@ goog.provide("wdk.components.StatusView");
         <span v-if="item.inProgress" class="SpinIndicator"></span>
         <template v-if="!item.isHtml">{{item.text}}</template>
         <span v-else v-html="item.text" />
-        <button type="button" class="close" @click="_OnDismiss(index)">
+        <button v-if="isCloseable" type="button" class="close" @click="_OnDismiss(index)">
             <span>&times;</span>
         </button>
         <details v-if="item.details !== null">
@@ -25,6 +25,9 @@ goog.provide("wdk.components.StatusView");
         props: {
             "status": {
                 default: null
+            },
+            "isCloseable": {
+                default: true
             }
         },
 
