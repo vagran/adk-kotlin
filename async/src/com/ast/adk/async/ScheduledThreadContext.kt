@@ -5,14 +5,14 @@ import java.util.*
 /** Allows timed scheduling of submitted messages via SubmitScheduled() method. */
 class ScheduledThreadContext(name: String,
                              failHandler: ContextFailHandler? = null):
-    ThreadContext(name, failHandler), ScheduledContext {
+    ThreadContext(name, failHandler) {
 
     /** Token which can be used for scheduled message cancellation.
      * @param fireTime Firing time as returned by System.nanoTime().
      */
     inner class TokenImpl
         internal constructor(internal val message: Message, internal val fireTime: Long):
-            ScheduledContext.Token {
+        Context.SchedulingToken {
 
         /** Cancel scheduled message if possible.
          * @return True if cancelled, false if cannot cancel (already submitted for execution).
@@ -60,7 +60,7 @@ class ScheduledThreadContext(name: String,
     /** Submit a message which will be invoked with the specified delay.
      * @param delay Delay in milliseconds.
      */
-    override fun SubmitScheduled(message: Message, delay: Long): ScheduledContext.Token
+    override fun SubmitScheduled(message: Message, delay: Long): Context.SchedulingToken
     {
         val token = TokenImpl(message, System.nanoTime() + delay * 1_000_000)
         LockQueue {

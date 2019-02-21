@@ -6,6 +6,7 @@ import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 /** Execution context which receives messages. */
 interface Context {
@@ -23,6 +24,24 @@ interface Context {
      * context.
      */
     fun Submit(message: Message)
+
+    /** Token which can be used for scheduled message cancellation. */
+    interface SchedulingToken {
+        /** Cancel scheduled message if possible.
+         * @return True if cancelled, false if cannot cancel (already submitted for execution).
+         */
+        fun Cancel(): Boolean
+    }
+
+    /** Submit a message which will be invoked with the specified delay.
+     * @param delay Delay in milliseconds.
+     */
+    fun SubmitScheduled(message: Message, delay: Long): SchedulingToken
+    {
+        throw NotImplementedError()
+    }
+
+    // /////////////////////////////////////////////////////////////////////////////////////////////
 
     /** Wrap the provided function so that it continues in this context. */
     suspend fun <T> ResumeIn(func: suspend () -> T): T
@@ -78,6 +97,38 @@ interface Context {
 
             COROUTINE_SUSPENDED
         }
+    }
+
+    /** Suspend current coroutine for the specified delay.
+     * @param delay Delay in milliseconds.
+     */
+    suspend fun Delay(delay: Long)
+    {
+        return suspendCoroutine {
+            cont ->
+
+            SubmitScheduled(object: Message {
+                override fun Invoke()
+                {
+                    cont.resume(Unit)
+                }
+
+                override fun Reject(error: Throwable)
+                {
+                    cont.resumeWithException(error)
+                }
+            }, delay)
+        }
+    }
+
+    /** Suspend current coroutine for the specified delay ensuring the continuation runs in the
+     * specified context.
+     * @param delay Delay in milliseconds.
+     * @param ctx Continuation context.
+     */
+    suspend fun Delay(delay: Long, ctx: Context)
+    {
+        ctx.ResumeIn { Delay(delay) }
     }
 
     /** Wrap the provided function so that the call is forwarded to the context. Result is ignored
