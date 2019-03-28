@@ -24,7 +24,7 @@
       <module fileurl="file://$PROJECT_DIR$/log/test/log.test.iml" filepath="$PROJECT_DIR$/log/test/log.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/omm/omm.iml" filepath="$PROJECT_DIR$/omm/omm.iml" />
       <module fileurl="file://$PROJECT_DIR$/omm.test/omm.test.iml" filepath="$PROJECT_DIR$/omm.test/omm.test.iml" />
-      <module fileurl="file://$PROJECT_DIR$/wdk/wdk.iml" filepath="$PROJECT_DIR$/wdk/wdk.iml" />
+      <module fileurl="file://$PROJECT_DIR$/wdk/wdk.iml" filepath="$PROJECT_DIR$/wdk/wdk.iml" group="wdk" />
     </modules>
   </component>
 </project>
