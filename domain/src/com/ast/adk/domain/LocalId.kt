@@ -21,6 +21,8 @@ class LocalId(val value: Long): Comparable<LocalId>, Serializable {
     constructor(s: String):
         this(java.lang.Long.parseLong(s, 16))
 
+    val isZero: Boolean get() = value == 0L
+
     override fun equals(other: Any?): Boolean
     {
         val _other = other as? LocalId ?: return false
@@ -42,16 +44,16 @@ class LocalId(val value: Long): Comparable<LocalId>, Serializable {
         return java.lang.Long.toString(value, 16)
     }
 
-    // /////////////////////////////////////////////////////////////////////////////////////////////
+    companion object {
+        private val counter = AtomicInteger(System.nanoTime().toInt())
+        private const val serialVersionUID = 1L
 
-    private companion object {
-        val counter = AtomicInteger(Random().GetInt())
-        const val serialVersionUID = 1L
-
-        fun GetValue(timestamp: Long, counter: Int): Long
+        private fun GetValue(timestamp: Long, counter: Int): Long
         {
             return (timestamp shl 32) or (counter.toLong() and 0xffffffffL)
         }
+
+        val ZERO = LocalId(0L)
     }
 }
 
