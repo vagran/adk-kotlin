@@ -15,8 +15,8 @@ typealias TaskThrottlerFabric = () -> Deferred<*>?
  *      single thread. This allows additional optimizations.
  */
 class TaskThrottler(private val maxParallel: Int,
-                    private val fabric: TaskThrottlerFabric,
-                    parallelHint: Boolean = true) {
+                    parallelHint: Boolean = true,
+                    private val fabric: TaskThrottlerFabric) {
 
     /** Run tasks. Should be called once.
      *

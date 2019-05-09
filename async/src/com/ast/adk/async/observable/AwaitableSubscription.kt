@@ -59,6 +59,18 @@ class AwaitableSubscription<T> private constructor(observable: Observable<T>):
         }
     }
 
+    // /////////////////////////////////////////////////////////////////////////////////////////////
+
+    private val subscription: Observable.Subscription
+    private var activeWait: Continuation<Observable.Value<T>>? = null
+    private var pendingValue: Observable.Value<T>? = null
+    private var pendingError: Throwable? = null
+    private var valueProcessed: Deferred<Boolean>? = null
+
+    init {
+        subscription = observable.Subscribe(this::OnNext)
+    }
+
     private fun OnNext(value: Observable.Value<T>, error: Throwable?): Deferred<Boolean>?
     {
         var _activeWait: Continuation<Observable.Value<T>>? = null
@@ -82,16 +94,6 @@ class AwaitableSubscription<T> private constructor(observable: Observable<T>):
             }
         }
         return result
-    }
-
-    private val subscription: Observable.Subscription
-    private var activeWait: Continuation<Observable.Value<T>>? = null
-    private var pendingValue: Observable.Value<T>? = null
-    private var pendingError: Throwable? = null
-    private var valueProcessed: Deferred<Boolean>? = null
-
-    init {
-        subscription = observable.Subscribe(this::OnNext)
     }
 }
 

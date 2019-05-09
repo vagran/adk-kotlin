@@ -1,6 +1,5 @@
 package com.ast.adk.domain
 
-import com.ast.adk.Random
 import com.ast.adk.json.*
 import java.io.Serializable
 import java.time.LocalDateTime

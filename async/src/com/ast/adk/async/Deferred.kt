@@ -134,7 +134,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
     fun WaitComplete(): Deferred<T>
     {
         var complete = false
-        val lock = java.lang.Object()
+        val lock = Object()
         Subscribe {
             _, _ ->
             synchronized(lock) {
