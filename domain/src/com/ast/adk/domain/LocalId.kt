@@ -8,14 +8,13 @@ import java.util.concurrent.atomic.AtomicInteger
 
 
 /**
- * Application-instance-locally-unique ID.
+ * Application-instance-locally-unique monotonically increased ID.
  */
 @JsonClass(codec = LocalIdJsonCodec::class)
 class LocalId(val value: Long): Comparable<LocalId>, Serializable {
 
     constructor():
-        this(GetValue(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
-                      counter.incrementAndGet()))
+        this(NextValue())
 
     constructor(s: String):
         this(java.lang.Long.parseLong(s, 16))
@@ -44,12 +43,55 @@ class LocalId(val value: Long): Comparable<LocalId>, Serializable {
     }
 
     companion object {
-        private val counter = AtomicInteger(System.nanoTime().toInt())
+        private val counter = AtomicInteger(System.nanoTime().toInt() and 0x7fffffff)
+        private val wrapTs = AtomicInteger(0)
         private const val serialVersionUID = 1L
+        private const val WRAP_THRESHOLD = 0xc0000000
 
         private fun GetValue(timestamp: Long, counter: Int): Long
         {
             return (timestamp shl 32) or (counter.toLong() and 0xffffffffL)
+        }
+
+        private fun NextValue(): Long
+        {
+            val ts = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+            val cnt = counter.incrementAndGet()
+            if (cnt > WRAP_THRESHOLD) {
+                /* Ensure wrapping occurs with next timestamp increase. */
+                val _ts = ts.toInt()
+                loop@ while (true) {
+                    val _wrapTs = wrapTs.get()
+                    val wrapTsNew: Int
+                    when (_wrapTs) {
+                        0 -> {
+                            /* Initial state. */
+                            wrapTsNew = _ts
+                        }
+                        0xffffffff.toInt() -> {
+                            /* Wrapping in progress. */
+                            continue@loop
+                        }
+                        _ts -> {
+                            /* Waiting for next second. */
+                            break@loop
+                        }
+                        else -> {
+                            /* Can wrap now. */
+                            wrapTsNew = 0xffffffff.toInt()
+                        }
+                    }
+                    if (!wrapTs.compareAndSet(_wrapTs, wrapTsNew)) {
+                        continue
+                    }
+                    if (wrapTsNew == 0xffffffff.toInt()) {
+                        counter.set(0)
+                        wrapTs.set(0)
+                        return NextValue()
+                    }
+                }
+            }
+            return GetValue(ts, cnt)
         }
 
         val ZERO = LocalId(0L)
