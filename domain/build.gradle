@@ -1,0 +1,6 @@
+dependencies {
+    compile project(":adk")
+    compile project(":async")
+    compile project(":json")
+    compile project(":log")
+}
