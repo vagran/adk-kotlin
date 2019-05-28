@@ -26,6 +26,10 @@ subprojects {
         mavenCentral()
     }
 
+    compileKotlin {
+        kotlinOptions.jvmTarget = "11"
+    }
+
     dependencies {
         compile "org.jetbrains.kotlin:kotlin-stdlib"
         compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7"
@@ -33,7 +37,29 @@ subprojects {
         compile "org.jetbrains.kotlin:kotlin-reflect"
     }
 
-    buildDir = "${rootProject.buildDir}/subprojects/${project.name}"
+    def buildName = project.path.substring(1).replaceAll(':', '-')
+    buildDir = "${rootProject.buildDir}/subprojects/$buildName"
+
+    compileJava {
+        dependsOn(compileKotlin)
+        destinationDir = compileKotlin.destinationDir
+        doFirst {
+            options.compilerArgs = ["--module-path", classpath.asPath]
+            classpath = files()
+        }
+    }
+
+    sourceSets {
+        main {
+            kotlin {
+                srcDirs = ["src"]
+            }
+            java {
+                srcDirs = ["src"]
+                compileClasspath = main.compileClasspath
+            }
+        }
+    }
 }
 ```
 
