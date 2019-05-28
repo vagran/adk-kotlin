@@ -171,3 +171,6 @@ configure(project.rootProject) {
     }
 }
 
+task build {
+    dependsOn(compileAllRelease)
+}
