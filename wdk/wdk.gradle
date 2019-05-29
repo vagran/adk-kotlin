@@ -3,8 +3,10 @@
  *
  * Include this file by `apply(from: "$WDK_ROOT/wdk.gradle")` command.
  *
- * This script assumes `less` and `less-plugin-clean-css` NPM packages are installed locally in
- * `node_modules` directory.
+ * This script assumes the following NPM packages are installed locally in `node_modules` directory:
+ *  * less
+ *  * less-plugin-clean-css
+ *  * google-closure-compiler-java
  */
 
 private void _FileList(File dir, List<File> files)
@@ -61,7 +63,7 @@ Task CreateJsCompileTask(String name, List<String> srcDirsFiles, String outName,
     }
 
     task.executable javaExe
-    task.args "-jar", "$WDK_ROOT/tools/closure-compiler.jar"
+    task.args "-jar", "node_modules/google-closure-compiler-java/compiler.jar"
     task.args "-O", optLevel
     task.args "--language_in", "ECMASCRIPT6_STRICT"
     task.args "--js_output_file", "$buildDir/$outName"
