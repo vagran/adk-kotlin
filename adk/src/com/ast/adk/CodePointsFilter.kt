@@ -18,12 +18,12 @@ class CodePointsFilter(private val codePointHandler: (codePoint: Int) -> Unit,
     /** Feed next code point, -1 for EOF. */
     fun Feed(c: Int)
     {
-        if (charValidator != null && !charValidator.invoke(c)) {
-            ParsingError("Illegal character encountered")
-            return
-        }
         if (c == -1) {
             codePointHandler(-1)
+            return
+        }
+        if (charValidator != null && !charValidator.invoke(c)) {
+            ParsingError("Illegal character encountered")
             return
         }
         if (c == 0) {
