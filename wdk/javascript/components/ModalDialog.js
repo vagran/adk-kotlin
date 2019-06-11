@@ -5,7 +5,7 @@ goog.provide("wdk.components.ModalDialog");
     // language=HTML
     let tpl = `
 <div class="modal fade" ref="dialog" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered" :style="dialogStyle">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 v-if="title !== null" class="modal-title">{{title}}</h5>
@@ -38,6 +38,20 @@ goog.provide("wdk.components.ModalDialog");
             },
             hasCloseIconButton: {
                 default: true
+            },
+            maxWidth: {
+                type: String,
+                default: null
+            }
+        },
+
+        computed: {
+            dialogStyle() {
+                if (this.maxWidth === null) {
+                    return {};
+                } else {
+                    return {"max-width": this.maxWidth};
+                }
             }
         },
 
