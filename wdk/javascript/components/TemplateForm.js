@@ -24,7 +24,7 @@ goog.provide("wdk.components.TemplateForm");
                 <input v-if="!field.hasOwnProperty('type') || field.type === 'string'" type="text" 
                        class="form-control" :class="controlSizeClass" v-model.trim="data[field.name]"
                        :placeholder="field.placehoder !== undefined ? field.placeholder : null" 
-                       :disabled="field.hasOwnProperty('disabled') && field.disabled" />
+                       :disabled="field.hasOwnProperty('disabled') && field.disabled"/>
                 
                 <input v-else-if="field.type === 'number'" type="text" class="form-control"
                        :class="controlSizeClass" v-model.number="data[field.name]"
