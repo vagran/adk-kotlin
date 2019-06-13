@@ -101,3 +101,22 @@ fun <T> Observable<T>.Subscribe(): AwaitableSubscription<T>
 {
     return AwaitableSubscription.Create(this)
 }
+
+suspend fun <T> Observable<T>.ToList(): List<T>
+{
+    val subs = Subscribe()
+    val first = subs.Await()
+    if (!first.isSet) {
+        return emptyList()
+    }
+    val result = ArrayList<T>()
+    result.add(first.value)
+    while (true) {
+        val item = subs.Await()
+        if (!item.isSet) {
+            break
+        }
+        result.add(item.value)
+    }
+    return result
+}
