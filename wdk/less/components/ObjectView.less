@@ -2,74 +2,74 @@
     font-family: monospace;
     font-size: 0.9rem;
     padding: 1px;
-}
 
-.wdk_ObjectView_container .title {
-    margin-left: 2em;
-    margin-top: 0.2em;
-    margin-bottom: 0.4em;
-    font-family: sans-serif;
+    .title {
+        margin-left: 2em;
+        margin-top: 0.2em;
+        margin-bottom: 0.4em;
+        font-family: sans-serif;
+    }
+
+    .typeLabelOuter {
+        display: inline-block;
+        width: 26px;
+        vertical-align: middle;
+    }
+
+    .typeLabel {
+        display: inline-block;
+        font-family: monospace;
+        opacity: 0.6;
+        font-size: x-small;
+        border: 1px solid #b6b6b6;
+        border-radius: 3px;
+        background: #b3f6cc;
+        padding: 1px 2px;
+        float: right;
+        margin-bottom: 2px;
+    }
+
+    .typeLabel_array, .typeLabel_object {
+        padding: 0 3px 3px;
+    }
+
+    .typeLabel_null {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .typeLabel_boolean {
+        font-size: medium;
+        font-weight: bolder;
+        padding: 0 4px;
+    }
+
+    .value_array, .value_object {
+        border: 1px solid #dddddd;
+        border-radius: 2px;
+    }
+
+    .collectionValues {
+        border-top: 1px dashed #e0e0e0;
+    }
+
+    .name {
+        font-style: italic;
+        opacity: 0.6;
+    }
+
+    .elementsCount {
+        font-family: sans-serif;
+        font-style: italic;
+        font-size: small;
+        opacity: 0.6;
+        text-decoration: underline;
+        cursor: pointer;
+    }
 }
 
 .wdk_ObjectView_containerRoot {
     border: 1px solid #c2c2c2;
     border-radius: 2px;
     padding: 2px;
-}
-
-.wdk_ObjectView_container .typeLabelOuter {
-    display: inline-block;
-    width: 26px;
-    vertical-align: middle;
-}
-
-.wdk_ObjectView_container .typeLabel {
-    display: inline-block;
-    font-family: monospace;
-    opacity: 0.6;
-    font-size: x-small;
-    border: 1px solid #b6b6b6;
-    border-radius: 3px;
-    background: #b3f6cc;
-    padding: 1px 2px;
-    float: right;
-    margin-bottom: 2px;
-}
-
-.wdk_ObjectView_container .typeLabel_array, .wdk_ObjectView_container .typeLabel_object {
-    padding: 0 3px 3px;
-}
-
-.wdk_ObjectView_container .typeLabel_null {
-    padding-left: 0;
-    padding-right: 0;
-}
-
-.wdk_ObjectView_container .typeLabel_boolean {
-    font-size: medium;
-    font-weight: bolder;
-    padding: 0 4px;
-}
-
-.wdk_ObjectView_container .value_array, .wdk_ObjectView_container .value_object {
-    border: 1px solid #dddddd;
-    border-radius: 2px;
-}
-
-.wdk_ObjectView_container .collectionValues {
-    border-top: 1px dashed #e0e0e0;
-}
-
-.wdk_ObjectView_container .name {
-    font-style: italic;
-    opacity: 0.6;
-}
-
-.wdk_ObjectView_container .elementsCount {
-    font-family: sans-serif;
-    font-style: italic;
-    font-size: small;
-    opacity: 0.6;
-    text-decoration: underline;
-    cursor: pointer;
 }
