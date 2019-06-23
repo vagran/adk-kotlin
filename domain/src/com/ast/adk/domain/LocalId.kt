@@ -34,12 +34,12 @@ class LocalId(val value: Long): Comparable<LocalId>, Serializable {
 
     override fun compareTo(other: LocalId): Int
     {
-        return java.lang.Long.compare(value, other.value)
+        return value.compareTo(other.value)
     }
 
     override fun toString(): String
     {
-        return java.lang.Long.toString(value, 16)
+        return value.toString(16)
     }
 
     companion object {
