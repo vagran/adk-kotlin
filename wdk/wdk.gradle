@@ -65,7 +65,8 @@ Task CreateJsCompileTask(String name, List<String> srcDirsFiles, String outName,
     task.executable javaExe
     task.args "-jar", "node_modules/google-closure-compiler-java/compiler.jar"
     task.args "-O", optLevel
-    task.args "--language_in", "ECMASCRIPT6_STRICT"
+    task.args "--language_in", "ECMASCRIPT_2018"
+    task.args "--strict_mode_input"
     task.args "--js_output_file", "$buildDir/$outName"
     task.args "--dependency_mode", "LOOSE"
     task.args "--process_closure_primitives"
