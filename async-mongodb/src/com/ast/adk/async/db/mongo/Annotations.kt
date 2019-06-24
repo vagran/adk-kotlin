@@ -6,7 +6,7 @@ import kotlin.reflect.KClass
 
 
 @Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.PROPERTY, AnnotationTarget.FIELD)
+@Target(AnnotationTarget.CLASS)
 @OmmQualifiedAnnotation
 annotation class MongoClass(val allowUnmatchedFields: OmmOption = OmmOption.NOT_SET,
                             val codec: KClass<*> = Unit::class,
