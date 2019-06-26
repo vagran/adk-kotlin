@@ -38,14 +38,14 @@ class HttpPath {
 
     fun Append(path: HttpPath): HttpPath
     {
-        val newComponents = ArrayList<String>(components)
+        val newComponents = ArrayList(components)
         newComponents.addAll(path.components)
         return HttpPath(newComponents, hasRoot)
     }
 
     fun Append(component: String): HttpPath
     {
-        val newComponents = ArrayList<String>(components)
+        val newComponents = ArrayList(components)
         newComponents.add(component)
         return HttpPath(newComponents, hasRoot)
     }
