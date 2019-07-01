@@ -94,6 +94,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
 
     var requestValidationHook: HttpRequestHook? = null
     var log: Logger? = null
+    var accessLog: Logger? = null
 
     enum class UnitResultMode {
         /** Empty body with HTTP 204 "No Content" result code. */
@@ -109,7 +110,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
             val ctx = RequestContext(request)
             val method = request.requestMethod
             val uri = request.requestURI
-            log?.Info("Request from %s - %s %s", request.remoteAddress, method, uri)
+            accessLog?.Info("Request from %s - %s %s", request.remoteAddress, method, uri)
             try {
                 Deferred.ForFunc {
                     requestValidationHook?.invoke(ctx)
