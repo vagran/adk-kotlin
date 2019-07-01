@@ -11,10 +11,12 @@ class MongoObservable<T> (private val source: MongoIterable<T>,
                           isConnected: Boolean = true):
     Observable<T> by Observable.Create(IterableSource(source), isConnected) {
 
-    fun SetBatchSize(batchSize: Int): MongoObservable<T>
-    {
-        source.batchSize(batchSize)
-        return this
+    var batchSize: Int
+    get() {
+        return source.batchSize ?: 0
+    }
+    set(value) {
+        source.batchSize(value)
     }
 
     private class IterableSource<T> (private var iterable: MongoIterable<T>): Observable.Source<T> {
@@ -82,5 +84,9 @@ class MongoObservable<T> (private val source: MongoIterable<T>,
             cursor!!.next(this::OnNextBatch)
         }
     }
+}
 
+fun <T> MongoIterable<T>.ToObservable(isConnected: Boolean = true): MongoObservable<T>
+{
+    return MongoObservable(this, isConnected)
 }
