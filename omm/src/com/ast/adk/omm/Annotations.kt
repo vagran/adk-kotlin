@@ -70,3 +70,16 @@ annotation class OmmField(
 annotation class OmmIgnore(
     val qualifier: String = ""
 )
+
+
+/** Mark method as decoding finalizer. It is called after the class instance is fully deserialized.
+ * The method should not have any arguments (arguments with default values allowed). Multiple
+ * methods can be matched, they all are called in declaration order.
+ */
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.FUNCTION)
+@Repeatable
+@OmmQualifiedAnnotation
+annotation class OmmFinalizer(
+    val qualifier: String = ""
+)

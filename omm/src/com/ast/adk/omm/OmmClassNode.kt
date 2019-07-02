@@ -26,6 +26,7 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
     val defCtr: DefConstructor?
     val defCtrMissingReason: String?
     var delegatedRepresentationField: TFieldNode? = null
+    val finalizers: List<KFunction<*>>
 
     class FieldParams(
         val property: KProperty1<*, *>,
@@ -260,6 +261,27 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
             }
             this.defCtrMissingReason = defCtrMissingReason
         }
+
+        val finalizers = cls.memberFunctions
+            .filter { params.FindAnnotation<OmmFinalizer>(it) != null }
+
+        finalizers.forEach {
+            func ->
+            func.parameters.forEachIndexed {
+                idx, param ->
+                if (idx != 0) {
+                    if (!param.isOptional) {
+                        throw Error("Non-optional argument found in finalizer method: $param")
+                    }
+                }
+            }
+        }
+
+        if (finalizers.isEmpty()) {
+            this.finalizers = emptyList()
+        } else {
+            this.finalizers = finalizers
+        }
     }
 
     private class FieldValue(
@@ -293,6 +315,9 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         override fun Finalize(): Any
         {
             CheckAllSet()
+            finalizers.forEach {
+                it.callBy(mapOf(it.parameters[0] to obj))
+            }
             return obj
         }
 
@@ -330,6 +355,9 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
                     throw OmmError("Attempted to set read-only field ${value.fieldNode.property}")
                 }
                 value.fieldNode.setter.invoke(obj, value.value)
+            }
+            finalizers.forEach {
+                it.callBy(mapOf(it.parameters[0] to obj))
             }
             return obj
         }

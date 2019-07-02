@@ -1,9 +1,5 @@
-import com.ast.adk.omm.OmmClassNode
-import com.ast.adk.omm.OmmField
-import com.ast.adk.omm.OmmIgnore
-import com.ast.adk.omm.OmmParams
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
+import com.ast.adk.omm.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import kotlin.test.assertNull
@@ -21,6 +17,15 @@ private class BasicTest {
         lateinit var e: String
         @OmmIgnore
         lateinit var f: String
+
+        var isFinalized = false
+
+        @Suppress("UNUSED_PARAMETER")
+        @OmmFinalizer
+        fun Finalize(arg: Int = 42)
+        {
+            isFinalized = true
+        }
     }
 
     @Test
@@ -43,6 +48,7 @@ private class BasicTest {
         assertEquals("test1", obj.d)
         assertEquals("test2", obj.e)
         assertFalse(clsNode.fields.containsKey("f"))
+        assertTrue(obj.isFinalized)
     }
 
     class C1(var i: Int) {
@@ -94,6 +100,27 @@ private class BasicTest {
         var s2: String? = null
         @OmmField
         var s3: String? = null
+
+        var finalizer: Int = 0
+        var commonFinalizer: Int = 0
+
+        @OmmFinalizer(qualifier = "A")
+        fun FinalizeA()
+        {
+            finalizer = 1
+        }
+
+        @OmmFinalizer(qualifier = "B")
+        fun FinalizeB()
+        {
+            finalizer = 2
+        }
+
+        @OmmFinalizer
+        fun FinalizeC()
+        {
+            commonFinalizer = 1
+        }
     }
 
     @Test
@@ -113,6 +140,8 @@ private class BasicTest {
             assertEquals("test1", obj.s1)
             assertNull(obj.s2)
             assertEquals("test3", obj.s3)
+            assertEquals(1, obj.finalizer)
+            assertEquals(1, obj.commonFinalizer)
         }
 
         run {
@@ -129,6 +158,8 @@ private class BasicTest {
             assertNull(obj.s1)
             assertEquals("test2", obj.s2)
             assertEquals("test3", obj.s3)
+            assertEquals(2, obj.finalizer)
+            assertEquals(1, obj.commonFinalizer)
         }
 
         run {
@@ -145,6 +176,8 @@ private class BasicTest {
             assertEquals("test1", obj.s1)
             assertNull(obj.s2)
             assertNull(obj.s3)
+            assertEquals(1, obj.finalizer)
+            assertEquals(0, obj.commonFinalizer)
         }
 
         run {
@@ -160,6 +193,8 @@ private class BasicTest {
             assertNull(obj.s1)
             assertNull(obj.s2)
             assertEquals("test3", obj.s3)
+            assertEquals(0, obj.finalizer)
+            assertEquals(1, obj.commonFinalizer)
         }
     }
 }
