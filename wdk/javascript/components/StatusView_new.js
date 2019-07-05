@@ -4,10 +4,21 @@ goog.provide("wdk.components.StatusView_new");
 
     // language=HTML
     let tpl = `
-<div v-if="hasVisibleItems" class="wdk_StatusView">
-
+<ul v-if="hasItems" class="wdk_StatusView_new list-group">
+    <!-- XXX Dismiss all item -->
+    <li v-for="item in visibleItems" :key="item.id" 
+        :class="\`list-group-item list-group-item-\${_GetLevelClass(item.level)}\`">
+        <div class="clearfix">
+            <div v-if="item.level === 'progress'" class="spinner-border text-secondary float-left mr-3" />
+            <button type="button" class="close" @click="_OnDismiss(item.id)">
+                <span>&times;</span>
+            </button>
+            <template v-if="item.isHtml" v-html="item.text" />
+            <template v-else>{{item.text}}</template>
+        </div>
+    </li>
     <!-- XXX expandable, styled badges for hidden count -->
-</div>
+</ul>
     `;
 
     Vue.component("status-view-new", {
@@ -92,29 +103,39 @@ goog.provide("wdk.components.StatusView_new");
                  */
                 items: [],
 
-                isExpanded: false
+                isExpanded: false,
+
+                /** IDs for items inserted via "status" property. */
+                propItems: []
             }
         },
 
         computed: {
-            hasVisibleItems() {
-
-                //XXX
-                return true;
+            hasItems() {
+                return this.items.length !== 0;
             },
+
+            visibleItems() {
+                if (this.isExpanded || this.items.length <= this.maxCollapsedCount) {
+                    return this.items;
+                }
+                return this.items.slice(0, this.maxCollapsedCount);
+            },
+
+            hasCollapsedItems() {
+                return !this.isExpanded && this.items.length > this.maxCollapsedCount;
+            }
         },
 
         watch: {
             status(status) {
-                let items = this._ParseStatus(status);
-                for (let item in items) {
-
-                }
+                this._ApplyCurStatus(status);
             }
         },
 
         mounted() {
             this.curId = 1;
+            this._ApplyCurStatus(this.status);
         },
 
         methods: {
@@ -122,9 +143,36 @@ goog.provide("wdk.components.StatusView_new");
              * Push some status message(s). The pushed messages are not tracked, so if the passed
              * object is changed after the call, it does not affect the displayed status.
              * @param status
+             * @param title Optional title override. Has lower priority than title attributes in
+             *  status objects.
              */
-            Push(status) {
-                this._PushImpl(status, false);
+            Push(status, title = null) {
+                this._PushImpl(status, false, title);
+                this._SortItems();
+            },
+
+            _ApplyCurStatus(status) {
+                if (status === null) {
+                    while (this.propItems.length !== 0) {
+                        this._RemoveItem(this.propItems[0]);
+                    }
+                    return;
+                }
+                let mergedIds = this._PushImpl(status, true);
+                let removeList = [];
+                for (let id of this.propItems) {
+                    if (!mergedIds.includes(id)) {
+                        removeList.push(id);
+                    }
+                }
+                for (let id of removeList) {
+                    this._RemoveItem(id);
+                }
+                for (let id of mergedIds) {
+                    if (!this.propItems.includes(id)) {
+                        this.propItems.push(id);
+                    }
+                }
                 this._SortItems();
             },
 
@@ -132,29 +180,76 @@ goog.provide("wdk.components.StatusView_new");
              * @param status Any supported status object.
              * @param doMerge Do not increment aggregation counter and do not update timestamp if
              *      the same message found in current messages list.
+             * @param title Title override.
+             * @return Array of merged item IDs if `doMerge` is true.
              */
-            _PushImpl(status, doMerge) {
-
+            _PushImpl(status, doMerge, title = null) {
+                let items = this._ParseStatus(status, title);
+                let mergedItems = doMerge ? [] : null;
+                for (let item of items) {
+                    let existingItem = this._FindEqualItem(item);
+                    if (existingItem === null) {
+                        this.items.push(item);
+                        if (doMerge) {
+                            mergedItems.push(item.id);
+                        }
+                    } else if (!doMerge) {
+                        existingItem.timestamp = item.timestamp;
+                        existingItem.count++;
+                    } else {
+                        mergedItems.push(item.id);
+                    }
+                }
+                return mergedItems;
             },
 
             _SortItems() {
-                //XXX
+                this.items.sort((i1, i2) => i2.timestamp - i1.timestamp);
+            },
+
+            _RemoveItem(id) {
+                let delIdx = -1;
+                for (let idx = 0; idx < this.items.length; idx++) {
+                    let item = this.items[idx];
+                    if (item.id === id) {
+                        delIdx = idx;
+                        break;
+                    }
+                }
+                if (delIdx === -1) {
+                    return;
+                }
+                this.items.splice(delIdx, 1);
+            },
+
+            /**
+             * @param item Reference item to find equal one in the current items list.
+             * @return Found item, null if not found.
+             */
+            _FindEqualItem(item) {
+                for (let i of this.items) {
+                    if (this._ItemEquals(item, i)) {
+                        return i;
+                    }
+                }
+                return null;
             },
 
             /** Check it two items look equals. */
             _ItemEquals(item1, item2) {
                 return item1.text === item2.text &&
+                    item1.level === item2.level &&
                     item1.details !== item2.details &&
                     item1.isHtml === item2.isHtml &&
                     item1.title === item2.title;
             },
 
-            _ParseStatus(status) {
+            _ParseStatus(status, title = null) {
                 let result = [];
                 let ctx = {
-                    title: null,
+                    title: title,
                     isHtml: false,
-                    timestamp: Date.getTime()
+                    timestamp: new Date().getTime()
                 };
                 this._ParseStatusImpl(status, ctx, result);
                 return result;
@@ -291,27 +386,31 @@ goog.provide("wdk.components.StatusView_new");
                 return result;
             },
 
-            _GetAlertClass(level) {
+            _GetLevelClass(level) {
                 if (level === "info") {
-                    return "alert-info";
+                    return "info";
                 } else if (level === "warn" || level === "warning") {
-                    return "alert-warning";
+                    return "warning";
                 } else if (level === "error" || level === "danger") {
-                    return "alert-danger";
+                    return "danger";
                 } else if (level === "primary") {
-                    return "alert-primary";
+                    return "primary";
                 } else if (level === "success") {
-                    return "alert-success";
+                    return "success";
                 } else if (level === "secondary" || level === "progress") {
-                    return "alert-secondary";
+                    return "secondary";
                 } else if (level === "light") {
-                    return "alert-light";
+                    return "light";
                 } else if (level === "dark") {
-                    return "alert-dark";
+                    return "dark";
                 } else {
                     console.warn("Unrecognized alert class", level);
-                    return "alert-secondary";
+                    return "secondary";
                 }
+            },
+
+            _OnDismiss(id) {
+                this._RemoveItem(id);
             }
         }
     });
