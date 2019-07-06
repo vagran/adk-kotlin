@@ -62,7 +62,8 @@ goog.provide("wdk.components.StatusView_new");
              *      level: <optional message level, default is secondary>,
              *      details: <optional details text>,
              *      isHtml: <optional indication to interpret text as HTML, default is false>,
-             *      title: <optional message title>
+             *      title: <optional message title>,
+             *      expires: <optional expiration timeout override, seconds, zero for disabling>
              *   }
              *
              * * jQuery XHR error.
@@ -76,16 +77,19 @@ goog.provide("wdk.components.StatusView_new");
              *      svWrapped: true,
              *      s: <wrapped status, any of the primary types>,
              *      isHtml: <optional indication to interpret text as HTML, default is false>,
-             *      title: <optional message title>
+             *      title: <optional message title>,
+             *      expires: <optional expiration timeout override, seconds, zero for disabling>
              *  }
              */
             "status": {
                 default: null
             },
 
-            /* Expiration time for individual messages, seconds. Zero to disable expiration. */
+            /* Default expiration time for individual messages, seconds. Zero to disable expiration
+             * by default.
+             */
             "expirationTimeout": {
-                default: 120
+                default: 0
             },
 
             /* Maximal number of items to display when not expanded. */
@@ -93,7 +97,7 @@ goog.provide("wdk.components.StatusView_new");
                 default: 4
             },
 
-            /* Display as floating toast. ? XXX*/
+            /* Display as floating toast. */
             "isToast": {
                 default: false
             }
@@ -109,7 +113,8 @@ goog.provide("wdk.components.StatusView_new");
                  *      isHtml: <{boolean}>,
                  *      title: <title text, may be null>,
                  *      timestamp: <Date.getTime()>,
-                 *      count: <number of aggregated messages>
+                 *      count: <number of aggregated messages>,
+                 *      expires: expiration timestamp, zero for persistent message.
                  * }
                  */
                 items: [],
@@ -166,7 +171,17 @@ goog.provide("wdk.components.StatusView_new");
 
         mounted() {
             this.curId = 1;
+            this.timerId = null;
+            this.curExpireItem = null;
             this._ApplyCurStatus(this.status);
+        },
+
+        beforeDestroy() {
+            if (this.timerId !== null) {
+                clearTimeout(this.timerId);
+                this.timerId = null;
+                this.curExpireItem = null;
+            }
         },
 
         methods: {
@@ -179,7 +194,7 @@ goog.provide("wdk.components.StatusView_new");
              */
             Push(status, title = null) {
                 this._PushImpl(status, false, title);
-                this._SortItems();
+                this._CommitItems();
             },
 
             _ApplyCurStatus(status) {
@@ -204,7 +219,7 @@ goog.provide("wdk.components.StatusView_new");
                         this.propItems.push(id);
                     }
                 }
-                this._SortItems();
+                this._CommitItems();
             },
 
             /**
@@ -221,17 +236,30 @@ goog.provide("wdk.components.StatusView_new");
                     let existingItem = this._FindEqualItem(item);
                     if (existingItem === null) {
                         this.items.push(item);
+                        this._CheckExpireNew(item.expires);
                         if (doMerge) {
                             mergedItems.push(item.id);
                         }
                     } else if (!doMerge) {
                         existingItem.timestamp = item.timestamp;
+                        existingItem.expires = item.expires;
                         existingItem.count++;
+                        this._CheckExpireNew(existingItem.expires);
                     } else {
                         mergedItems.push(item.id);
                     }
                 }
                 return mergedItems;
+            },
+
+            _CheckExpireNew(expires) {
+                if (expires !== 0 && this.curExpireItem !== null &&
+                    expires < this.curExpireItem.expires) {
+
+                    this.curExpireItem = null;
+                    clearTimeout(this.timerId);
+                    this.timerId = null;
+                }
             },
 
             _SortItems() {
@@ -253,6 +281,11 @@ goog.provide("wdk.components.StatusView_new");
                 this.items.splice(delIdx, 1);
                 if (this.items.length <= this.maxCollapsedCount) {
                     this.isExpanded = false;
+                }
+                if (this.curExpireItem !== null && this.curExpireItem.id === id) {
+                    this.curExpireItem = null;
+                    clearTimeout(this.timerId);
+                    this.timerId = null;
                 }
             },
 
@@ -283,7 +316,8 @@ goog.provide("wdk.components.StatusView_new");
                 let ctx = {
                     title: title,
                     isHtml: false,
-                    timestamp: new Date().getTime()
+                    timestamp: new Date().getTime(),
+                    expires: this.expirationTimeout
                 };
                 this._ParseStatusImpl(status, ctx, result);
                 return result;
@@ -322,6 +356,9 @@ goog.provide("wdk.components.StatusView_new");
                         if (status.hasOwnProperty("title")) {
                             newCtx.title = status.title;
                         }
+                        if (status.hasOwnProperty("expires")) {
+                            newCtx.expires = status.expires;
+                        }
                         this._ParseStatusImpl(status.s, newCtx, result);
 
                     } else {
@@ -345,7 +382,8 @@ goog.provide("wdk.components.StatusView_new");
                     details: null,
                     isHtml: ctx.isHtml,
                     title: ctx.title,
-                    timestamp: ctx.timestamp
+                    timestamp: ctx.timestamp,
+                    expires: ctx.expires !== 0 ? ctx.timestamp + ctx.expires * 1000 : 0
                 };
 
                 if ($.type(status) === "string") {
@@ -445,12 +483,20 @@ goog.provide("wdk.components.StatusView_new");
 
             _OnDismiss(id) {
                 this._RemoveItem(id);
+                if (this.curExpireItem === null) {
+                    this._ScheduleExpire();
+                }
             },
 
             _DismissAll() {
                 this.items = [];
                 this.propItems = [];
                 this.isExpanded = false;
+                if (this.timerId !== null) {
+                    clearTimeout(this.timerId);
+                    this.timerId = null;
+                    this.curExpireItem = null;
+                }
             },
 
             /*
@@ -471,6 +517,44 @@ goog.provide("wdk.components.StatusView_new");
                     }
                 }
                 return count;
+            },
+
+            _CommitItems() {
+                this._SortItems();
+                if (this.curExpireItem === null) {
+                    this._ScheduleExpire();
+                }
+            },
+
+            _ScheduleExpire() {
+                let minItem = null;
+                let now = new Date().getTime();
+                let expired = [];
+                for (let item of this.items) {
+                    if (item.expires === 0) {
+                        continue;
+                    }
+                    if (item.expires <= now) {
+                        expired.push(item);
+                        continue;
+                    }
+                    if (minItem === null || item.expires < minItem.expires) {
+                        minItem = item;
+                    }
+                }
+                for (let item of expired) {
+                    this._RemoveItem(item.id);
+                }
+                if (minItem !== null) {
+                    this.timerId = setTimeout(this._OnTimer, minItem.expires - now);
+                    this.curExpireItem = minItem;
+                }
+            },
+
+            _OnTimer() {
+                this.timerId = null;
+                this.curExpireItem = null;
+                this._ScheduleExpire();
             }
         }
     });
