@@ -1,15 +1,75 @@
 .wdk_StatusView {
+    &.WdkToast {
+        position: fixed;
+        right: 5%;
+        top: 20%;
+        z-index: 2000;
+        max-width: 80%;
+        max-height: 70%;
+        overflow: auto;
+        opacity: 0.9;
+    }
+
+    li.top, li.bottom {
+        padding: 0.1rem 2rem;
+        font-size: 0.8rem;
+    }
+
+    div.title {
+        padding-left: 1rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    span.count {
+        border-width: 1px;
+        border-style: solid;
+    }
+
+    .list-group-item-success span.count {
+        border-color: var(--success);
+    }
+
+    .list-group-item-info span.count {
+        border-color: var(--info);
+    }
+
+    .list-group-item-warning span.count {
+        border-color: var(--warning);
+    }
+
+    .list-group-item-danger span.count {
+        border-color: var(--danger);
+    }
+
+    .list-group-item-primary span.count {
+        border-color: var(--primary);
+    }
+
+    .list-group-item-secondary span.count {
+        border-color: var(--secondary);
+    }
+
+    .list-group-item-light span.count {
+        border-color: var(--light);
+    }
+
+    .list-group-item-dark span.count {
+        border-color: var(--dark);
+    }
+
     details {
         summary {
-            font-size: 70%;
+            font-size: 0.7rem;
             cursor: pointer;
             text-decoration: underline;
         }
 
         .details {
             text-align: left;
-            font-family: monospace;
+            font-family: var(--font-family-monospace);
             white-space: pre;
+            overflow: auto;
         }
     }
 }
