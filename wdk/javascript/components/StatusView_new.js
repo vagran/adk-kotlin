@@ -4,7 +4,7 @@ goog.provide("wdk.components.StatusView_new");
 
     // language=HTML
     let tpl = `
-<ul v-if="hasItems" class="wdk_StatusView_new list-group">
+<ul v-if="hasItems" class="wdk_StatusView_new list-group" :class="{WdkToast: isToast}">
     <li v-if="items.length > 1" class="list-group-item top">
         <a href="#" @click.prevent="_DismissAll" class="text-secondary float-right">Dismiss all</a>
     </li>
@@ -13,10 +13,10 @@ goog.provide("wdk.components.StatusView_new");
         <div v-if="item.title !== null" class="title">{{item.title}}</div>
         <div class="clearfix">
             <div v-if="item.level === 'progress'" class="spinner-border text-secondary float-left mr-3" />
-            <button type="button" class="close" @click="_OnDismiss(item.id)">
+            <button type="button" class="close ml-2" @click="_OnDismiss(item.id)">
                 <span>&times;</span>
             </button>
-            <span v-if="item.count > 1" class="badge badge-pill float-right mx-2 count">{{item.count}}</span>
+            <span v-if="item.count > 1" class="badge badge-pill float-right ml-2 count">{{item.count}}</span>
             <span v-if="item.isHtml" v-html="item.text" />
             <template v-else>{{item.text}}</template>
         </div>
