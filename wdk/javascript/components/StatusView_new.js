@@ -20,6 +20,10 @@ goog.provide("wdk.components.StatusView_new");
             <span v-if="item.isHtml" v-html="item.text" />
             <template v-else>{{item.text}}</template>
         </div>
+        <details v-if="item.details !== null">
+            <summary>Details</summary>
+            <div class="details">{{item.details}}</div>
+        </details>
     </li>
     <li v-if="hasCollapsedItems" class="list-group-item bottom">
         <a href="#" @click.prevent="isExpanded = true" class="text-secondary">Expand</a>
