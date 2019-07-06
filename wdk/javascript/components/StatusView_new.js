@@ -5,19 +5,30 @@ goog.provide("wdk.components.StatusView_new");
     // language=HTML
     let tpl = `
 <ul v-if="hasItems" class="wdk_StatusView_new list-group">
-    <!-- XXX Dismiss all item -->
+    <li v-if="items.length > 1" class="list-group-item top">
+        <a href="#" @click.prevent="_DismissAll" class="text-secondary float-right">Dismiss all</a>
+    </li>
     <li v-for="item in visibleItems" :key="item.id" 
         :class="\`list-group-item list-group-item-\${_GetLevelClass(item.level)}\`">
+        <div v-if="item.title !== null" class="title">{{item.title}}</div>
         <div class="clearfix">
             <div v-if="item.level === 'progress'" class="spinner-border text-secondary float-left mr-3" />
             <button type="button" class="close" @click="_OnDismiss(item.id)">
                 <span>&times;</span>
             </button>
-            <template v-if="item.isHtml" v-html="item.text" />
+            <span v-if="item.count > 1" class="badge badge-pill float-right mx-2 count">{{item.count}}</span>
+            <span v-if="item.isHtml" v-html="item.text" />
             <template v-else>{{item.text}}</template>
         </div>
     </li>
-    <!-- XXX expandable, styled badges for hidden count -->
+    <li v-if="hasCollapsedItems" class="list-group-item bottom">
+        <a href="#" @click.prevent="isExpanded = true" class="text-secondary">Expand</a>
+        <span v-if="collapsedErrorCount !== 0" class="badge badge-pill badge-danger">{{collapsedErrorCount}}</span>
+        <span v-if="collapsedWarningCount !== 0" class="badge badge-pill badge-warning">{{collapsedWarningCount}}</span>
+        <span v-if="collapsedInfoCount !== 0" class="badge badge-pill badge-info">{{collapsedInfoCount}}</span>
+        <span v-if="collapsedSuccessCount !== 0" class="badge badge-pill badge-success">{{collapsedSuccessCount}}</span>
+        <span v-if="collapsedOtherCount !== 0" class="badge badge-pill badge-secondary">{{collapsedOtherCount}}</span>
+    </li>
 </ul>
     `;
 
@@ -124,6 +135,26 @@ goog.provide("wdk.components.StatusView_new");
 
             hasCollapsedItems() {
                 return !this.isExpanded && this.items.length > this.maxCollapsedCount;
+            },
+
+            collapsedSuccessCount() {
+                return this._CollapsedCount("success");
+            },
+
+            collapsedInfoCount() {
+                return this._CollapsedCount("info");
+            },
+
+            collapsedWarningCount() {
+                return this._CollapsedCount("warning");
+            },
+
+            collapsedErrorCount() {
+                return this._CollapsedCount("error");
+            },
+
+            collapsedOtherCount() {
+                return this._CollapsedCount(null);
             }
         },
 
@@ -220,6 +251,9 @@ goog.provide("wdk.components.StatusView_new");
                     return;
                 }
                 this.items.splice(delIdx, 1);
+                if (this.items.length <= this.maxCollapsedCount) {
+                    this.isExpanded = false;
+                }
             },
 
             /**
@@ -239,7 +273,7 @@ goog.provide("wdk.components.StatusView_new");
             _ItemEquals(item1, item2) {
                 return item1.text === item2.text &&
                     item1.level === item2.level &&
-                    item1.details !== item2.details &&
+                    item1.details === item2.details &&
                     item1.isHtml === item2.isHtml &&
                     item1.title === item2.title;
             },
@@ -411,6 +445,32 @@ goog.provide("wdk.components.StatusView_new");
 
             _OnDismiss(id) {
                 this._RemoveItem(id);
+            },
+
+            _DismissAll() {
+                this.items = [];
+                this.propItems = [];
+                this.isExpanded = false;
+            },
+
+            /*
+             * Count success, info, warning and error levels. Null for all the rest.
+             */
+            _CollapsedCount(level) {
+                let count = 0;
+                for (let idx = this.maxCollapsedCount; idx < this.items.length; idx++) {
+                    let item = this.items[idx];
+                    let itemLevel = item.level;
+                    if (level === null) {
+                        if (itemLevel !== "success" && itemLevel !== "info" &&
+                            itemLevel !== "warning" && itemLevel !== "error") {
+                            count += item.count;
+                        }
+                    } else if (itemLevel === level) {
+                        count += item.count;
+                    }
+                }
+                return count;
             }
         }
     });
