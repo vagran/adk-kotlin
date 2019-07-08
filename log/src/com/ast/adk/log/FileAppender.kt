@@ -82,8 +82,8 @@ class FileAppender(private val config: LogConfiguration.Appender):
         fun GetOldPattern(config: LogConfiguration.Appender.FileParams): RegExp
         {
             val pat = StringBuilder()
-            pat.append("\\d{4}\\-\\d{2}\\-\\d{2}_\\d{2}\\-\\d{2}\\-\\d{2}_")
             pat.append(EscapeRegExp(config.path.fileName.toString()))
+            pat.append("_\\d{4}\\-\\d{2}\\-\\d{2}_\\d{2}\\-\\d{2}\\-\\d{2}")
             if (config.compressOld) {
                 pat.append("\\.gz")
             }
@@ -131,9 +131,10 @@ class FileAppender(private val config: LogConfiguration.Appender):
     {
         file.close()
         val path = config.fileParams!!.path
-        val newName = DateTimeFormatter.ofPattern("YYYY-MM-dd_HH-mm-ss_").format(
-            LocalDateTime.ofInstant(creationTime, ZoneId.systemDefault())) +
-            path.fileName
+        val newName = path.fileName.toString() +
+            DateTimeFormatter.ofPattern("_YYYY-MM-dd_HH-mm-ss").format(
+            LocalDateTime.ofInstant(creationTime, ZoneId.systemDefault()))
+
         val newPath = path.resolveSibling(newName)
         Files.move(path, newPath)
 
