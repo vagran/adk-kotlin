@@ -328,12 +328,12 @@ private class TaskTest {
     {
         /* Test for potential deep recursion. */
         val it = (1..5_000_000).iterator()
-        TaskThrottler(8, {
+        TaskThrottler(8, false) {
             if (!it.hasNext()) {
                 return@TaskThrottler null
             }
             return@TaskThrottler Deferred.ForResult(it.next())
-        }, false).Run().WaitComplete()
+        }.Run().WaitComplete()
         assertFalse(it.hasNext())
     }
 }

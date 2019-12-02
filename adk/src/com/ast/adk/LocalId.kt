@@ -1,4 +1,4 @@
-package com.ast.adk.domain
+package com.ast.adk
 
 import com.ast.adk.json.*
 import java.io.Serializable
@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicLong
 /**
  * Application-instance-locally-unique monotonically increased ID.
  */
+//XXX make inline when inline classes stabilized
 @JsonClass(codec = LocalIdJsonCodec::class)
 class LocalId(val value: Long): Comparable<LocalId>, Serializable {
 

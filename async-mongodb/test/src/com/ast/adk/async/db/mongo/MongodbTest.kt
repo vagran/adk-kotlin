@@ -93,7 +93,7 @@ private class MongodbTest {
 
         log.Info("Inserting...")
         val docIdx = AtomicInteger(1)
-        TaskThrottler(numCores, {
+        TaskThrottler(numCores) {
             val i = docIdx.getAndIncrement()
             if (i > numDocs) {
                 return@TaskThrottler null
@@ -108,7 +108,7 @@ private class MongodbTest {
                         "y" to i * 2
                     }
                 })
-        }).Run().WaitComplete()
+        }.Run().WaitComplete()
         log.Info("Insertion done")
 
         run {
@@ -122,7 +122,7 @@ private class MongodbTest {
 
         log.Info("Verifying...")
         val docs = MongoObservable(collection.find())
-        docs.SetBatchSize(1000)
+        docs.batchSize = 1000
         val done = Deferred.Create<Void?>()
         val verified = ConcurrentSkipListSet<Int>()
         docs.SubscribeVoid { doc, error ->

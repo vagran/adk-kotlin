@@ -1,8 +1,11 @@
 
 import com.ast.adk.async.*
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.fail
 import java.util.concurrent.atomic.AtomicLong
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -61,7 +64,7 @@ private class ContextTest {
         ctx.Start()
         val sum = AtomicLong(0)
 
-        TaskThrottler(numCores, {
+        TaskThrottler(numCores) {
             val value = synchronized(it) {
                 if (!it.hasNext()) {
                     return@TaskThrottler null
@@ -71,7 +74,7 @@ private class ContextTest {
             return@TaskThrottler Task.Create {
                 sum.addAndGet(value)
             }.Submit(ctx).result
-        }).Run().WaitComplete()
+        }.Run().WaitComplete()
 
         Assertions.assertFalse(it.hasNext())
         assertEquals(numValues * (1 + numValues) / 2, sum.get())

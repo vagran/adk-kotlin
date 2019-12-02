@@ -164,7 +164,7 @@ class LogQueue<T>(private val maxSize: Int,
     {
         synchronized(queue) {
             while (state.get() == STATE_WAIT_FULL) {
-                (queue as java.lang.Object).wait()
+                (queue as Object).wait()
             }
         }
     }
@@ -176,7 +176,7 @@ class LogQueue<T>(private val maxSize: Int,
             idleFunc?.invoke()
             synchronized(queue) {
                 if (state.get() == STATE_WAIT_EMPTY) {
-                    (queue as java.lang.Object).wait(emptyCheckInterval)
+                    (queue as Object).wait(emptyCheckInterval)
                 }
             }
         }
@@ -186,7 +186,7 @@ class LogQueue<T>(private val maxSize: Int,
     private fun Notify()
     {
         synchronized(queue) {
-            (queue as java.lang.Object).notifyAll()
+            (queue as Object).notifyAll()
         }
     }
 }
@@ -198,4 +198,3 @@ private const val STATE_WAIT_FULL = 3
 private const val STATE_WAIT_EMPTY = 4
 private const val STATE_WAIT_EMPTY_FILLED = 5
 private const val STATE_STOPPED = 6
-
