@@ -35,9 +35,16 @@ fun String.SplitByWhitespace(): List<String>
 }
 
 /** Separate function to make it easily removable by ProGuard. */
-fun Assert(condition: Boolean, msg: String? = null)
+fun Assert(condition: Boolean, msg: String)
 {
     if (!condition) {
-        throw AssertionError(msg ?: "Assertion failed")
+        throw AssertionError(msg)
+    }
+}
+
+fun Assert(condition: Boolean)
+{
+    if (!condition) {
+        throw AssertionError("Assertion failed")
     }
 }
