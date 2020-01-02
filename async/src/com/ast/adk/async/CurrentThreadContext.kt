@@ -10,6 +10,7 @@ class CurrentThreadContext: QueuedContext() {
     fun Run()
     {
         Context.current = this
+        @Suppress("ControlFlowWithEmptyBody")
         while (!WaitAndProcess()) {}
     }
 }
