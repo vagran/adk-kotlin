@@ -46,6 +46,9 @@ interface Context {
     /** Wrap the provided function so that it continues in this context. */
     suspend fun <T> ResumeIn(func: suspend () -> T): T
     {
+        if (current == this) {
+            return func()
+        }
         var funcError: Throwable? = null
         var funcResult: T? = null
         try {
@@ -80,6 +83,9 @@ interface Context {
     /** Continues execution in this context. */
     suspend fun ResumeIn()
     {
+        if (current == this) {
+            return
+        }
         suspendCoroutineUninterceptedOrReturn {
             cont: Continuation<Unit> ->
 
@@ -215,6 +221,10 @@ interface Context {
      */
     fun <T> Run(func: () -> T)
     {
+        if (current == this) {
+            func()
+            return
+        }
         Submit(object: Message {
             override fun Invoke() { func() }
 
