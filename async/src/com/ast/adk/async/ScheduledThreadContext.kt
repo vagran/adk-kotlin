@@ -3,8 +3,8 @@ package com.ast.adk.async
 import java.util.*
 
 /** Allows timed scheduling of submitted messages via SubmitScheduled() method. */
-class ScheduledThreadContext(name: String,
-                             failHandler: ContextFailHandler? = null):
+open class ScheduledThreadContext(name: String,
+                                  failHandler: ContextFailHandler? = null):
     ThreadContext(name, failHandler) {
 
     /** Token which can be used for scheduled message cancellation.
