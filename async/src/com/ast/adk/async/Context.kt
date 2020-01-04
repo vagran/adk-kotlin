@@ -41,12 +41,17 @@ interface Context {
         throw NotImplementedError()
     }
 
+    fun IsCurrent(): Boolean
+    {
+        return this === current
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
 
     /** Wrap the provided function so that it continues in this context. */
     suspend fun <T> ResumeIn(func: suspend () -> T): T
     {
-        if (current == this) {
+        if (IsCurrent()) {
             return func()
         }
         var funcError: Throwable? = null
@@ -83,7 +88,7 @@ interface Context {
     /** Continues execution in this context. */
     suspend fun ResumeIn()
     {
-        if (current == this) {
+        if (IsCurrent()) {
             return
         }
         suspendCoroutineUninterceptedOrReturn {
@@ -221,7 +226,7 @@ interface Context {
      */
     fun <T> Run(func: () -> T)
     {
-        if (current == this) {
+        if (IsCurrent()) {
             func()
             return
         }

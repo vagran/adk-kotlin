@@ -35,7 +35,7 @@ abstract class QueuedContext: Context {
 
     override fun Submit(message: Message)
     {
-        if (Context.current == this) {
+        if (IsCurrent()) {
             message.Invoke()
         }
         LockQueue {
