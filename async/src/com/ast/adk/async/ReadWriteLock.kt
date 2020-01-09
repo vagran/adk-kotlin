@@ -119,8 +119,8 @@ class ReadWriteLock {
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    val readQueue = ArrayDeque<Deferred<Unit>>()
-    val writeQueue = ArrayDeque<Deferred<Unit>>()
+    private val readQueue = ArrayDeque<Deferred<Unit>>()
+    private val writeQueue = ArrayDeque<Deferred<Unit>>()
     /** 0 - unlocked, -1 - writing, positive value - number of readers. */
-    var state = 0
+    private var state = 0
 }
