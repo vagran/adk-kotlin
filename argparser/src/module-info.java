@@ -1,4 +1,4 @@
-module io.github.vagran.argparser {
+module io.github.vagran.adk.argparser {
     requires kotlin.stdlib;
     requires kotlin.reflect;
 
