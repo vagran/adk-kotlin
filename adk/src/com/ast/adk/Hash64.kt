@@ -107,7 +107,7 @@ class Hash64(private val seed: Int = -0x68b84d74 /*0x9747b28c*/) {
 
     private inline fun GetBlock(data: ByteArray, offset: Int): Int
     {
-        return (data[offset    ].toInt() and 0xff) or
+        return  (data[offset    ].toInt() and 0xff) or
                ((data[offset + 1].toInt() and 0xff) shl 8) or
                ((data[offset + 2].toInt() and 0xff) shl 16) or
                ((data[offset + 3].toInt() and 0xff) shl 24)

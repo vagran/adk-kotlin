@@ -1,4 +1,4 @@
-package com.ast.adk
+package io.github.vagran.adk.config
 
 import com.ast.adk.json.Json
 import java.io.InputStream
@@ -120,7 +120,8 @@ class Configuration {
     {
         /** Either key of a map or index of a list.  */
         val key: String = key.toString()
-        val value: Configuration = Configuration(value)
+        val value: Configuration = Configuration(
+            value)
     }
 
 
@@ -147,7 +148,9 @@ class Configuration {
                     override fun next(): Entry
                     {
                         val e = it.next()
-                        return Entry(e.key, e.value)
+                        return Entry(
+                            e.key,
+                            e.value)
                     }
                 }
 
@@ -165,7 +168,8 @@ class Configuration {
                     override fun next(): Entry
                     {
                         val idx = it.nextIndex()
-                        return Entry(Integer.toString(idx), it.next())
+                        return Entry(
+                            idx.toString(), it.next())
                     }
                 }
             }
@@ -273,7 +277,8 @@ class Configuration {
     private fun MergeConfigEntry(dst: Any?, src: Any?): Any?
     {
         if (dst is Map<*, *> && src is Map<*, *>) {
-            (src as Map<String, Any>).forEach { key, value ->
+            (src as Map<String, Any>).forEach {
+                (key, value) ->
                 (dst as MutableMap<String, Any>).merge(key, value) {
                     dst, src ->
                     MergeConfigEntry(dst, src)

@@ -31,9 +31,9 @@ private class TaskTest {
         val ctx = ThreadContext("test")
         ctx.Start()
 
-        val def = Task.Create({
+        val def = Task.Create {
             42
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
         VerifyDefResult(42, def)
 
@@ -47,7 +47,7 @@ private class TaskTest {
         ctx.Start()
 
         var result: Int? = null
-        val def = Task.Create({ result = 42 }).Submit(ctx).result
+        val def = Task.Create { result = 42 }.Submit(ctx).result
 
         VerifyDefResult(Unit, def)
 
@@ -85,13 +85,13 @@ private class TaskTest {
         val ctx = ThreadContext("test")
         ctx.Start()
 
-        val def1 = Task.Create({
+        val def1 = Task.Create {
             42
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
-        val def2 = Task.CreateDef({
+        val def2 = Task.CreateDef {
             def1.Await()
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
         VerifyDefResult(42, def2)
 
@@ -104,9 +104,9 @@ private class TaskTest {
         val ctx = ThreadContext("test")
         ctx.Start()
 
-        val def1 = Task.Create({
+        val def1 = Task.Create {
             42
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
         val def2 = Deferred.ForFunc({def1.Await()})
 
@@ -123,13 +123,13 @@ private class TaskTest {
         val ctx2 = ThreadContext("ctx2")
         ctx2.Start()
 
-        val def1 = Task.Create({
+        val def1 = Task.Create {
             println("in task 1")
             assertSame(ctx1.thread, Thread.currentThread())
             42
-        }).Submit(ctx1).result
+        }.Submit(ctx1).result
 
-        val def2 = Task.CreateDef({
+        val def2 = Task.CreateDef {
             println("in task 2, before suspend")
             assertSame(ctx1.thread, Thread.currentThread())
             val x = def1.Await(ctx2)
@@ -139,7 +139,7 @@ private class TaskTest {
             println("in task 2, after context switch")
             assertSame(ctx1.thread, Thread.currentThread())
             x
-        }).Submit(ctx1).result
+        }.Submit(ctx1).result
 
         VerifyDefResult(42, def2)
 
@@ -163,13 +163,13 @@ private class TaskTest {
         val ctx2 = ThreadContext("ctx2")
         ctx2.Start()
 
-        val def1 = Task.Create({
+        val def1 = Task.Create {
             println("in task 1")
             assertSame(ctx1.thread, Thread.currentThread())
             throw Exception("test")
-        }).Submit(ctx1).result
+        }.Submit(ctx1).result
 
-        val def2 = Task.CreateDef({
+        val def2 = Task.CreateDef {
             println("in task 2, before suspend")
             assertSame(ctx1.thread, Thread.currentThread())
             try {
@@ -179,7 +179,7 @@ private class TaskTest {
                 assertSame(ctx2.thread, Thread.currentThread())
                 throw e
             }
-        }).Submit(ctx1).result
+        }.Submit(ctx1).result
 
         VerifyDefError("test", def2)
 
@@ -201,13 +201,13 @@ private class TaskTest {
         val ctx = ScheduledThreadContext("test")
         ctx.Start()
 
-        val def1 = Task.Create({
+        val def1 = Task.Create {
             42
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
-        val def2 = Task.CreateDef({
+        val def2 = Task.CreateDef {
             def1.Await()
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
         VerifyDefResult(42, def2)
 
@@ -220,15 +220,15 @@ private class TaskTest {
         val ctx = ScheduledThreadContext("test")
         ctx.Start()
 
-        val task = Task.Create({
+        val task = Task.Create {
             42
-        })
+        }
         val def1 = task.result
         ctx.SubmitScheduled(task, 1000)
 
-        val def2 = Task.CreateDef({
+        val def2 = Task.CreateDef {
             def1.Await()
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
         VerifyDefResult(42, def2)
 
@@ -241,10 +241,10 @@ private class TaskTest {
         val ctx = ScheduledThreadContext("test")
         ctx.Start()
 
-        val def = Task.CreateDef({
+        val def = Task.CreateDef {
             ctx.Delay(1000L)
             42
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
         VerifyDefResult(42, def)
 
@@ -257,17 +257,17 @@ private class TaskTest {
         val ctx = ThreadContext("ctx")
         ctx.Start()
 
-        val def1 = Task.Create({
+        val def1 = Task.Create {
             3
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
-        val def2 = Task.Create({
+        val def2 = Task.Create {
             5
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
-        val def3 = Task.Create({
+        val def3 = Task.Create {
             7
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
         val def = Deferred.When(def1, def2, def3)
 
@@ -293,17 +293,17 @@ private class TaskTest {
         val ctx = ThreadContext("ctx")
         ctx.Start()
 
-        val def1 = Task.Create({
+        val def1 = Task.Create {
             3
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
-        val def2 = Task.Create({
+        val def2 = Task.Create {
             throw Error("aaa")
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
-        val def3 = Task.Create({
+        val def3 = Task.Create {
             7
-        }).Submit(ctx).result
+        }.Submit(ctx).result
 
         val def = Deferred.When(def1, def2, def3)
 

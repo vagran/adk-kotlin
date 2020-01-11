@@ -1,8 +1,8 @@
 module com.ast.adk.guiutils {
     requires kotlin.stdlib;
-    requires javafx.fxml;
-    requires javafx.controls;
     requires kotlin.reflect;
+    requires transitive javafx.fxml;
+    requires transitive javafx.controls;
 
     exports com.ast.adk.guiutils.propview;
 }

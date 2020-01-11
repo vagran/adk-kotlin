@@ -1,6 +1,5 @@
 package com.ast.adk
 
-import com.ast.adk.json.*
 import java.io.Serializable
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -11,7 +10,6 @@ import java.util.concurrent.atomic.AtomicLong
  * Application-instance-locally-unique monotonically increased ID.
  */
 //XXX make inline when inline classes stabilized
-@JsonClass(codec = LocalIdJsonCodec::class)
 class LocalId(val value: Long): Comparable<LocalId>, Serializable {
 
     constructor():
@@ -67,16 +65,3 @@ class LocalId(val value: Long): Comparable<LocalId>, Serializable {
     }
 }
 
-
-class LocalIdJsonCodec: JsonCodec<LocalId> {
-
-    override fun WriteNonNull(obj: LocalId, writer: JsonWriter, json: Json)
-    {
-        writer.Write(obj.toString())
-    }
-
-    override fun ReadNonNull(reader: JsonReader, json: Json): LocalId
-    {
-        return LocalId(reader.ReadString())
-    }
-}

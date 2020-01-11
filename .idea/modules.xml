@@ -10,6 +10,7 @@
       <module fileurl="file://$PROJECT_DIR$/async-mongodb/async-mongodb.iml" filepath="$PROJECT_DIR$/async-mongodb/async-mongodb.iml" />
       <module fileurl="file://$PROJECT_DIR$/async-mongodb/test/async-mongodb.test.iml" filepath="$PROJECT_DIR$/async-mongodb/test/async-mongodb.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/async/test/async.test.iml" filepath="$PROJECT_DIR$/async/test/async.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/config/config.iml" filepath="$PROJECT_DIR$/config/config.iml" />
       <module fileurl="file://$PROJECT_DIR$/diff/diff.iml" filepath="$PROJECT_DIR$/diff/diff.iml" />
       <module fileurl="file://$PROJECT_DIR$/diff/test/diff.test.iml" filepath="$PROJECT_DIR$/diff/test/diff.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/domain/domain.iml" filepath="$PROJECT_DIR$/domain/domain.iml" />
@@ -19,6 +20,7 @@
       <module fileurl="file://$PROJECT_DIR$/injector/injector.iml" filepath="$PROJECT_DIR$/injector/injector.iml" />
       <module fileurl="file://$PROJECT_DIR$/injector/test/injector.test.iml" filepath="$PROJECT_DIR$/injector/test/injector.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/json/json.iml" filepath="$PROJECT_DIR$/json/json.iml" />
+      <module fileurl="file://$PROJECT_DIR$/json/adk_codecs/json.adk_codecs.iml" filepath="$PROJECT_DIR$/json/adk_codecs/json.adk_codecs.iml" />
       <module fileurl="file://$PROJECT_DIR$/json/test/json.test.iml" filepath="$PROJECT_DIR$/json/test/json.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/log.iml" filepath="$PROJECT_DIR$/log/log.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/slf4j/log.slf4j.iml" filepath="$PROJECT_DIR$/log/slf4j/log.slf4j.iml" />
