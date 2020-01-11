@@ -26,7 +26,7 @@
       <module fileurl="file://$PROJECT_DIR$/log/slf4j/log.slf4j.iml" filepath="$PROJECT_DIR$/log/slf4j/log.slf4j.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/test/log.test.iml" filepath="$PROJECT_DIR$/log/test/log.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/omm/omm.iml" filepath="$PROJECT_DIR$/omm/omm.iml" />
-      <module fileurl="file://$PROJECT_DIR$/omm.test/omm.test.iml" filepath="$PROJECT_DIR$/omm.test/omm.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/omm/test/omm.test.iml" filepath="$PROJECT_DIR$/omm/test/omm.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/wdk/wdk.iml" filepath="$PROJECT_DIR$/wdk/wdk.iml" group="wdk" />
     </modules>
   </component>
