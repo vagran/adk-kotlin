@@ -1,3 +1,9 @@
+/*
+ * This file is part of ADK project.
+ * Copyright (c) 2020 Artyom Lebedev <artyom.lebedev@gmail.com>. All rights reserved.
+ * See LICENSE file for full license details.
+ */
+
 /* This file is taken very first when compiling JS. */
 
 /* Stub for Google Closure library. We use only dependencies ordering by the Google Closure
