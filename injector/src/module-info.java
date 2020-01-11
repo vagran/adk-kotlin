@@ -1,6 +1,6 @@
-module com.ast.adk.injector {
+module io.github.vagran.adk.injector {
     requires kotlin.stdlib;
     requires kotlin.reflect;
 
-    exports com.ast.adk.injector;
+    exports io.github.vagran.adk.injector;
 }

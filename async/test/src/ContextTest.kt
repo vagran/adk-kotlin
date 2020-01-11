@@ -1,5 +1,5 @@
 
-import com.ast.adk.async.*
+import io.github.vagran.adk.async.*
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

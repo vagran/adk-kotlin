@@ -1,12 +1,12 @@
-module com.ast.adk.domain {
+module io.github.vagran.adk.domain {
     requires kotlin.stdlib;
     requires kotlin.reflect;
     requires jdk.httpserver;
-    requires com.ast.adk.async;
-    requires com.ast.adk.log;
-    requires com.ast.adk.json;
-    requires com.ast.adk;
+    requires io.github.vagran.adk.async;
+    requires io.github.vagran.adk.log;
+    requires io.github.vagran.adk.json;
+    requires io.github.vagran.adk;
 
-    exports com.ast.adk.domain;
-    exports com.ast.adk.domain.httpserver;
+    exports io.github.vagran.adk.domain;
+    exports io.github.vagran.adk.domain.httpserver;
 }

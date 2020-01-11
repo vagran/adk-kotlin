@@ -1,5 +1,5 @@
-import com.ast.adk.async.Lock
-import com.ast.adk.async.ReadWriteLock
+import io.github.vagran.adk.async.Lock
+import io.github.vagran.adk.async.ReadWriteLock
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test

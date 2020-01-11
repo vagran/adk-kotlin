@@ -1,11 +1,11 @@
-module com.ast.adk.async.mongodb {
+module io.github.vagran.async.mongodb {
     requires kotlin.stdlib;
-    requires com.ast.adk.async;
+    requires io.github.vagran.adk.async;
     requires kotlin.reflect;
     requires org.mongodb.driver.core;
     requires org.mongodb.bson;
     requires org.mongodb.driver.async.client;
-    requires transitive com.ast.adk.omm;
+    requires transitive io.github.vagran.adk.omm;
 
-    exports com.ast.adk.async.db.mongo;
+    exports io.github.vagran.adk.async.db.mongo;
 }

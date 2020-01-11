@@ -1,5 +1,5 @@
-import com.ast.adk.async.Deferred
-import com.ast.adk.async.Map
+import io.github.vagran.adk.async.Deferred
+import io.github.vagran.adk.async.Map
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance

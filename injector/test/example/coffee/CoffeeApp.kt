@@ -1,9 +1,9 @@
 package coffee
 
-import com.ast.adk.injector.Component
-import com.ast.adk.injector.DI
-import com.ast.adk.injector.Inject
-import com.ast.adk.injector.Singleton
+import io.github.vagran.adk.injector.Component
+import io.github.vagran.adk.injector.DI
+import io.github.vagran.adk.injector.Inject
+import io.github.vagran.adk.injector.Singleton
 
 object CoffeeApp {
 

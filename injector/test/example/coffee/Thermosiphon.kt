@@ -1,6 +1,6 @@
 package coffee
 
-import com.ast.adk.injector.Inject
+import io.github.vagran.adk.injector.Inject
 
 class Thermosiphon
     @Inject constructor(private val heater: Heater): Pump {

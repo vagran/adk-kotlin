@@ -1,7 +1,7 @@
-module com.ast.adk.json {
+module io.github.vagran.adk.json {
     requires kotlin.stdlib;
     requires kotlin.reflect;
-    requires transitive com.ast.adk.omm;
+    requires transitive io.github.vagran.adk.omm;
 
-    exports com.ast.adk.json;
+    exports io.github.vagran.adk.json;
 }

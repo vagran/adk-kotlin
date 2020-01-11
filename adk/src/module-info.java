@@ -1,5 +1,5 @@
-module com.ast.adk {
+module io.github.vagran.adk {
     requires kotlin.stdlib;
 
-    exports com.ast.adk;
+    exports io.github.vagran.adk;
 }

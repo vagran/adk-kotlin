@@ -1,8 +1,8 @@
 package coffee
 
-import com.ast.adk.injector.Provides
-import com.ast.adk.injector.Singleton
-import com.ast.adk.injector.Module
+import io.github.vagran.adk.injector.Provides
+import io.github.vagran.adk.injector.Singleton
+import io.github.vagran.adk.injector.Module
 
 
 @Module(include = [PumpModule::class])

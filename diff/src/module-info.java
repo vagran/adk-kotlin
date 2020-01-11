@@ -1,5 +1,5 @@
-module com.ast.adk.diff {
+module io.github.vagran.adk.diff {
     requires kotlin.stdlib;
 
-    exports com.ast.adk.diff;
+    exports io.github.vagran.adk.diff;
 }

@@ -1,7 +1,7 @@
-module com.ast.adk.log {
+module io.github.vagran.adk.log {
     requires kotlin.stdlib;
-    requires com.ast.adk.json;
+    requires io.github.vagran.adk.json;
     requires java.logging;
 
-    exports com.ast.adk.log;
+    exports io.github.vagran.adk.log;
 }

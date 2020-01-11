@@ -1,4 +1,4 @@
-import com.ast.adk.log.*
+import io.github.vagran.adk.log.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance

@@ -1,7 +1,7 @@
-module com.ast.adk.async {
+module io.github.vagran.adk.async {
     requires kotlin.stdlib;
-    requires com.ast.adk;
+    requires io.github.vagran.adk;
 
-    exports com.ast.adk.async;
-    exports com.ast.adk.async.observable;
+    exports io.github.vagran.adk.async;
+    exports io.github.vagran.adk.async.observable;
 }

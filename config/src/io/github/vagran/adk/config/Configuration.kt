@@ -1,6 +1,6 @@
 package io.github.vagran.adk.config
 
-import com.ast.adk.json.Json
+import io.github.vagran.adk.json.Json
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.file.Files

@@ -1,6 +1,6 @@
-module com.ast.adk.argparser {
+module io.github.vagran.argparser {
     requires kotlin.stdlib;
     requires kotlin.reflect;
 
-    exports com.ast.adk.argparser;
+    exports io.github.vagran.adk.argparser;
 }

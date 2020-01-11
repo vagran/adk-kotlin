@@ -1,8 +1,8 @@
-module com.ast.adk.log.slf4j {
+module io.github.vagran.adk.log.slf4j {
     requires kotlin.stdlib;
-    requires com.ast.adk.log;
+    requires io.github.vagran.adk.log;
     requires slf4j.api;
 
     exports org.slf4j.impl;
-    exports com.ast.adk.log.slf4j.api;
+    exports io.github.vagran.adk.log.slf4j.api;
 }

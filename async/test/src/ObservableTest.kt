@@ -1,9 +1,9 @@
 
-import com.ast.adk.async.Context
-import com.ast.adk.async.Deferred
-import com.ast.adk.async.ScheduledThreadContext
-import com.ast.adk.async.Task
-import com.ast.adk.async.observable.*
+import io.github.vagran.adk.async.Context
+import io.github.vagran.adk.async.Deferred
+import io.github.vagran.adk.async.ScheduledThreadContext
+import io.github.vagran.adk.async.Task
+import io.github.vagran.adk.async.observable.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import java.util.stream.Stream

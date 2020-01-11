@@ -1,6 +1,6 @@
 package org.slf4j.impl
 
-import com.ast.adk.log.slf4j.Slf4jLoggerFactory
+import io.github.vagran.adk.log.slf4j.Slf4jLoggerFactory
 import org.slf4j.ILoggerFactory
 import org.slf4j.spi.LoggerFactoryBinder
 
