@@ -7,6 +7,7 @@
 package io.github.vagran.adk.config
 
 import io.github.vagran.adk.json.Json
+import io.github.vagran.adk.json.adk_codecs.adkJsonCodecRegistry
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.nio.file.Files
@@ -21,7 +22,7 @@ class Configuration {
 
     // /////////////////////////////////////////////////////////////////////////////////////////////////
     private var root: Any? = null
-    private val json = Json(true)
+    private val json = Json(true, additionalRegistries = listOf(adkJsonCodecRegistry))
 
     constructor() {}
 

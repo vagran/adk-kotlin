@@ -4,7 +4,7 @@
  * See LICENSE file for full license details.
  */
 
-package io.github.vagran.adk.json.adk_codecs
+package io.github.vagran.adk.json.adk_codecs.codecs
 
 import io.github.vagran.adk.LocalId
 import io.github.vagran.adk.json.Json

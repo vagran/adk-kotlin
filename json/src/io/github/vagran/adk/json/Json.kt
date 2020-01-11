@@ -28,6 +28,19 @@ import kotlin.reflect.jvm.jvmErasure
 
 typealias JsonCodecProvider = (type: KType) -> JsonCodec<*>
 
+open class JsonCodecRegistry {
+    val typeCodecs: MutableMap<KType, JsonCodec<*>> = HashMap()
+    val classCodecs: MutableMap<KClass<*>, JsonCodecProvider> = HashMap()
+    val subclassCodecs: MutableMap<KClass<*>, JsonCodecProvider> = HashMap()
+
+    fun Merge(other: JsonCodecRegistry)
+    {
+        typeCodecs.putAll(other.typeCodecs)
+        classCodecs.putAll(other.classCodecs)
+        subclassCodecs.putAll(other.subclassCodecs)
+    }
+}
+
 /** Encapsulates encoding/decoding parameters and codecs registry.
  * @param allowUnmatchedFields Default value for unmatched fields handling behaviour. Can be
  * overridden for a class by JsonClass.allowUnmatchedFields annotation.
@@ -51,7 +64,8 @@ class Json(
     qualifiedOnly: Boolean = false,
     typeCodecs: Map<KType, JsonCodec<*>> = emptyMap(),
     classCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
-    subclassCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap()) {
+    subclassCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
+    additionalRegistries: List<JsonCodecRegistry> = emptyList()) {
 
     @Suppress("UNCHECKED_CAST")
     fun <T> GetCodec(type: KType): JsonCodec<T>
@@ -222,7 +236,7 @@ class Json(
     /** Register codec provider for a specific class. */
     fun RegisterClassCodec(cls: KClass<*>, codecProvider: JsonCodecProvider)
     {
-        classCodecs[cls] = codecProvider
+        registry.classCodecs[cls] = codecProvider
     }
 
     inline fun <reified T> RegisterClassCodec(noinline codecProvider: JsonCodecProvider) =
@@ -232,7 +246,7 @@ class Json(
     /** Register codec provider for a class and all its derived classes. */
     fun RegisterSubclassCodec(cls: KClass<*>, codecProvider: JsonCodecProvider)
     {
-        subclassCodecs[cls] = codecProvider
+        registry.subclassCodecs[cls] = codecProvider
     }
 
     inline fun <reified T> RegisterSubclassCodec(noinline codecProvider: JsonCodecProvider) =
@@ -248,31 +262,34 @@ class Json(
                                        qualifier = qualifier,
                                        qualifiedOnly = qualifiedOnly)
     private val codecs = ConcurrentHashMap<KType, JsonCodec<*>>()
-    private val classCodecs = HashMap<KClass<*>, JsonCodecProvider>()
-    private val subclassCodecs = HashMap<KClass<*>, JsonCodecProvider>()
+    private val registry = JsonCodecRegistry()
 
     init {
-        this.classCodecs[LocalDateTime::class] = { LocalDateTimeCodec() }
-        this.classCodecs[BitSet::class] = { BitSetCodec() }
+        registry.classCodecs[LocalDateTime::class] = { LocalDateTimeCodec() }
+        registry.classCodecs[BitSet::class] = { BitSetCodec() }
 
-        this.subclassCodecs[Path::class] = { PathCodec() }
+        registry.subclassCodecs[Path::class] = { PathCodec() }
 
         codecs.putAll(typeCodecs)
-        this.classCodecs.putAll(classCodecs)
-        this.subclassCodecs.putAll(subclassCodecs)
+        registry.classCodecs.putAll(classCodecs)
+        registry.subclassCodecs.putAll(subclassCodecs)
+
+        additionalRegistries.forEach {
+            registry.Merge(it)
+        }
     }
 
     private fun CreateCodec(type: KType): JsonCodec<*>
     {
         val jvmErasure = type.jvmErasure
 
-        for ((cls, provider) in classCodecs) {
+        for ((cls, provider) in registry.classCodecs) {
             if (jvmErasure == cls) {
                 return provider(type)
             }
         }
 
-        for ((cls, provider) in subclassCodecs) {
+        for ((cls, provider) in registry.subclassCodecs) {
             if (jvmErasure.isSubclassOf(cls)) {
                 return provider(type)
             }
