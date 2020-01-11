@@ -5,7 +5,7 @@ In an application project create file `build.gradle`:
 
 ```groovy
 buildscript {
-    ext.kotlin_version = "1.3.31"
+    ext.kotlin_version = "1.3.61"
 
     repositories {
         mavenCentral()
