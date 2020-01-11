@@ -1,4 +1,4 @@
-module io.github.vagran.async.mongodb {
+module io.github.vagran.adk.async.db.mongo {
     requires kotlin.stdlib;
     requires io.github.vagran.adk.async;
     requires kotlin.reflect;
