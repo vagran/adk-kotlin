@@ -10,6 +10,8 @@
       <module fileurl="file://$PROJECT_DIR$/async-mongodb/async-mongodb.iml" filepath="$PROJECT_DIR$/async-mongodb/async-mongodb.iml" />
       <module fileurl="file://$PROJECT_DIR$/async-mongodb/test/async-mongodb.test.iml" filepath="$PROJECT_DIR$/async-mongodb/test/async-mongodb.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/async/test/async.test.iml" filepath="$PROJECT_DIR$/async/test/async.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/btree/btree.iml" filepath="$PROJECT_DIR$/btree/btree.iml" />
+      <module fileurl="file://$PROJECT_DIR$/btree/test/btree.test.iml" filepath="$PROJECT_DIR$/btree/test/btree.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/config/config.iml" filepath="$PROJECT_DIR$/config/config.iml" />
       <module fileurl="file://$PROJECT_DIR$/diff/diff.iml" filepath="$PROJECT_DIR$/diff/diff.iml" />
       <module fileurl="file://$PROJECT_DIR$/diff/test/diff.test.iml" filepath="$PROJECT_DIR$/diff/test/diff.test.iml" />
