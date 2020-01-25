@@ -11,6 +11,21 @@ import io.github.vagran.adk.LocalId
 import java.util.*
 import kotlin.collections.ArrayList
 
+enum class BTreeModifyResult {
+    /** Entry not found, should not be returned by modification function. */
+    NOT_FOUND,
+    /** New key collided with existing entry, should not be returned by modification function. */
+    KEY_COLLISION,
+    /** Entry not changed. */
+    NO_CHANGE,
+    /** Entry changed but key left unchanged. */
+    CHANGED,
+    /** Key and (possibly) payload was changed. */
+    KEY_CHANGED,
+    /** Entry should be deleted. */
+    DELETE
+}
+typealias ModifyFunc<TPayload> = (TPayload) -> BTreeModifyResult
 
 /** B-tree with versioning support. It uses copy-on-write approach for separate nodes when creating
  * new revision.
@@ -83,7 +98,9 @@ class BTree<TKey: Comparable<TKey>, TPayload: BTreePayload<TKey>>(
                 .also {
                 it.hdr = hdr.Clone()
                 it.entries = arrayOfNulls(entries.size)
-                System.arraycopy(entries, 0, it.entries, 0, hdr.numEntries)
+                for (i in 0 until hdr.numEntries) {
+                    it.entries[i] = (entries[i] as TPayload).Clone()
+                }
                 children?.also {
                     children ->
                     it.children = arrayOfNulls(children.size)
@@ -104,7 +121,7 @@ class BTree<TKey: Comparable<TKey>, TPayload: BTreePayload<TKey>>(
         data class SplitResult<TKey: Comparable<TKey>, TPayload: BTreePayload<TKey>> (
             val leftNode: Node<TKey, TPayload>,
             val rightNode: Node<TKey, TPayload>,
-            val median: TPayload
+            var median: TPayload
         )
 
         fun Split(revision: LocalId): SplitResult<TKey, TPayload>
@@ -552,72 +569,30 @@ class BTree<TKey: Comparable<TKey>, TPayload: BTreePayload<TKey>>(
         return Cursor()
     }
 
-    /** Insert the specified entry.
-     * @return true if inserted, false if the tree already has a node with the specified key.
+    /** Convenience wrapper for finding just one entry.
+     * @return Matching entry or null if no such key.
      */
-    suspend fun Insert(entry: TPayload): Boolean
+    suspend fun Find(key: TKey): TPayload?
+    {
+        val cursor = CreateCursor()
+        val e = cursor.Next(key) ?: return null
+        if (e.GetKey() == key) {
+            return e
+        }
+        return null
+    }
+
+    /** Insert the specified entry.
+     * @param override True to override existing entry if any, false to leave it unchanged.
+     * @return true if new entry inserted, false if the tree already has a node with the specified
+     *  key (which is replaced if `override` is true and left unchanged otherwise).
+     */
+    suspend fun Insert(entry: TPayload, override: Boolean = false): Boolean
     {
         val ctx = QueryContext()
-        val key = entry.GetKey()
-
-        var node: Node<TKey, TPayload>
-        if (rootCreated) {
-            node = storage.GetNode(curRootNodeId).Await() ?: throw Error("Root node not found")
-        } else {
-            node = Node(
-                config.order,
-                revision,
-                true
-            )
-            ctx.SetNewRoot(node)
+        if (!Insert(ctx, entry, override)) {
+            return false
         }
-
-        while (true) {
-            if (node.hdr.numEntries == maxEntries) {
-                val split = node.Split(revision)
-                ctx.SetDirty(split.leftNode, split.leftNode !== node)
-                ctx.SetDirty(split.rightNode, split.rightNode !== node)
-                if (ctx.stackEmpty) {
-                    /* New root */
-                    val newRoot =
-                        Node<TKey, TPayload>(
-                            config.order,
-                            revision,
-                            false
-                        )
-                    newRoot.Insert(split, 0)
-                    ctx.SetNewRoot(newRoot)
-                } else {
-                    /* Insert median into parent. */
-                    val stackItem = ctx.StackTop()
-                    /* Node in stack item is replaced in this call if necessary. */
-                    ctx.ModifyNode(stackItem.node, 0)
-                    stackItem.node.Insert(split, stackItem.childIdx)
-                }
-
-                /* Set current node to be one of the split result nodes. */
-                val medianKey = split.median.GetKey()
-                if (key == medianKey) {
-                    return false
-                }
-                node = if (key <= split.median.GetKey()) split.leftNode else split.rightNode
-            }
-
-            /* Insert entry if leaf, find child node if not. */
-            val idx = node.Find(key)
-            if (idx < node.hdr.numEntries && node.GetEntry(idx).GetKey() == key) {
-                return false
-            }
-            if (node.isLeaf) {
-                node = ctx.ModifyNode(node)
-                node.Insert(idx, entry)
-                break
-            } else {
-                ctx.PushNode(node, idx)
-                node = ctx.GetNode(node.GetChildId(idx))
-            }
-        }
-
         ctx.Commit()
         return true
     }
@@ -628,104 +603,28 @@ class BTree<TKey: Comparable<TKey>, TPayload: BTreePayload<TKey>>(
     suspend fun Delete(key: TKey): Boolean
     {
         val ctx = QueryContext()
-
-        var node: Node<TKey, TPayload>
-        if (rootCreated) {
-            node = storage.GetNode(curRootNodeId).Await() ?: throw Error("Root node not found")
-        } else {
+        if (DeleteOrModify(ctx, key, null) == BTreeModifyResult.NOT_FOUND) {
             return false
         }
-
-        while (true) {
-            val idx = node.Find(key)
-            if (node.isLeaf) {
-                if (idx >= node.hdr.numEntries || node.GetEntry(idx).GetKey() != key) {
-                    return false
-                }
-                node = ctx.ModifyNode(node)
-                node.Remove(idx)
-                break
-            } else {
-                if (idx < node.hdr.numEntries && node.GetEntry(idx).GetKey() == key) {
-                    /* Find leaf entry for replacement. */
-                    node = ctx.ModifyNode(node)
-                    val (leftNode, leftStack) = FindMedianEntryNode(ctx, node, idx, true)
-                    val (rightNode, rightStack) = FindMedianEntryNode(ctx, node, idx, false)
-                    if (leftNode.hdr.numEntries > rightNode.hdr.numEntries) {
-                        ctx.stack.addAll(leftStack)
-                        val srcIdx = leftNode.hdr.numEntries - 1
-                        node.SetEntry(idx, leftNode.GetEntry(srcIdx))
-                        node = ctx.ModifyNode(leftNode)
-                        node.Remove(srcIdx)
-                    } else {
-                        ctx.stack.addAll(rightStack)
-                        node.SetEntry(idx, rightNode.GetEntry(0))
-                        node = ctx.ModifyNode(rightNode)
-                        node.Remove(0)
-                    }
-                    break
-                }
-                ctx.PushNode(node, idx)
-                node = ctx.GetNode(node.GetChildId(idx))
-            }
-        }
-
-        /* Re-balance up to the root if necessary. */
-        while (!ctx.stackEmpty && node.hdr.numEntries < minEntries) {
-            val se = ctx.StackTop()
-            val idx = se.childIdx
-            val parentNode = ctx.ModifyNode(se.node, 0)
-            val leftNode = if (idx > 0) {
-                se.childIdx = idx - 1
-                ctx.GetNode(parentNode.GetChildId(idx - 1))
-            } else {
-                null
-            }
-            if (leftNode != null && leftNode.hdr.numEntries > minEntries) {
-                /* Rotate right. */
-                val siblingNode = ctx.ModifyNode(leftNode)
-                parentNode.RotateRight(idx - 1, siblingNode, node)
-                break
-            }
-            val rightNode = if (idx < parentNode.hdr.numEntries) {
-                se.childIdx = idx + 1
-                ctx.GetNode(parentNode.GetChildId(idx + 1))
-            } else {
-                null
-            }
-            if (rightNode != null && rightNode.hdr.numEntries > minEntries) {
-                /* Rotate left. */
-                val siblingNode = ctx.ModifyNode(rightNode)
-                parentNode.RotateLeft(idx, node, siblingNode)
-                break
-            }
-            /* Merge with any of the available sibling nodes. */
-            val mergedNode = if (leftNode != null) {
-                ctx.DeleteNode(leftNode)
-                se.childIdx = idx - 1
-                parentNode.Merge(idx - 1, leftNode, node)
-            } else {
-                ctx.DeleteNode(rightNode!!)
-                se.childIdx = idx
-                parentNode.Merge(idx, node, rightNode)
-            }
-            ctx.DeleteNode(node)
-            if (parentNode.hdr.numEntries == 0) {
-                /* The merged node became last leaf with empty root, make it new root. */
-                ctx.PopNode()
-                Assert(ctx.stackEmpty)
-                ctx.DeleteNode(parentNode)
-                ctx.SetNewRoot(mergedNode)
-                break
-            } else {
-                ctx.SetDirty(mergedNode, true)
-            }
-            node = parentNode
-            ctx.PopNode()
-        }
-
         ctx.Commit()
         return true
+    }
+
+    suspend fun Modify(key: TKey, override: Boolean = false,
+                       modifyFunc: ModifyFunc<TPayload>): BTreeModifyResult
+    {
+        val ctx = QueryContext()
+        val result = DeleteOrModify(ctx, key, modifyFunc)
+        if (result == BTreeModifyResult.NOT_FOUND || result == BTreeModifyResult.NO_CHANGE) {
+            return result
+        }
+        if (result == BTreeModifyResult.KEY_CHANGED) {
+            if (!Insert(ctx, ctx.targetEntry!!, override) && !override) {
+                return BTreeModifyResult.KEY_COLLISION
+            }
+        }
+        ctx.Commit()
+        return result
     }
 
     /** Get root node ID. Null if not yet created. */
@@ -759,6 +658,8 @@ class BTree<TKey: Comparable<TKey>, TPayload: BTreePayload<TKey>>(
         val deletedNodes = TreeMap<LocalId, Node<TKey, TPayload>>()
         /** New root if replaced. */
         var newRoot: Node<TKey, TPayload>? = null
+        /** Entry being manipulated for some operations. */
+        var targetEntry: TPayload? = null
 
         val stackEmpty get() = stack.isEmpty()
 
@@ -782,6 +683,10 @@ class BTree<TKey: Comparable<TKey>, TPayload: BTreePayload<TKey>>(
         suspend fun GetNode(nodeId: LocalId, modify: Boolean = false): Node<TKey, TPayload>
         {
             var node = dirtyNodes[nodeId]
+            if (node != null) {
+                return node
+            }
+            node = newNodes[nodeId]
             if (node != null) {
                 return node
             }
@@ -904,5 +809,215 @@ class BTree<TKey: Comparable<TKey>, TPayload: BTreePayload<TKey>>(
             idx = if (isLeft) curNode.hdr.numEntries else 0
         }
         return Pair(curNode, stack)
+    }
+
+    /** Delete or modify node with the specified key. Context has TargetEntry set upon return.
+     * @return True if deleted, false if the key not found.
+     */
+    @Suppress("DuplicatedCode")
+    private suspend fun DeleteOrModify(ctx: QueryContext, key: TKey,
+                                       modifyFunc: ModifyFunc<TPayload>?): BTreeModifyResult
+    {
+        var node: Node<TKey, TPayload>
+        node = ctx.newRoot ?:
+            if (rootCreated) {
+                ctx.GetNode(curRootNodeId)
+            } else {
+                return BTreeModifyResult.NOT_FOUND
+            }
+
+        var result = BTreeModifyResult.DELETE
+        while (true) {
+            val idx = node.Find(key)
+            if (node.isLeaf) {
+                if (idx >= node.hdr.numEntries || node.GetEntry(idx).GetKey() != key) {
+                    return BTreeModifyResult.NOT_FOUND
+                }
+                node = ctx.ModifyNode(node)
+                val e = node.GetEntry(idx)
+                ctx.targetEntry = e
+                if (modifyFunc != null) {
+                    result = modifyFunc(e)
+                    if (result == BTreeModifyResult.NOT_FOUND ||
+                        result == BTreeModifyResult.KEY_COLLISION) {
+
+                        throw Error("Disallowed modifyFunc return value")
+                    }
+                    if (result == BTreeModifyResult.NO_CHANGE) {
+                        return BTreeModifyResult.NO_CHANGE
+                    }
+                    if (result == BTreeModifyResult.CHANGED) {
+                        break
+                    }
+                }
+                node.Remove(idx)
+                break
+            } else {
+                if (idx < node.hdr.numEntries && node.GetEntry(idx).GetKey() == key) {
+                    /* Find leaf entry for replacement. */
+                    node = ctx.ModifyNode(node)
+                    val e = node.GetEntry(idx)
+                    ctx.targetEntry = e
+                    if (modifyFunc != null) {
+                        result = modifyFunc(e)
+                        if (result == BTreeModifyResult.NOT_FOUND ||
+                            result == BTreeModifyResult.KEY_COLLISION) {
+
+                            throw Error("Disallowed modifyFunc return value")
+                        }
+                        if (result == BTreeModifyResult.NO_CHANGE) {
+                            return BTreeModifyResult.NO_CHANGE
+                        }
+                        if (result == BTreeModifyResult.CHANGED) {
+                            break
+                        }
+                    }
+                    val (leftNode, leftStack) = FindMedianEntryNode(ctx, node, idx, true)
+                    val (rightNode, rightStack) = FindMedianEntryNode(ctx, node, idx, false)
+                    if (leftNode.hdr.numEntries > rightNode.hdr.numEntries) {
+                        ctx.stack.addAll(leftStack)
+                        val srcIdx = leftNode.hdr.numEntries - 1
+                        node.SetEntry(idx, leftNode.GetEntry(srcIdx))
+                        node = ctx.ModifyNode(leftNode)
+                        node.Remove(srcIdx)
+                    } else {
+                        ctx.stack.addAll(rightStack)
+                        node.SetEntry(idx, rightNode.GetEntry(0))
+                        node = ctx.ModifyNode(rightNode)
+                        node.Remove(0)
+                    }
+                    break
+                }
+                ctx.PushNode(node, idx)
+                node = ctx.GetNode(node.GetChildId(idx))
+            }
+        }
+
+        /* Re-balance up to the root if necessary. */
+        if (result != BTreeModifyResult.CHANGED) {
+            while (!ctx.stackEmpty && node.hdr.numEntries < minEntries) {
+                val se = ctx.StackTop()
+                val idx = se.childIdx
+                val parentNode = ctx.ModifyNode(se.node, 0)
+                val leftNode = if (idx > 0) {
+                    se.childIdx = idx - 1
+                    ctx.GetNode(parentNode.GetChildId(idx - 1))
+                } else {
+                    null
+                }
+                if (leftNode != null && leftNode.hdr.numEntries > minEntries) {
+                    /* Rotate right. */
+                    val siblingNode = ctx.ModifyNode(leftNode)
+                    parentNode.RotateRight(idx - 1, siblingNode, node)
+                    break
+                }
+                val rightNode = if (idx < parentNode.hdr.numEntries) {
+                    se.childIdx = idx + 1
+                    ctx.GetNode(parentNode.GetChildId(idx + 1))
+                } else {
+                    null
+                }
+                if (rightNode != null && rightNode.hdr.numEntries > minEntries) {
+                    /* Rotate left. */
+                    val siblingNode = ctx.ModifyNode(rightNode)
+                    parentNode.RotateLeft(idx, node, siblingNode)
+                    break
+                }
+                /* Merge with any of the available sibling nodes. */
+                val mergedNode = if (leftNode != null) {
+                    ctx.DeleteNode(leftNode)
+                    se.childIdx = idx - 1
+                    parentNode.Merge(idx - 1, leftNode, node)
+                } else {
+                    ctx.DeleteNode(rightNode!!)
+                    se.childIdx = idx
+                    parentNode.Merge(idx, node, rightNode)
+                }
+                ctx.DeleteNode(node)
+                if (parentNode.hdr.numEntries == 0) {
+                    /* The merged node became last leaf with empty root, make it new root. */
+                    ctx.PopNode()
+                    Assert(ctx.stackEmpty)
+                    ctx.DeleteNode(parentNode)
+                    ctx.SetNewRoot(mergedNode)
+                    break
+                } else {
+                    ctx.SetDirty(mergedNode, true)
+                }
+                node = parentNode
+                ctx.PopNode()
+            }
+        }
+        ctx.stack.clear()
+        return result
+    }
+
+    /** Insert the specified entry.
+     * @param override True to override existing entry if any.
+     * @return true if new entry inserted, false if the tree already has a node with the specified
+     *  key (which is overridden if allowed).
+     */
+    private suspend fun Insert(ctx: QueryContext, entry: TPayload, override: Boolean): Boolean
+    {
+        val key = entry.GetKey()
+
+        var node: Node<TKey, TPayload>
+        node = ctx.newRoot ?:
+            if (rootCreated) {
+                 ctx.GetNode(curRootNodeId)
+            } else {
+                Node<TKey, TPayload>(config.order, revision, true).also {
+                    ctx.SetNewRoot(it)
+                }
+            }
+
+        while (true) {
+            if (node.hdr.numEntries == maxEntries) {
+                val split = node.Split(revision)
+                ctx.SetDirty(split.leftNode, split.leftNode !== node)
+                ctx.SetDirty(split.rightNode, split.rightNode !== node)
+                val medianKey = split.median.GetKey()
+                if (key == medianKey && override) {
+                    split.median = entry
+                }
+                if (ctx.stackEmpty) {
+                    /* New root */
+                    val newRoot = Node<TKey, TPayload>(config.order, revision, false)
+                    newRoot.Insert(split, 0)
+                    ctx.SetNewRoot(newRoot)
+                } else {
+                    /* Insert median into parent. */
+                    val stackItem = ctx.StackTop()
+                    /* Node in stack item is replaced in this call if necessary. */
+                    ctx.ModifyNode(stackItem.node, 0)
+                    stackItem.node.Insert(split, stackItem.childIdx)
+                }
+
+                /* Set current node to be one of the split result nodes. */
+                if (key == medianKey) {
+                    return false
+                }
+                node = if (key <= medianKey) split.leftNode else split.rightNode
+            }
+
+            /* Insert entry if leaf, find child node if not. */
+            val idx = node.Find(key)
+            if (idx < node.hdr.numEntries && node.GetEntry(idx).GetKey() == key) {
+                if (override) {
+                    node.SetEntry(idx, entry)
+                }
+                return false
+            }
+            if (node.isLeaf) {
+                node = ctx.ModifyNode(node)
+                node.Insert(idx, entry)
+                break
+            } else {
+                ctx.PushNode(node, idx)
+                node = ctx.GetNode(node.GetChildId(idx))
+            }
+        }
+
+        return true
     }
 }

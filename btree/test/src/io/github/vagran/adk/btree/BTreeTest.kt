@@ -12,6 +12,7 @@ import io.github.vagran.adk.LocalId
 import io.github.vagran.adk.async.CurrentThreadContext
 import io.github.vagran.adk.async.Task
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.params.ParameterizedTest
@@ -26,7 +27,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 
-class TestEntry(val value: Int):
+class TestEntry(var value: Int, var payload: Int = 0):
     BTreePayload<Int> {
     override fun GetKey(): Int
     {
@@ -35,7 +36,7 @@ class TestEntry(val value: Int):
 
     override fun Clone(): BTreePayload<Int>
     {
-        return TestEntry(value)
+        return TestEntry(value, payload)
     }
 
     override fun Hash(): Long
@@ -362,11 +363,13 @@ class BTreeTest {
                 val result = env.btree.CreateCursor().Next(e.value - 1)
                 assertNotNull(result)
                 assertEquals(e.value, result.value)
+                assertEquals(e.value, env.btree.Find(e.value)!!.value)
                 isFirst = false
             }
             val result = env.btree.CreateCursor().Next(e.value)
             assertNotNull(result)
             assertEquals(e.value, result.value)
+            assertEquals(e.value, env.btree.Find(e.value)!!.value)
             lastValue = e
         }
         if (lastValue != null) {
@@ -502,8 +505,7 @@ class BTreeTest {
     {
         this.env = env
         RunTest {
-            val fabric =
-                GetSequentialFabric(1, 0)
+            val fabric = GetSequentialFabric(1, 0)
             env.Populate(fabric)
             BasicTests(fabric)
         }
@@ -515,8 +517,7 @@ class BTreeTest {
     {
         this.env = env
         RunTest {
-            val fabric =
-                GetSequentialFabric(1, 1)
+            val fabric = GetSequentialFabric(1, 1)
             env.Populate(fabric)
             BasicTests(fabric)
         }
@@ -528,8 +529,7 @@ class BTreeTest {
     {
         this.env = env
         RunTest {
-            val fabric =
-                GetSequentialFabric(1, 3)
+            val fabric = GetSequentialFabric(1, 3)
             env.Populate(fabric)
             BasicTests(fabric)
         }
@@ -541,8 +541,7 @@ class BTreeTest {
     {
         this.env = env
         RunTest {
-            val fabric =
-                GetSequentialFabric(1, 5)
+            val fabric = GetSequentialFabric(1, 5)
             env.Populate(fabric)
             BasicTests(fabric)
         }
@@ -554,8 +553,7 @@ class BTreeTest {
     {
         this.env = env
         RunTest {
-            val fabric =
-                GetSequentialFabric(1, 16)
+            val fabric = GetSequentialFabric(1, 16)
             env.Populate(fabric)
             BasicTests(fabric)
         }
@@ -567,8 +565,7 @@ class BTreeTest {
     {
         this.env = env
         RunTest {
-            val fabric =
-                GetSequentialFabric(1, 50)
+            val fabric = GetSequentialFabric(1, 50)
             env.Populate(fabric)
             BasicTests(fabric)
         }
@@ -580,8 +577,7 @@ class BTreeTest {
     {
         this.env = env
         RunTest {
-            val fabric =
-                GetSequentialFabric(1, 500)
+            val fabric = GetSequentialFabric(1, 500)
             env.Populate(fabric)
             BasicTests(fabric)
         }
@@ -593,14 +589,9 @@ class BTreeTest {
     {
         this.env = env
         RunTest {
-            val fabric =
-                GetSequentialFabric(1, 50)
+            val fabric = GetSequentialFabric(1, 50)
             env.Populate(fabric)
-            assertFalse(env.btree.Insert(
-                TestEntry(
-                    42
-                )
-            ))
+            assertFalse(env.btree.Insert(TestEntry(42)))
         }
     }
 
@@ -610,8 +601,7 @@ class BTreeTest {
     {
         this.env = env
         RunTest {
-            val fabric =
-                GetSequentialFabric(1, 5)
+            val fabric = GetSequentialFabric(1, 5)
             env.Populate(fabric)
             assertTrue(env.btree.Delete(4))
             env.VerifyTree()
@@ -627,14 +617,60 @@ class BTreeTest {
     {
         this.env = env
         RunTest {
-            val fabric =
-                GetSequentialFabric(1, 50)
+            val fabric = GetSequentialFabric(1, 50)
             env.Populate(fabric)
             assertTrue(env.btree.Delete(42))
             env.VerifyTree()
             /* Ensure it is deleted. */
             assertFalse(env.btree.Delete(42))
+            assertEquals(43, env.btree.Find(43)!!.value)
             env.VerifyTree()
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("BasicTestEnvParams")
+    fun ModifyTest(@AggregateWith(TestEnvAggregator::class) env: TestEnv)
+    {
+        this.env = env
+        RunTest {
+            val fabric = GetSequentialFabric(1, 50)
+            env.Populate(fabric)
+            assertEquals(0, env.btree.Find(42)!!.payload)
+            var r = env.btree.Modify(42) {
+                it.payload = 42
+                BTreeModifyResult.CHANGED
+            }
+            assertEquals(BTreeModifyResult.CHANGED, r)
+            env.VerifyTree()
+            assertEquals(42, env.btree.Find(42)!!.payload)
+
+            r = env.btree.Modify(42) {
+                it.value = 43
+                it.payload = 43
+                BTreeModifyResult.KEY_CHANGED
+            }
+            assertEquals(BTreeModifyResult.KEY_COLLISION, r)
+            env.VerifyTree()
+            assertEquals(42, env.btree.Find(42)!!.payload)
+            assertEquals(0, env.btree.Find(43)!!.payload)
+
+            r = env.btree.Modify(43) {
+                BTreeModifyResult.DELETE
+            }
+            assertEquals(BTreeModifyResult.DELETE, r)
+            env.VerifyTree()
+            assertNull(env.btree.Find(43))
+
+            r = env.btree.Modify(42) {
+                it.value = 43
+                it.payload = 43
+                BTreeModifyResult.KEY_CHANGED
+            }
+            assertEquals(BTreeModifyResult.KEY_CHANGED, r)
+            env.VerifyTree()
+            assertNull(env.btree.Find(42))
+            assertEquals(43, env.btree.Find(43)!!.payload)
         }
     }
 }
