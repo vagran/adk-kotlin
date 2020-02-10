@@ -6,10 +6,11 @@
 
 package io.github.vagran.adk.symcalc
 
-open class Variable(val name: String) {
+class EvaluationContext {
 
-    override fun toString(): String
+    fun GetVariable(v: Variable): Double
     {
-        return name
+        //XXX
+        return 0.0
     }
 }
