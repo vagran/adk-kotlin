@@ -6,6 +6,8 @@
 
 package io.github.vagran.adk.symcalc
 
+import kotlin.math.*
+
 /** @param minArity Function minimal arity.
  * @param maxArity Function maximal arity, -1 for unlimited.
  */
@@ -27,6 +29,15 @@ abstract class Function(val minArity: Int, val maxArity: Int = minArity) {
 
 object Add: Function(2, -1) {
 
+    override fun Evaluate(args: DoubleArray): Double
+    {
+        var sum = 0.0
+        for (x in args) {
+            sum += x
+        }
+        return sum
+    }
+
     override fun ToString(args: Array<Expression>): String
     {
         val sb = StringBuilder()
@@ -44,6 +55,15 @@ object Add: Function(2, -1) {
 }
 
 object Mul: Function(2, -1) {
+
+    override fun Evaluate(args: DoubleArray): Double
+    {
+        var product = 0.0
+        for (x in args) {
+            product *= x
+        }
+        return product
+    }
 
     override fun ToString(args: Array<Expression>): String
     {
@@ -69,6 +89,11 @@ object Mul: Function(2, -1) {
 }
 
 object Pow: Function(2) {
+
+    override fun Evaluate(args: DoubleArray): Double
+    {
+        return args[0].pow(args[1])
+    }
 
     override fun ToString(args: Array<Expression>): String
     {
@@ -102,20 +127,40 @@ object Pow: Function(2) {
 
 object Exp: Function(1) {
 
+    override fun Evaluate(args: DoubleArray): Double
+    {
+        return exp(args[0])
+    }
+
     override fun ToString(args: Array<Expression>) = ToString("exp", args[0])
 }
 
 object Log: Function(1) {
+
+    override fun Evaluate(args: DoubleArray): Double
+    {
+        return ln(args[0])
+    }
 
     override fun ToString(args: Array<Expression>) = ToString("log", args[0])
 }
 
 object Sin: Function(1) {
 
+    override fun Evaluate(args: DoubleArray): Double
+    {
+        return sin(args[0])
+    }
+
     override fun ToString(args: Array<Expression>) = ToString("sin", args[0])
 }
 
 object Cos: Function(1) {
+
+    override fun Evaluate(args: DoubleArray): Double
+    {
+        return cos(args[0])
+    }
 
     override fun ToString(args: Array<Expression>) = ToString("cos", args[0])
 }
