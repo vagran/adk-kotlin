@@ -88,13 +88,32 @@ class Expression {
 
     fun Evaluate(ctx: EvaluationContext): Double
     {
+        if (constant != null) {
+            return constant
+        }
+        if (variable != null) {
+            return ctx.GetVariable(variable)
+        }
+        val args = DoubleArray(funcArgs!!.size) {
+            i ->
+            funcArgs[i].Evaluate(ctx)
+        }
+        return function!!.Evaluate(args)
+    }
+
+    /** Get derivative with respect to the specified variable. */
+    fun Derivative(dv: Variable): Expression
+    {
         //XXX
-        return 0.0
+        return this
     }
 
     override fun toString(): String
     {
         if (constant != null) {
+            if (constant < 0) {
+                return "($constant)"
+            }
             return constant.toString()
         }
         if (variable != null) {
@@ -102,4 +121,89 @@ class Expression {
         }
         return function!!.ToString(funcArgs!!)
     }
+
+    // /////////////////////////////////////////////////////////////////////////////////////////////
+    // Operators
+
+    operator fun unaryMinus(): Expression
+    {
+        return Expression(-1.0) * this
+    }
+
+    operator fun times(e: Expression): Expression
+    {
+        return Expression(Mul, this, e)
+    }
+
+    operator fun times(v: Double): Expression
+    {
+        return Expression(Mul, this, Expression(v))
+    }
+
+    operator fun times(v: Variable): Expression
+    {
+        return Expression(Mul, this, Expression(v))
+    }
+
+    operator fun plus(e: Expression): Expression
+    {
+        return Expression(Add, this, e)
+    }
+
+    operator fun plus(v: Double): Expression
+    {
+        return Expression(Add, this, Expression(v))
+    }
+
+    operator fun plus(v: Variable): Expression
+    {
+        return Expression(Add, this, Expression(v))
+    }
+
+    operator fun minus(e: Expression): Expression
+    {
+        return Expression(Add, this, e * -1.0)
+    }
+
+    operator fun minus(v: Double): Expression
+    {
+        return Expression(Add, this, Expression(-v))
+    }
+
+    operator fun minus(v: Variable): Expression
+    {
+        return Expression(Add, this, -v)
+    }
+
+    operator fun div(e: Expression): Expression
+    {
+        return Expression(Mul, this, Expression(Pow, e, Expression(-1.0)))
+    }
+
+    operator fun div(v: Double): Expression
+    {
+        return Expression(Mul, this, Expression(1.0 / v))
+    }
+
+    operator fun div(v: Variable): Expression
+    {
+        return Expression(Mul, this, Expression(Pow, Expression(v), Expression(-1.0)))
+    }
+
+    infix fun pow(e: Expression): Expression
+    {
+        return Expression(Pow, this, e)
+    }
+
+    infix fun pow(v: Double): Expression
+    {
+        return Expression(Pow, this, Expression(v))
+    }
+
+    infix fun pow(v: Variable): Expression
+    {
+        return Expression(Pow, this, Expression(v))
+    }
+
+    // /////////////////////////////////////////////////////////////////////////////////////////////
 }

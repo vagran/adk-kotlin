@@ -16,6 +16,16 @@ abstract class Function(val minArity: Int, val maxArity: Int = minArity) {
 
     abstract fun Evaluate(args: DoubleArray): Double
 
+    operator fun invoke(vararg args: Expression): Expression
+    {
+        return Expression(this, *args)
+    }
+
+    operator fun invoke(v: Variable): Expression
+    {
+        return Expression(this, Expression(v))
+    }
+
     protected fun ToString(name: String, arg: Expression): String
     {
         val sb = StringBuilder()
