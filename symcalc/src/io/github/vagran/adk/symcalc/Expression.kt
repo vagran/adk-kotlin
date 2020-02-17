@@ -6,6 +6,8 @@
 
 package io.github.vagran.adk.symcalc
 
+import io.github.vagran.adk.symcalc.optimization.Rule
+
 /** Represents symbolic expression. Immutable. */
 class Expression {
     /** Literal constant. */
@@ -31,12 +33,8 @@ class Expression {
     /** Function node. */
     constructor(f: Function, vararg args: Expression)
     {
-        if (args.size < f.minArity) {
-            throw IllegalArgumentException("Function should have at least ${f.minArity} " +
-                                           "arguments, have ${args.size}")
-        }
-        if (f.maxArity != -1 && args.size > f.maxArity) {
-            throw IllegalArgumentException("Function should have at most ${f.maxArity} " +
+        if (f.arity != -1 && args.size != f.arity) {
+            throw IllegalArgumentException("Function should have ${f.arity} " +
                                            "arguments, have ${args.size}")
         }
         function = f
@@ -82,8 +80,40 @@ class Expression {
     /** Try to simplify and optimize the expression. */
     fun Optimize(): Expression
     {
-        //XXX
-        return this
+        var thisExpr = this
+        while (true) {
+            if (thisExpr.function == null) {
+                return thisExpr
+            }
+            var newArgs: Array<Expression>? = null
+            thisExpr.funcArgs!!.forEachIndexed { idx, e ->
+                val newExpr = e.Optimize()
+                if (newExpr !== e) {
+                    if (newArgs == null) {
+                        newArgs = thisExpr.funcArgs!!.copyOf()
+                    }
+                    newArgs!![idx] = newExpr
+                }
+            }
+            if (newArgs != null) {
+                thisExpr = Expression(thisExpr.function!!, *newArgs!!)
+            }
+
+            var newExpr: Expression? = null
+            for (rule in Rule.builtinRules) {
+                val m = rule.Match(thisExpr)
+                if (m != null) {
+                    newExpr = rule.Optimize(thisExpr, m)
+                    break
+                }
+            }
+            if (newExpr != null) {
+                thisExpr = newExpr
+            } else {
+                break
+            }
+        }
+        return thisExpr
     }
 
     fun Evaluate(ctx: EvaluationContext): Double

@@ -8,10 +8,8 @@ package io.github.vagran.adk.symcalc
 
 import kotlin.math.*
 
-/** @param minArity Function minimal arity.
- * @param maxArity Function maximal arity, -1 for unlimited.
- */
-abstract class Function(val minArity: Int, val maxArity: Int = minArity) {
+/** @param arity Function arity, -1 for unbound.*/
+abstract class Function(val arity: Int = 1) {
     abstract fun ToString(args: Array<Expression>): String
 
     abstract fun Evaluate(args: DoubleArray): Double
@@ -37,7 +35,7 @@ abstract class Function(val minArity: Int, val maxArity: Int = minArity) {
     }
 }
 
-object Add: Function(2, -1) {
+object Add: Function(-1) {
 
     override fun Evaluate(args: DoubleArray): Double
     {
@@ -64,11 +62,11 @@ object Add: Function(2, -1) {
     }
 }
 
-object Mul: Function(2, -1) {
+object Mul: Function(-1) {
 
     override fun Evaluate(args: DoubleArray): Double
     {
-        var product = 0.0
+        var product = 1.0
         for (x in args) {
             product *= x
         }
@@ -135,7 +133,7 @@ object Pow: Function(2) {
 }
 
 
-object Exp: Function(1) {
+object Exp: Function() {
 
     override fun Evaluate(args: DoubleArray): Double
     {
@@ -145,7 +143,7 @@ object Exp: Function(1) {
     override fun ToString(args: Array<Expression>) = ToString("exp", args[0])
 }
 
-object Log: Function(1) {
+object Log: Function() {
 
     override fun Evaluate(args: DoubleArray): Double
     {
@@ -155,7 +153,7 @@ object Log: Function(1) {
     override fun ToString(args: Array<Expression>) = ToString("log", args[0])
 }
 
-object Sin: Function(1) {
+object Sin: Function() {
 
     override fun Evaluate(args: DoubleArray): Double
     {
@@ -165,7 +163,7 @@ object Sin: Function(1) {
     override fun ToString(args: Array<Expression>) = ToString("sin", args[0])
 }
 
-object Cos: Function(1) {
+object Cos: Function() {
 
     override fun Evaluate(args: DoubleArray): Double
     {

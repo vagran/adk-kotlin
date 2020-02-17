@@ -28,9 +28,40 @@ private class BasicTest {
     }
 
     @Test
+    fun OptimizeSumWithZero()
+    {
+        val e = E(0.0) + x + 0.0 + y + 0.0 + 1.0 + 0.0
+        val eOpt = e.Optimize()
+        assertEquals("x + y + 1.0", eOpt.toString())
+        /* Check sum promotion as well */
+        assert(x === eOpt.funcArgs!![0].variable)
+        assert(y === eOpt.funcArgs!![1].variable)
+        assertEquals(1.0, eOpt.funcArgs!![2].constant)
+    }
+
+    @Test
+    fun OptimizeDegenerateSum()
+    {
+        val e = x + 0.0
+        val eOpt = e.Optimize()
+        assertEquals("x", eOpt.toString())
+        assert(x === eOpt.variable)
+    }
+
+    @Test
+    fun OptimizeDegenerateSum2()
+    {
+        val e = E(0.0) + 0.0
+        val eOpt = e.Optimize()
+        assertEquals("0.0", eOpt.toString())
+        assertEquals(0.0, eOpt.constant)
+    }
+
+    @Test
     fun OptimizeSum()
     {
-        val e = E(3.0) * (y pow 0.0) + E(1.0) + E(2.0) * x - (x pow 1.0) + (x pow 2.0) + (x pow 2.0) * 2.0
-        e.Optimize()
+        val e = E(0.0) + E(3.0) * (y pow 0.0) + E(1.0) + E(0.0) + E(2.0) * x -
+            (x pow 1.0) + (x pow 2.0) + (x pow 2.0) * 2.0 + E(0.0)
+        println(e.Optimize().toString())
     }
 }
