@@ -6,25 +6,27 @@
 
 package io.github.vagran.adk.symcalc.optimization
 
-import io.github.vagran.adk.symcalc.Add
 import io.github.vagran.adk.symcalc.Expression
+import io.github.vagran.adk.symcalc.Pow
 
-object DegenerateSum: Rule {
+object PowerBaseZeroOne: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {
-        if (e.function != Add) {
+        if (e.function != Pow) {
             return null
         }
-        return if (e.funcArgs!!.size in 0..1) Rule.VoidMatchResult else null
+        val c = e.funcArgs!![0].constant ?: return null
+        return if (c == 0.0 || c == 1.0) Rule.VoidMatchResult else null
     }
 
     override fun Optimize(e: Expression, m: Rule.MatchResult): Expression
     {
-        return if (e.funcArgs!!.size == 1) {
-            e.funcArgs[0]
-        } else {
-            Expression(0.0)
+        val c = e.funcArgs!![0].constant!!
+        if (c == 0.0) {
+            return Expression(0.0)
         }
+        return Expression(1.0)
     }
+
 }

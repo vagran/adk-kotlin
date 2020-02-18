@@ -6,14 +6,14 @@
 
 package io.github.vagran.adk.symcalc.optimization
 
-import io.github.vagran.adk.symcalc.Add
 import io.github.vagran.adk.symcalc.Expression
+import io.github.vagran.adk.symcalc.Mul
 
-object DegenerateSum: Rule {
+object DegenerateProduct: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {
-        if (e.function != Add) {
+        if (e.function != Mul) {
             return null
         }
         return if (e.funcArgs!!.size in 0..1) Rule.VoidMatchResult else null
@@ -24,7 +24,7 @@ object DegenerateSum: Rule {
         return if (e.funcArgs!!.size == 1) {
             e.funcArgs[0]
         } else {
-            Expression(0.0)
+            Expression(1.0)
         }
     }
 }

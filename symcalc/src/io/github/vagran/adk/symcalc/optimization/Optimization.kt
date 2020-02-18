@@ -40,9 +40,19 @@ interface Rule {
 
         init {
             builtinRules = ArrayList<Rule>().apply {
-                add(SumWithZero)
                 add(PromoteSum)
                 add(DegenerateSum)
+                add(SumWithZero)
+                add(SumWithConstants)
+
+                add(PromoteProduct)
+                add(DegenerateProduct)
+                add(ProductWithOne)
+                add(ProductWithZero)
+                add(ProductWithConstants)
+
+                add(PowerExponentZeroOne)
+                add(PowerBaseZeroOne)
             }
         }
     }

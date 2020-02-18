@@ -6,39 +6,45 @@
 
 package io.github.vagran.adk.symcalc.optimization
 
-import io.github.vagran.adk.symcalc.Add
+import io.github.vagran.adk.symcalc.ConstantEvaluationContext
 import io.github.vagran.adk.symcalc.Expression
+import io.github.vagran.adk.symcalc.Mul
 
-object SumWithZero: Rule {
+object ProductWithConstants: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {
-        if (e.function != Add) {
+        if (e.function != Mul) {
             return null
         }
         val result = Rule.ArgIdxMatchResult()
         e.funcArgs!!.forEachIndexed {
             idx, arg ->
-            if (arg.constant == 0.0) {
+            if (arg.constant != null) {
                 result.Add(idx)
             }
         }
-        return if (result.indices.size != 0) result else null
+        return if (result.indices.size >= 2) result else null
     }
 
     override fun Optimize(e: Expression, m: Rule.MatchResult): Expression
     {
         m as Rule.ArgIdxMatchResult
         if (m.indices.size == e.funcArgs!!.size) {
-            return Expression(0.0)
+            return Expression(e.Evaluate(ConstantEvaluationContext))
         }
         var curIdx = 0
-        val args = Array(e.funcArgs.size - m.indices.size) {
+        var product = 1.0
+        val args = Array(e.funcArgs.size - m.indices.size + 1) {
             while (m.indices.contains(curIdx)) {
+                product *= e.funcArgs[curIdx].constant!!
                 curIdx++
+            }
+            if (curIdx == e.funcArgs.size) {
+                return@Array Expression(product)
             }
             e.funcArgs[curIdx++]
         }
-        return Expression(Add, *args)
+        return Expression(Mul, *args)
     }
 }

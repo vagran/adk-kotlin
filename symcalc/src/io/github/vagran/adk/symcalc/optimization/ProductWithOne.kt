@@ -6,20 +6,20 @@
 
 package io.github.vagran.adk.symcalc.optimization
 
-import io.github.vagran.adk.symcalc.Add
 import io.github.vagran.adk.symcalc.Expression
+import io.github.vagran.adk.symcalc.Mul
 
-object SumWithZero: Rule {
+object ProductWithOne: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {
-        if (e.function != Add) {
+        if (e.function != Mul) {
             return null
         }
         val result = Rule.ArgIdxMatchResult()
         e.funcArgs!!.forEachIndexed {
             idx, arg ->
-            if (arg.constant == 0.0) {
+            if (arg.constant == 1.0) {
                 result.Add(idx)
             }
         }
@@ -30,7 +30,7 @@ object SumWithZero: Rule {
     {
         m as Rule.ArgIdxMatchResult
         if (m.indices.size == e.funcArgs!!.size) {
-            return Expression(0.0)
+            return Expression(1.0)
         }
         var curIdx = 0
         val args = Array(e.funcArgs.size - m.indices.size) {
@@ -39,6 +39,6 @@ object SumWithZero: Rule {
             }
             e.funcArgs[curIdx++]
         }
-        return Expression(Add, *args)
+        return Expression(Mul, *args)
     }
 }

@@ -85,6 +85,9 @@ class Expression {
             if (thisExpr.function == null) {
                 return thisExpr
             }
+            if (thisExpr.isConst) {
+                return Expression(thisExpr.Evaluate(ConstantEvaluationContext))
+            }
             var newArgs: Array<Expression>? = null
             thisExpr.funcArgs!!.forEachIndexed { idx, e ->
                 val newExpr = e.Optimize()

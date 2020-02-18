@@ -6,11 +6,15 @@
 
 package io.github.vagran.adk.symcalc
 
-class EvaluationContext {
+interface EvaluationContext {
 
     fun GetVariable(v: Variable): Double
+}
+
+/** Used for evaluating constant expressions. */
+object ConstantEvaluationContext: EvaluationContext {
+    override fun GetVariable(v: Variable): Double
     {
-        //XXX
-        return 0.0
+        throw Error("Variable $v value requested during constant expression evaluation")
     }
 }
