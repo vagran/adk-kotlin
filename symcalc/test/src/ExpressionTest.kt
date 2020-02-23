@@ -126,4 +126,19 @@ private class BasicTest {
             (x pow 1.0) + E(2.0) + E(3.0) * (x pow 2.0) * 2.0 + (x pow 2.0) * 2.0 + E(0.0) + E(5.0)
         println(e.Optimize().toString())
     }
+
+    @Test
+    fun NonCommutativeEquals()
+    {
+        assert(E(x) pow y == E(x) pow E(y))
+        assert(E(x) pow y != E(y) pow E(x))
+    }
+
+    @Test
+    fun CommutativeEquals()
+    {
+        assertEquals((E(x) + E(y) + E(1.0)).Optimize().hashCode(),
+                     (E(1.0) + E(x) + E(y)).Optimize().hashCode())
+        assert((E(x) + E(y) + E(1.0)).Optimize() == (E(1.0) + E(x) + E(y)).Optimize())
+    }
 }

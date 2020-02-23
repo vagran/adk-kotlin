@@ -7,6 +7,7 @@
 package io.github.vagran.adk.symcalc
 
 import io.github.vagran.adk.symcalc.optimization.Rule
+import java.util.*
 
 /** Represents symbolic expression. Immutable. */
 class Expression {
@@ -18,6 +19,7 @@ class Expression {
         variable = null
         function = null
         funcArgs = null
+        hashCode = c.hashCode()
     }
 
     /** Variable reference. */
@@ -28,6 +30,7 @@ class Expression {
         constant = null
         function = null
         funcArgs = null
+        hashCode = v.hashCode()
     }
 
     /** Function node. */
@@ -50,6 +53,7 @@ class Expression {
             }
             true
         }
+        hashCode = f.HashCode(funcArgs)
     }
 
     val constant: Double?
@@ -155,6 +159,25 @@ class Expression {
         return function!!.ToString(funcArgs!!)
     }
 
+    override fun equals(other: Any?): Boolean
+    {
+        if (other !is Expression) {
+            return false
+        }
+        if (constant != null) {
+            return Objects.equals(constant, other.constant)
+        }
+        if (variable != null) {
+            return Objects.equals(variable, other.variable)
+        }
+        if (!Objects.equals(function, other.function)) {
+            return false
+        }
+        return function!!.Equals(funcArgs!!, other.funcArgs!!)
+    }
+
+    override fun hashCode() = hashCode
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
     // Operators
 
@@ -239,4 +262,5 @@ class Expression {
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
+    private val hashCode: Int
 }

@@ -24,6 +24,30 @@ abstract class Function(val arity: Int = 1) {
         return Expression(this, Expression(v))
     }
 
+    /** Default implementation accounts arguments order. */
+    open fun HashCode(args: Array<Expression>): Int
+    {
+        var h = hashCode()
+        for (e in args) {
+            h *= 31
+            h += e.hashCode()
+        }
+        return h
+    }
+
+    open fun Equals(args1: Array<Expression>, args2: Array<Expression>): Boolean
+    {
+        if (args1.size != args2.size) {
+            return false
+        }
+        for (i in args1.indices) {
+            if (args1[i] != args2[i]) {
+                return false
+            }
+        }
+        return true
+    }
+
     protected fun ToString(name: String, arg: Expression): String
     {
         val sb = StringBuilder()
@@ -32,6 +56,32 @@ abstract class Function(val arity: Int = 1) {
         sb.append(arg.toString())
         sb.append(")")
         return sb.toString()
+    }
+
+    protected fun CommutativeHashCode(args: Array<Expression>): Int
+    {
+        var h = hashCode()
+        for (e in args) {
+            h = h xor e.hashCode()
+        }
+        return h
+    }
+
+    protected fun CommutativeEquals(args1: Array<Expression>, args2: Array<Expression>): Boolean
+    {
+        data class Item(var count: Int = 0)
+
+        val args1Map = HashMap<Expression, Item>()
+        val args2Map = HashMap<Expression, Item>()
+        for (e in args1) {
+            val item = args1Map.computeIfAbsent(e) { Item() }
+            item.count++
+        }
+        for (e in args2) {
+            val item = args2Map.computeIfAbsent(e) { Item() }
+            item.count++
+        }
+        return args1Map == args2Map
     }
 }
 
@@ -59,6 +109,17 @@ object Add: Function(-1) {
             sb.append(arg.toString())
         }
         return sb.toString()
+    }
+
+    /** Insensitive to arguments order. */
+    override fun HashCode(args: Array<Expression>): Int
+    {
+        return CommutativeHashCode(args)
+    }
+
+    override fun Equals(args1: Array<Expression>, args2: Array<Expression>): Boolean
+    {
+        return CommutativeEquals(args1, args2)
     }
 }
 
@@ -93,6 +154,17 @@ object Mul: Function(-1) {
             }
         }
         return sb.toString()
+    }
+
+    /** Insensitive to arguments order. */
+    override fun HashCode(args: Array<Expression>): Int
+    {
+        return CommutativeHashCode(args)
+    }
+
+    override fun Equals(args1: Array<Expression>, args2: Array<Expression>): Boolean
+    {
+        return CommutativeEquals(args1, args2)
     }
 }
 
