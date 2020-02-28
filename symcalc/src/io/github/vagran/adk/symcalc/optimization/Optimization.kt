@@ -53,6 +53,8 @@ interface Rule {
 
                 add(PowerExponentZeroOne)
                 add(PowerBaseZeroOne)
+
+                add(PowerProduct)
             }
         }
     }

@@ -119,6 +119,15 @@ private class BasicTest {
         assert(y === eOpt.funcArgs!![1].variable)
     }
 
+
+    @Test
+    fun OptimizePowerProduct()
+    {
+        val e = x * (x pow y) * (y pow x) * (x pow 3.0) * (y pow 5.0) * x / y * z * Sin(z) * Sin(z)
+        val eOpt = e.Optimize()
+        assertEquals("sin(z)^2.0 * y^(x + 4.0) * x^(y + 5.0) * z", eOpt.toString())
+    }
+
     @Test
     fun OptimizeSum()
     {
