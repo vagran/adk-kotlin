@@ -4,6 +4,7 @@
  * See LICENSE file for full license details.
  */
 
+import io.github.vagran.adk.symcalc.Log
 import io.github.vagran.adk.symcalc.Sin
 import io.github.vagran.adk.symcalc.Variable
 import org.junit.jupiter.api.Test
@@ -126,6 +127,14 @@ private class BasicTest {
         val e = x * (x pow y) * (y pow x) * (x pow 3.0) * (y pow 5.0) * x / y * z * Sin(z) * Sin(z)
         val eOpt = e.Optimize()
         assertEquals("sin(z)^2.0 * y^(x + 4.0) * x^(y + 5.0) * z", eOpt.toString())
+    }
+
+    @Test
+    fun OptimizePowerLogarithm()
+    {
+        val e = Log(x pow y)
+        val eOpt = e.Optimize()
+        assertEquals("y * log(x)", eOpt.toString())
     }
 
     @Test

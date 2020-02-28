@@ -7,26 +7,27 @@
 package io.github.vagran.adk.symcalc.optimization
 
 import io.github.vagran.adk.symcalc.Expression
+import io.github.vagran.adk.symcalc.Log
+import io.github.vagran.adk.symcalc.Mul
 import io.github.vagran.adk.symcalc.Pow
 
-object PowerExponentZeroOne: Rule {
+object PowerLogarithm: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {
-        if (e.function != Pow) {
+        if (e.function != Log) {
             return null
         }
-        val c = e.funcArgs!![1].constant ?: return null
-        return if (c == 0.0 || c == 1.0) Rule.VoidMatchResult else null
+        if (e.funcArgs!![0].function != Pow) {
+            return null
+        }
+        return Rule.VoidMatchResult
     }
 
     override fun Optimize(e: Expression, m: Rule.MatchResult): Expression
     {
-        val c = e.funcArgs!![1].constant!!
-        if (c == 0.0) {
-            return Expression(1.0)
-        }
-        return e.funcArgs[0]
+        return Expression(Mul, e.funcArgs!![0].funcArgs!![1],
+                          Expression(Log, e.funcArgs[0].funcArgs!![0]))
     }
 
 }

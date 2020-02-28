@@ -55,6 +55,7 @@ interface Rule {
                 add(PowerBaseZeroOne)
 
                 add(PowerProduct)
+                add(PowerLogarithm)
             }
         }
     }
