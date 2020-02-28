@@ -25,6 +25,8 @@ interface Rule {
         }
     }
 
+    class ExpressionMatchResult(val e: Expression): MatchResult
+
     /** Try to match the rule against the provided expression.
      * @return Rule-specific match result if any, null if no match.
      */
@@ -56,6 +58,8 @@ interface Rule {
 
                 add(PowerProduct)
                 add(PowerLogarithm)
+                add(ExponentLogarithm)
+                add(LogarithmExponent)
             }
         }
     }

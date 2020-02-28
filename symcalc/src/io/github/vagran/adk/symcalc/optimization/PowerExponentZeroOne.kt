@@ -28,5 +28,4 @@ object PowerExponentZeroOne: Rule {
         }
         return e.funcArgs[0]
     }
-
 }

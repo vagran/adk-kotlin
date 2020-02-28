@@ -4,6 +4,7 @@
  * See LICENSE file for full license details.
  */
 
+import io.github.vagran.adk.symcalc.Exp
 import io.github.vagran.adk.symcalc.Log
 import io.github.vagran.adk.symcalc.Sin
 import io.github.vagran.adk.symcalc.Variable
@@ -135,6 +136,22 @@ private class BasicTest {
         val e = Log(x pow y)
         val eOpt = e.Optimize()
         assertEquals("y * log(x)", eOpt.toString())
+    }
+
+    @Test
+    fun OptimizeExponentLogarithm()
+    {
+        val e = Log(Exp(x))
+        val eOpt = e.Optimize()
+        assertEquals("x", eOpt.toString())
+    }
+
+    @Test
+    fun OptimizeLogarithmExponent()
+    {
+        val e = Exp(Log(x * y))
+        val eOpt = e.Optimize()
+        assertEquals("x * y", eOpt.toString())
     }
 
     @Test

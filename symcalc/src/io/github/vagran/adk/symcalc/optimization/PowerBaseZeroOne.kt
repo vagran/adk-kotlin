@@ -28,5 +28,4 @@ object PowerBaseZeroOne: Rule {
         }
         return Expression(1.0)
     }
-
 }
