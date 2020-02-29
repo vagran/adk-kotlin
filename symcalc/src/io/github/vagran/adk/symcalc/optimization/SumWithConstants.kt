@@ -10,7 +10,8 @@ import io.github.vagran.adk.symcalc.Add
 import io.github.vagran.adk.symcalc.ConstantEvaluationContext
 import io.github.vagran.adk.symcalc.Expression
 
-object SumWithConstants: Rule {
+/* Fold all constants in a sum. */
+internal object SumWithConstants: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {

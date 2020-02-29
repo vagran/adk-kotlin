@@ -13,8 +13,8 @@ import io.github.vagran.adk.symcalc.Pow
 import java.util.*
 import kotlin.collections.ArrayList
 
-/** Transform product to power function. */
-object PowerProduct: Rule {
+/** Transform product to power function (e.g. x * x = x^2) */
+internal object PowerProduct: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {

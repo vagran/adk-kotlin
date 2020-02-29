@@ -10,7 +10,8 @@ import io.github.vagran.adk.symcalc.Exp
 import io.github.vagran.adk.symcalc.Expression
 import io.github.vagran.adk.symcalc.Log
 
-object ExponentLogarithm: Rule {
+/** ln(exp(x)) -> x */
+internal object ExponentLogarithm: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {

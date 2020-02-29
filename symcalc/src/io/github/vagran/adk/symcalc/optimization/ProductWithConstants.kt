@@ -10,7 +10,8 @@ import io.github.vagran.adk.symcalc.ConstantEvaluationContext
 import io.github.vagran.adk.symcalc.Expression
 import io.github.vagran.adk.symcalc.Mul
 
-object ProductWithConstants: Rule {
+/* Fold all constants in a product. */
+internal object ProductWithConstants: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {

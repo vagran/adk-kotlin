@@ -9,7 +9,8 @@ package io.github.vagran.adk.symcalc.optimization
 import io.github.vagran.adk.symcalc.Expression
 import io.github.vagran.adk.symcalc.Mul
 
-object ProductWithZero: Rule {
+/* x * 0 -> 0 */
+internal object ProductWithZero: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {

@@ -8,7 +8,8 @@ package io.github.vagran.adk.symcalc.optimization
 
 import io.github.vagran.adk.symcalc.*
 
-object ExponentPower: Rule {
+/** exp(x)^y -> exp(x * y) */
+internal object ExponentPower: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {

@@ -10,7 +10,8 @@ import io.github.vagran.adk.symcalc.Expression
 import io.github.vagran.adk.symcalc.Mul
 import io.github.vagran.adk.symcalc.Pow
 
-object PowerPower: Rule {
+/* (x^y)^z -> x^(y * z) */
+internal object PowerPower: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {

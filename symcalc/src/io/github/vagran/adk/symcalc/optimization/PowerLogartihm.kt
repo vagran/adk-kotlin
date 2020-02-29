@@ -11,7 +11,8 @@ import io.github.vagran.adk.symcalc.Log
 import io.github.vagran.adk.symcalc.Mul
 import io.github.vagran.adk.symcalc.Pow
 
-object PowerLogarithm: Rule {
+/** ln(x^y) -> y * ln(x) */
+internal object PowerLogarithm: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {

@@ -9,7 +9,8 @@ package io.github.vagran.adk.symcalc.optimization
 import io.github.vagran.adk.symcalc.Expression
 import io.github.vagran.adk.symcalc.Pow
 
-object PowerBaseZeroOne: Rule {
+/** Power with one or zero base. */
+internal object PowerBaseZeroOne: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {

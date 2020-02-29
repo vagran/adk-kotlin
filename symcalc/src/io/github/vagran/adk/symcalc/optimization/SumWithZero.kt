@@ -9,7 +9,8 @@ package io.github.vagran.adk.symcalc.optimization
 import io.github.vagran.adk.symcalc.Add
 import io.github.vagran.adk.symcalc.Expression
 
-object SumWithZero: Rule {
+/* x + 0 -> x */
+internal object SumWithZero: Rule {
 
     override fun Match(e: Expression): Rule.MatchResult?
     {
