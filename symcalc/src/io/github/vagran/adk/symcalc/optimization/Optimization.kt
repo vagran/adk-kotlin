@@ -56,12 +56,14 @@ interface Rule {
                 add(PowerExponentZeroOne)
                 add(PowerBaseZeroOne)
 
-                add(PowerProduct)
                 add(PowerLogarithm)
                 add(ExponentLogarithm)
                 add(LogarithmExponent)
                 add(ExponentPower)
                 add(PowerPower)
+
+                add(PowerProduct)
+                add(SumFolding)
             }
         }
     }

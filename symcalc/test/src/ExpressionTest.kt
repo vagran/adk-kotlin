@@ -179,7 +179,24 @@ private class BasicTest {
     {
         val e = E(0.0) + E(3.0) * (y pow 0.0) * 4.0 + E(1.0) + E(0.0) + E(2.0) * x -
             (x pow 1.0) + E(2.0) + E(3.0) * (x pow 2.0) * 2.0 + (x pow 2.0) * 2.0 + E(0.0) + E(5.0)
-        println(e.Optimize().toString())
+        val eOpt = e.Optimize()
+        assertEquals("8.0 * x^2.0 + x + 20.0", eOpt.toString())
+    }
+
+    @Test
+    fun OptimizeSum2()
+    {
+        val e = Sin(x) + 1.0 + Sin(x) * 2.0 + Sin(x) + 2.0 + x
+        val eOpt = e.Optimize()
+        assertEquals("4.0 * sin(x) + 3.0 + x", eOpt.toString())
+    }
+
+    @Test
+    fun OptimizeSum3()
+    {
+        val e = x * y + y * x
+        val eOpt = e.Optimize()
+        assertEquals("2.0 * x * y", eOpt.toString())
     }
 
     @Test
