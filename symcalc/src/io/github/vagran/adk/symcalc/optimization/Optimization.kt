@@ -60,6 +60,8 @@ interface Rule {
                 add(PowerLogarithm)
                 add(ExponentLogarithm)
                 add(LogarithmExponent)
+                add(ExponentPower)
+                add(PowerPower)
             }
         }
     }

@@ -155,6 +155,26 @@ private class BasicTest {
     }
 
     @Test
+    fun OptimizeExponentPower()
+    {
+        val e = Exp(x) pow y
+        val eOpt = e.Optimize()
+        assertEquals("exp(x * y)", eOpt.toString())
+    }
+
+    @Test
+    fun OptimizePowerPower()
+    {
+        val e = ((x pow y) pow z) pow 2.0
+        val eOpt = e.Optimize()
+        assertEquals("x^(y * z * 2.0)", eOpt.toString())
+
+        val e2 = x pow (y pow z)
+        val eOpt2 = e2.Optimize()
+        assertEquals("x^(y^z)", eOpt2.toString())
+    }
+
+    @Test
     fun OptimizeSum()
     {
         val e = E(0.0) + E(3.0) * (y pow 0.0) * 4.0 + E(1.0) + E(0.0) + E(2.0) * x -
@@ -175,5 +195,9 @@ private class BasicTest {
         assertEquals((E(x) + E(y) + E(1.0)).Optimize().hashCode(),
                      (E(1.0) + E(x) + E(y)).Optimize().hashCode())
         assert((E(x) + E(y) + E(1.0)).Optimize() == (E(1.0) + E(x) + E(y)).Optimize())
+
+        assertEquals((E(x) * E(y) * E(2.0)).Optimize().hashCode(),
+                     (E(2.0) * E(x) * E(y)).Optimize().hashCode())
+        assert((E(x) * E(y) * E(2.0)).Optimize() == (E(2.0) * E(x) * E(y)).Optimize())
     }
 }
