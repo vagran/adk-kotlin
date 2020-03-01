@@ -64,6 +64,11 @@ class Expression {
     /** True if expression value is constant. */
     val isConst: Boolean
 
+    companion object {
+        val ZERO = Expression(0.0)
+        val ONE = Expression(1.0)
+    }
+
     /**@return true if expression contains the specified variable. */
     fun HasVariable(v: Variable): Boolean
     {
@@ -141,8 +146,13 @@ class Expression {
     /** Get derivative with respect to the specified variable. */
     fun Derivative(dv: Variable): Expression
     {
-        //XXX
-        return this
+        if (!HasVariable(dv)) {
+            return ZERO
+        }
+        if (variable === dv) {
+            return ONE
+        }
+        return function!!.Derivative(dv, funcArgs!!)
     }
 
     override fun toString(): String

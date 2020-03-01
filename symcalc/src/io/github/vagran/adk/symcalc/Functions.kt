@@ -48,6 +48,21 @@ abstract class Function(val arity: Int = 1) {
         return true
     }
 
+    open fun Derivative(dv: Variable, args: Array<Expression>): Expression
+    {
+        if (args.size != 1) {
+            /* Derived classes with different number of arguments should implement this method. */
+            throw NotImplementedError()
+        }
+        val arg = args[0]
+        if (arg.variable === dv) {
+            return Derivative(arg)
+        }
+        return Derivative(arg) * arg.Derivative(dv)
+    }
+
+    // /////////////////////////////////////////////////////////////////////////////////////////////
+
     protected fun ToString(name: String, arg: Expression): String
     {
         val sb = StringBuilder()
@@ -82,6 +97,12 @@ abstract class Function(val arity: Int = 1) {
             item.count++
         }
         return args1Map == args2Map
+    }
+
+    /** One argument function derivative with respect to the argument. */
+    protected open fun Derivative(arg: Expression): Expression
+    {
+        throw NotImplementedError()
     }
 }
 
@@ -120,6 +141,11 @@ object Add: Function(-1) {
     override fun Equals(args1: Array<Expression>, args2: Array<Expression>): Boolean
     {
         return CommutativeEquals(args1, args2)
+    }
+
+    override fun Derivative(dv: Variable, args: Array<Expression>): Expression
+    {
+        return Expression(Add, *Array(args.size) { idx -> args[idx].Derivative(dv) })
     }
 }
 
@@ -166,6 +192,23 @@ object Mul: Function(-1) {
     {
         return CommutativeEquals(args1, args2)
     }
+
+    override fun Derivative(dv: Variable, args: Array<Expression>): Expression
+    {
+        val sum = Array(args.size) {
+            idx ->
+            val product = Array(args.size) {
+                mulIdx ->
+                if (mulIdx == idx) {
+                    args[mulIdx].Derivative(dv)
+                } else {
+                    args[mulIdx]
+                }
+            }
+            Expression(Mul, *product)
+        }
+        return Expression(Add, *sum)
+    }
 }
 
 object Pow: Function(2) {
@@ -198,6 +241,26 @@ object Pow: Function(2) {
         return sb.toString()
     }
 
+    override fun Derivative(dv: Variable, args: Array<Expression>): Expression
+    {
+        val base = args[0]
+        val exp = args[1]
+        val dBase = base.HasVariable(dv)
+        val dExp = exp.HasVariable(dv)
+
+        if (dBase && !dExp) {
+            return exp * (base pow (exp - 1.0)) * base.Derivative(dv)
+        }
+        if (dExp && !dBase) {
+            return (base pow exp) * Log(base) * exp.Derivative(dv)
+        }
+        if (dBase && dExp) {
+            val transformed = Exp(exp * Log(base))
+            return transformed.Derivative(dv)
+        }
+        return Expression.ZERO
+    }
+
     private fun IsCompound(e: Expression): Boolean
     {
         return e.function === Add || e.function === Mul || e.function === Pow
@@ -213,6 +276,11 @@ object Exp: Function() {
     }
 
     override fun ToString(args: Array<Expression>) = ToString("exp", args[0])
+
+    override fun Derivative(arg: Expression): Expression
+    {
+        return Exp(arg)
+    }
 }
 
 object Log: Function() {
@@ -223,6 +291,11 @@ object Log: Function() {
     }
 
     override fun ToString(args: Array<Expression>) = ToString("log", args[0])
+
+    override fun Derivative(arg: Expression): Expression
+    {
+        return arg pow -1.0
+    }
 }
 
 object Sin: Function() {
@@ -233,6 +306,11 @@ object Sin: Function() {
     }
 
     override fun ToString(args: Array<Expression>) = ToString("sin", args[0])
+
+    override fun Derivative(arg: Expression): Expression
+    {
+        return Cos(arg)
+    }
 }
 
 object Cos: Function() {
@@ -243,4 +321,9 @@ object Cos: Function() {
     }
 
     override fun ToString(args: Array<Expression>) = ToString("cos", args[0])
+
+    override fun Derivative(arg: Expression): Expression
+    {
+        return -Sin(arg)
+    }
 }

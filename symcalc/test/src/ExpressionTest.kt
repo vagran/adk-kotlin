@@ -4,10 +4,7 @@
  * See LICENSE file for full license details.
  */
 
-import io.github.vagran.adk.symcalc.Exp
-import io.github.vagran.adk.symcalc.Log
-import io.github.vagran.adk.symcalc.Sin
-import io.github.vagran.adk.symcalc.Variable
+import io.github.vagran.adk.symcalc.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import kotlin.test.assertEquals
@@ -216,5 +213,54 @@ private class BasicTest {
         assertEquals((E(x) * E(y) * E(2.0)).Optimize().hashCode(),
                      (E(2.0) * E(x) * E(y)).Optimize().hashCode())
         assert((E(x) * E(y) * E(2.0)).Optimize() == (E(2.0) * E(x) * E(y)).Optimize())
+    }
+
+    @Test
+    fun Derivative1()
+    {
+        val e = E(2.0) * Sin(x) + E(3.0) * Cos(x) + 1.0 + Exp(y)
+        val d = e.Derivative(x).Optimize()
+        assertEquals("2.0 * cos(x) + sin(x) * (-3.0)", d.toString())
+    }
+
+    @Test
+    fun Derivative2()
+    {
+        val e = Sin(Cos(x))
+        val d = e.Derivative(x).Optimize()
+        assertEquals("cos(cos(x)) * (-1.0) * sin(x)", d.toString())
+    }
+
+    @Test
+    fun DerivativePow1()
+    {
+        val e = Sin(x) pow 3.0
+        val d = e.Derivative(x).Optimize()
+        assertEquals("3.0 * sin(x)^2.0 * cos(x)", d.toString())
+    }
+
+    @Test
+    fun DerivativePow2()
+    {
+        val e = y pow Sin(x)
+        val d = e.Derivative(x).Optimize()
+        assertEquals("y^sin(x) * log(y) * cos(x)", d.toString())
+    }
+
+    @Test
+    fun DerivativePow3()
+    {
+        val e = x pow x
+        val d = e.Derivative(x).Optimize()
+        assertEquals("x^x * (log(x) + 1.0)", d.toString())
+    }
+
+    @Test
+    fun DerivativePow4()
+    {
+        val e = Sin(x) pow Cos(x)
+        val d = e.Derivative(x).Optimize()
+        assertEquals("sin(x)^cos(x) * ((-1.0) * sin(x) * log(sin(x)) + cos(x)^2.0 * sin(x)^(-1.0))",
+                     d.toString())
     }
 }

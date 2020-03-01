@@ -59,6 +59,7 @@ interface Rule {
                 add(PowerLogarithm)
                 add(ExponentLogarithm)
                 add(LogarithmExponent)
+                add(LogarithmProductExponent)
                 add(ExponentPower)
                 add(PowerPower)
 
