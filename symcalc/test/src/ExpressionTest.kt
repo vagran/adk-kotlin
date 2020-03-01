@@ -152,6 +152,14 @@ private class BasicTest {
     }
 
     @Test
+    fun OptimizeLogarithmProductExponent()
+    {
+        val e = Exp(y * 2.0 * Log(x))
+        val eOpt = e.Optimize()
+        assertEquals("x^(y * 2.0)", eOpt.toString())
+    }
+
+    @Test
     fun OptimizeExponentPower()
     {
         val e = Exp(x) pow y
