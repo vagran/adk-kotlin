@@ -12,7 +12,7 @@ import io.github.vagran.adk.symcalc.Expression as E
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-private class BasicTest {
+private class ExpressionTest {
 
     val x = Variable("x")
     val y = Variable("y")

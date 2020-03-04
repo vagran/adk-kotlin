@@ -17,4 +17,43 @@ class Program {
     {
         //XXX
     }
+
+    // /////////////////////////////////////////////////////////////////////////////////////////////
+    internal enum class Operation {
+        /** Load literal on the stack top.
+         * Arg: literal index.
+         */
+        LOAD_LITERAL,
+        /** Load variable on the stack top.
+         * Arg: variable
+         */
+        LOAD_VARIABLE,
+        /** Load local on the stack top.
+         * Arg: local index.
+         */
+        LOAD_LOCAL,
+        /** Store result from the stack top. Stack is not modified.
+         * Arg: result handle.
+         */
+        STORE_RESULT,
+        /** Store local from the stack top. Stack is not modified.
+         * Arg: local index.
+         */
+        STORE_LOCAL,
+        /** Remove one item from the stack top. */
+        POP,
+        /** Apply function to the stack top items. The arguments are removed from the stack and
+         * result is placed instead.
+         * Arg: number of arguments, function to apply.
+         */
+        APPLY_FUNCTION
+    }
+
+    internal val operations = ArrayList<Operation>()
+    internal val intArgs = ArrayList<Int>()
+    internal val funcArgs = ArrayList<Function>()
+    internal val varArgs = ArrayList<Variable>()
+    internal val resultArgs = ArrayList<ResultHandle>()
+    internal lateinit var literals: DoubleArray
+
 }
