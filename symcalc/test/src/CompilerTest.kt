@@ -20,7 +20,7 @@ private class CompilerTest {
     fun Basic()
     {
         val e1 = E(1.0) + x * 2.0 + (y pow 2.0) * Sin(z) * 5.0 + (Cos(z) pow 2.0) * 3.0
-        val e2 = (x pow 3.0) - y + Cos(z)
+        val e2 = (x pow 3.0) - y + Cos(z) + (x pow x)
         val compiler = Compiler()
         val e1Res = ResultHandle()
         val e2Res = ResultHandle()

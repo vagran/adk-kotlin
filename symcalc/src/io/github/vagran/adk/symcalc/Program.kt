@@ -56,4 +56,18 @@ class Program {
     internal val resultArgs = ArrayList<ResultHandle>()
     internal lateinit var literals: DoubleArray
 
+    internal fun AddOperation(op: Operation, vararg args: Any)
+    {
+        //XXX count stack depth
+        operations.add(op)
+        for (arg in args) {
+            when (arg) {
+                is Int -> intArgs.add(arg)
+                is Function -> funcArgs.add(arg)
+                is Variable -> varArgs.add(arg)
+                is ResultHandle -> resultArgs.add(arg)
+                else -> throw Error("Illegal argument type: ${arg::class}")
+            }
+        }
+    }
 }

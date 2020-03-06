@@ -10,6 +10,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
+internal typealias OP = Program.Operation
 
 class Compiler {
 
@@ -32,7 +33,12 @@ class Compiler {
         }
         val program = Program()
         program.literals = literals.toDoubleArray()
-        TODO()
+        for (node in targets.values) {
+            if (!node.resolved) {
+                EvaluateNode(node, program)
+                program.AddOperation(OP.POP)
+            }
+        }
         return program
     }
 
@@ -44,7 +50,7 @@ class Compiler {
         val deps = ArrayList<Node>()
         /** Number of nodes which depend on this node value. */
         var dependantsCount = 0
-        /** True if node is evaluated and available on the stack. */
+        /** True if node was evaluated at least once. */
         var resolved = false
         /** Value other than -1 means that the node is evaluated and is available in the
          * corresponding local slot.
@@ -86,5 +92,58 @@ class Compiler {
             literals.add(e.constant)
         }
         return node
+    }
+
+    /** Evaluate node and place its value on the stack. */
+    private fun EvaluateNode(node: Node, program: Program)
+    {
+        when {
+            node.literalSlot != -1 -> {
+                program.AddOperation(OP.LOAD_LITERAL, node.literalSlot)
+            }
+            node.localSlot != -1 -> {
+                program.AddOperation(OP.LOAD_LOCAL, node.literalSlot)
+            }
+            node.e.variable != null -> {
+                program.AddOperation(OP.LOAD_VARIABLE, node.e.variable)
+            }
+            else -> {
+                for (dep in node.deps) {
+                    EvaluateNode(dep, program)
+                    dep.dependantsCount--
+                    if (dep.dependantsCount == 0 && dep.localSlot != -1) {
+                        ReleaseLocal(dep.localSlot)
+                        dep.localSlot = -1
+                    }
+                }
+                program.AddOperation(OP.APPLY_FUNCTION, node.e.function!!, node.deps.size)
+            }
+        }
+
+        if (!node.resolved && node.target != null) {
+            program.AddOperation(OP.STORE_RESULT, node.target)
+        }
+        if (node.localSlot == -1 && node.dependantsCount > 1) {
+            node.localSlot = AllocateLocal()
+            program.AddOperation(OP.STORE_LOCAL, node.localSlot)
+        }
+
+        node.resolved = true
+    }
+
+    private fun AllocateLocal(): Int
+    {
+        //XXX count locals
+        val idx = localSlots.nextClearBit(0)
+        localSlots.set(idx)
+        return idx
+    }
+
+    private fun ReleaseLocal(idx: Int)
+    {
+        if (!localSlots.get(idx)) {
+            throw Error("Releasing non-allocated local: $idx")
+        }
+        localSlots.clear(idx)
     }
 }
