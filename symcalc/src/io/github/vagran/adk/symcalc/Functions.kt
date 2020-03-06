@@ -61,6 +61,11 @@ abstract class Function(val arity: Int = 1) {
         return Derivative(arg) * arg.Derivative(dv)
     }
 
+    override fun toString(): String
+    {
+        return this::class.simpleName!!
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
 
     protected fun ToString(name: String, arg: Expression): String

@@ -15,7 +15,28 @@ class Program {
      */
     fun Execute(ctx: ExecutionContext)
     {
-        //XXX
+        ctx.SetLiterals(literals)
+        var intIdx = 0
+        var funcIdx = 0
+        var varIdx = 0
+        var resultIdx = 0
+        for (op in operations) {
+            when (op) {
+                Operation.LOAD_LITERAL -> ctx.LoadLiteral(intArgs[intIdx++])
+
+                Operation.LOAD_VARIABLE -> ctx.LoadVariable(varArgs[varIdx++])
+
+                Operation.LOAD_LOCAL -> ctx.LoadLocal(intArgs[intIdx++])
+
+                Operation.STORE_RESULT -> ctx.StoreResult(resultArgs[resultIdx++])
+
+                Operation.STORE_LOCAL -> ctx.StoreLocal(intArgs[intIdx++])
+
+                Operation.POP -> ctx.Pop()
+
+                Operation.APPLY_FUNCTION -> ctx.ApplyFunction(funcArgs[funcIdx++], intArgs[intIdx++])
+            }
+        }
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

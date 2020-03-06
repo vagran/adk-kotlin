@@ -13,6 +13,9 @@ import kotlin.collections.HashMap
 internal typealias OP = Program.Operation
 
 class Compiler {
+    data class Options(
+        val storeVariablesInLocals: Boolean = false
+    )
 
     /** Add expression to the pool of evaluation targets. Evaluating multiple expressions at once
      * can be more optimal if they share common subexpressions.
@@ -25,7 +28,7 @@ class Compiler {
         CreateNode(e, result)
     }
 
-    fun Compile(): Program
+    fun Compile(options: Options = Options()): Program
     {
         program?.also { return it }
         if (targets.isEmpty()) {
@@ -35,7 +38,15 @@ class Compiler {
         program.literals = literals.toDoubleArray()
         for (node in targets.values) {
             if (!node.resolved) {
-                EvaluateNode(node, program)
+                EvaluateNode(node, program, options)
+                if (node.dependantsCount > 0 &&
+                    node.localSlot == -1 &&
+                    node.literalSlot == -1 &&
+                    (options.storeVariablesInLocals || node.e.variable == null)) {
+
+                    node.localSlot = AllocateLocal()
+                    program.AddOperation(OP.STORE_LOCAL, node.localSlot)
+                }
                 program.AddOperation(OP.POP)
             }
         }
@@ -95,21 +106,21 @@ class Compiler {
     }
 
     /** Evaluate node and place its value on the stack. */
-    private fun EvaluateNode(node: Node, program: Program)
+    private fun EvaluateNode(node: Node, program: Program, options: Options)
     {
         when {
             node.literalSlot != -1 -> {
                 program.AddOperation(OP.LOAD_LITERAL, node.literalSlot)
             }
             node.localSlot != -1 -> {
-                program.AddOperation(OP.LOAD_LOCAL, node.literalSlot)
+                program.AddOperation(OP.LOAD_LOCAL, node.localSlot)
             }
             node.e.variable != null -> {
                 program.AddOperation(OP.LOAD_VARIABLE, node.e.variable)
             }
             else -> {
                 for (dep in node.deps) {
-                    EvaluateNode(dep, program)
+                    EvaluateNode(dep, program, options)
                     dep.dependantsCount--
                     if (dep.dependantsCount == 0 && dep.localSlot != -1) {
                         ReleaseLocal(dep.localSlot)
@@ -123,7 +134,11 @@ class Compiler {
         if (!node.resolved && node.target != null) {
             program.AddOperation(OP.STORE_RESULT, node.target)
         }
-        if (node.localSlot == -1 && node.dependantsCount > 1) {
+        if (node.localSlot == -1 &&
+            node.dependantsCount > 1 &&
+            node.literalSlot == -1 &&
+            (options.storeVariablesInLocals || node.e.variable == null)) {
+
             node.localSlot = AllocateLocal()
             program.AddOperation(OP.STORE_LOCAL, node.localSlot)
         }

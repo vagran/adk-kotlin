@@ -1,6 +1,8 @@
 import io.github.vagran.adk.symcalc.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.io.PrintStream
+import kotlin.test.assertEquals
 import io.github.vagran.adk.symcalc.Expression as E
 
 /*
@@ -8,6 +10,10 @@ import io.github.vagran.adk.symcalc.Expression as E
  * Copyright (c) 2020 Artyom Lebedev <artyom.lebedev@gmail.com>. All rights reserved.
  * See LICENSE file for full license details.
  */
+
+class NamedResultHandle(val name: String): ResultHandle() {
+    override fun toString() = name
+}
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class CompilerTest {
@@ -20,16 +26,20 @@ private class CompilerTest {
     fun Basic()
     {
         val e1 = E(1.0) + x * 2.0 + (y pow 2.0) * Sin(z) * 5.0 + (Cos(z) pow 2.0) * 3.0
-        val e2 = (x pow 3.0) - y + Cos(z) + (x pow x)
+        val e2 = (x pow 3.0) - y + Cos(z) + (x pow x) + Sin(z) * Sin(z)
+        val e3 = e1.Optimize() * 2.0
+
         val compiler = Compiler()
-        val e1Res = ResultHandle()
-        val e2Res = ResultHandle()
+        val e1Res = NamedResultHandle("e1")
+        val e2Res = NamedResultHandle("e2")
+        val e3Res = NamedResultHandle("e3")
         compiler.AddExpression(e1.Optimize(), e1Res)
         compiler.AddExpression(e2.Optimize(), e2Res)
+        compiler.AddExpression(e3.Optimize(), e3Res)
         val program = compiler.Compile()
 
-        //val ctx = ExecutionContext()
-        //program.Execute(ctx)
+        val ctx = PrintExecutionContext(PrintStream(System.out))
+        program.Execute(ctx)
     }
 
 }
