@@ -31,12 +31,27 @@ class Compiler {
     fun Compile(options: Options = Options()): Program
     {
         program?.also { return it }
+
         if (targets.isEmpty()) {
             throw Error("No targets specified")
         }
+
+        val _targets = ArrayList(targets.values)
+        for (node in _targets) {
+            for (dep in node.deps) {
+                node.targetDepsCount += TargetDepsCount(dep)
+            }
+            /* Resolved flag is used here for preventing double counting. */
+            nodes.values.forEach { it.resolved = false }
+        }
+        /* First evaluate targets with most targets in dependencies. This allows instant result
+         * utilization without stack pop and local allocation in some cases.
+         */
+        _targets.sortByDescending { it.targetDepsCount }
+
         val program = Program()
         program.literals = literals.toDoubleArray()
-        for (node in targets.values) {
+        for (node in _targets) {
             if (!node.resolved) {
                 EvaluateNode(node, program, options)
                 if (node.dependantsCount > 0 &&
@@ -61,6 +76,8 @@ class Compiler {
         val deps = ArrayList<Node>()
         /** Number of nodes which depend on this node value. */
         var dependantsCount = 0
+        /** Number of other targets in dependencies. Used for optimal evaluation order selection. */
+        var targetDepsCount = 0
         /** True if node was evaluated at least once. */
         var resolved = false
         /** Value other than -1 means that the node is evaluated and is available in the
@@ -148,7 +165,6 @@ class Compiler {
 
     private fun AllocateLocal(): Int
     {
-        //XXX count locals
         val idx = localSlots.nextClearBit(0)
         localSlots.set(idx)
         return idx
@@ -160,5 +176,21 @@ class Compiler {
             throw Error("Releasing non-allocated local: $idx")
         }
         localSlots.clear(idx)
+    }
+
+    private fun TargetDepsCount(node: Node): Int
+    {
+        if (node.resolved) {
+            return 0
+        }
+        node.resolved = true
+        var n = 0
+        if (node.target != null) {
+            n++
+        }
+        for (dep in node.deps) {
+            n += TargetDepsCount(dep)
+        }
+        return n
     }
 }

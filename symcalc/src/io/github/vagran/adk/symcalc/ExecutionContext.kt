@@ -10,6 +10,12 @@ interface ExecutionContext {
     /** Set literals pool. They are referenced by index later. */
     fun SetLiterals(literals: DoubleArray)
 
+    /** Set total number of local slots used in the program. */
+    fun SetLocalsCount(n: Int)
+
+    /** Set maximal stack depth used in the program. */
+    fun SetStackDepth(n: Int)
+
     /** Load literal on the stack top. */
     fun LoadLiteral(idx: Int)
 

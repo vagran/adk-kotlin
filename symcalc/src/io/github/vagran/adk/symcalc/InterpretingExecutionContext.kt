@@ -6,9 +6,11 @@
 
 package io.github.vagran.adk.symcalc
 
-import java.io.PrintStream
+/** Execution context which interprets the program and evaluates results. Mostly useful for testing.
+  */
+class InterpretingExecutionContext(private val evalCtx: EvaluationContext): ExecutionContext {
 
-class PrintExecutionContext(private val out: PrintStream): ExecutionContext {
+    val results = HashMap<ResultHandle, Double>()
 
     override fun SetLiterals(literals: DoubleArray)
     {
@@ -16,53 +18,55 @@ class PrintExecutionContext(private val out: PrintStream): ExecutionContext {
     }
 
     override fun SetLocalsCount(n: Int)
-    {}
+    {
+        locals = DoubleArray(n)
+    }
 
     override fun SetStackDepth(n: Int)
-    {}
+    {
+        stack = DoubleArray(n)
+    }
 
     override fun LoadLiteral(idx: Int)
     {
-        out.printf("Load literal #%d: %g\n", idx, literals[idx])
-        out.flush()
+        stack[sp++] = literals[idx]
     }
 
     override fun LoadVariable(v: Variable)
     {
-        out.printf("Load variable %s\n", v.toString())
-        out.flush()
+        stack[sp++] = evalCtx.GetVariable(v)
     }
 
     override fun LoadLocal(idx: Int)
     {
-        out.printf("Load local #%d\n", idx)
-        out.flush()
+        stack[sp++] = locals[idx]
     }
 
     override fun StoreResult(result: ResultHandle)
     {
-        out.printf("Store result %s\n", result.toString())
-        out.flush()
+        results[result] = stack[sp - 1]
     }
 
     override fun StoreLocal(idx: Int)
     {
-        out.printf("Store local #%d\n", idx)
-        out.flush()
+        locals[idx] = stack[sp - 1]
     }
 
     override fun Pop()
     {
-        out.println("Pop")
-        out.flush()
+        sp--
     }
 
     override fun ApplyFunction(func: Function, numArgs: Int)
     {
-        out.printf("Apply function %s on %d arguments\n", func.toString(), numArgs)
-        out.flush()
+        val args = DoubleArray(numArgs) { stack[sp - numArgs + it] }
+        sp -= numArgs
+        stack[sp++] = func.Evaluate(args)
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private lateinit var literals: DoubleArray
+    private lateinit var locals: DoubleArray
+    private lateinit var stack: DoubleArray
+    private var sp = 0
 }

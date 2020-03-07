@@ -16,6 +16,8 @@ class Program {
     fun Execute(ctx: ExecutionContext)
     {
         ctx.SetLiterals(literals)
+        ctx.SetLocalsCount(numLocals)
+        ctx.SetStackDepth(stackDepth)
         var intIdx = 0
         var funcIdx = 0
         var varIdx = 0
@@ -76,11 +78,40 @@ class Program {
     internal val varArgs = ArrayList<Variable>()
     internal val resultArgs = ArrayList<ResultHandle>()
     internal lateinit var literals: DoubleArray
+    private var numLocals = 0
+    private var stackDepth = 0
+    private var curStackDepth = 0
 
     internal fun AddOperation(op: Operation, vararg args: Any)
     {
-        //XXX count stack depth
         operations.add(op)
+        @Suppress("NON_EXHAUSTIVE_WHEN")
+        when (op) {
+            Operation.STORE_LOCAL -> {
+                val idx = args[0] as Int
+                if (idx + 1 > numLocals) {
+                    numLocals = idx + 1
+                }
+            }
+
+            Operation.LOAD_LITERAL,
+            Operation.LOAD_VARIABLE,
+            Operation.LOAD_LOCAL -> curStackDepth++
+
+            Operation.POP -> curStackDepth--
+
+            Operation.APPLY_FUNCTION -> {
+                val n = if (args[0] is Int) {
+                    args[0] as Int
+                } else {
+                    args[1] as Int
+                }
+                curStackDepth -= n - 1
+            }
+        }
+        if (curStackDepth > stackDepth) {
+            stackDepth = curStackDepth
+        }
         for (arg in args) {
             when (arg) {
                 is Int -> intArgs.add(arg)

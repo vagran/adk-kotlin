@@ -1,8 +1,8 @@
 import io.github.vagran.adk.symcalc.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import java.io.PrintStream
-import kotlin.test.assertEquals
 import io.github.vagran.adk.symcalc.Expression as E
 
 /*
@@ -13,6 +13,20 @@ import io.github.vagran.adk.symcalc.Expression as E
 
 class NamedResultHandle(val name: String): ResultHandle() {
     override fun toString() = name
+}
+
+class SimpleEvaluationContext: EvaluationContext {
+    override fun GetVariable(v: Variable): Double
+    {
+        return vars[v]!!
+    }
+
+    fun SetVariable(v: Variable, value: Double)
+    {
+        vars[v] = value
+    }
+
+    private val vars = HashMap<Variable, Double>()
 }
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -40,6 +54,16 @@ private class CompilerTest {
 
         val ctx = PrintExecutionContext(PrintStream(System.out))
         program.Execute(ctx)
-    }
 
+        val evlCtx = SimpleEvaluationContext()
+        evlCtx.SetVariable(x, 2.0)
+        evlCtx.SetVariable(y, 3.0)
+        evlCtx.SetVariable(z, Math.PI / 2.0)
+        val interpCtx = InterpretingExecutionContext(evlCtx)
+        program.Execute(interpCtx)
+
+        assertEquals(50.0, interpCtx.results[e1Res])
+        assertEquals(10.0, interpCtx.results[e2Res])
+        assertEquals(100.0, interpCtx.results[e3Res])
+    }
 }
