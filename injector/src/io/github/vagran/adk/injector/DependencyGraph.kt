@@ -113,7 +113,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                  * obfuscations.
                  */
                 _qualifiers.sortWith(
-                    Comparator.comparing<Annotation, String> { a -> a::class.qualifiedName})
+                    Comparator.comparing<Annotation, String> { it::class.qualifiedName})
                 this.qualifiers = _qualifiers
             } else {
                 this.qualifiers = null

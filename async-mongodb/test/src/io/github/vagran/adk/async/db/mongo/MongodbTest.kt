@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-private class MongodbTest {
+private class MongodbTestIT {
 
     private val numCores = Runtime.getRuntime().availableProcessors()
     private lateinit var client: MongoClient
