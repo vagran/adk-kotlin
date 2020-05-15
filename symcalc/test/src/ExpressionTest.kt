@@ -271,4 +271,15 @@ private class ExpressionTest {
         assertEquals("sin(x)^cos(x) * ((-1.0) * sin(x) * log(sin(x)) + cos(x)^2.0 * sin(x)^(-1.0))",
                      d.toString())
     }
+
+    @Test
+    fun SymbolTest()
+    {
+        val e = Symbol("S")() * 3.0 + 4.0
+        assertEquals("S * 3.0 + 4.0", e.toString())
+        val d = e.Derivative(x).Optimize()
+        assertEquals("S'(x) * 3.0", d.toString())
+        val d2 = d.Derivative(y).Optimize()
+        assertEquals("S'(x)'(y) * 3.0", d2.toString())
+    }
 }

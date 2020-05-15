@@ -1,3 +1,8 @@
+/*
+ * This file is part of ADK project.
+ * Copyright (c) 2020 Artyom Lebedev <artyom.lebedev@gmail.com>. All rights reserved.
+ * See LICENSE file for full license details.
+ */
 import io.github.vagran.adk.symcalc.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -5,11 +10,6 @@ import org.junit.jupiter.api.TestInstance
 import java.io.PrintStream
 import io.github.vagran.adk.symcalc.Expression as E
 
-/*
- * This file is part of ADK project.
- * Copyright (c) 2020 Artyom Lebedev <artyom.lebedev@gmail.com>. All rights reserved.
- * See LICENSE file for full license details.
- */
 
 class NamedResultHandle(val name: String): ResultHandle() {
     override fun toString() = name

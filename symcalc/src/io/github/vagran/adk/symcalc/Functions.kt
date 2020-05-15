@@ -111,6 +111,46 @@ abstract class Function(val arity: Int = 1) {
     }
 }
 
+/** Custom symbol which is preserved in a transformed expression. */
+open class Symbol(val name: String): Function(0) {
+
+    override fun ToString(args: Array<Expression>): String
+    {
+        return name
+    }
+
+    override fun Evaluate(args: DoubleArray): Double
+    {
+        throw Error("Symbol cannot be evaluated: $name")
+    }
+
+    override fun Derivative(dv: Variable, args: Array<Expression>): Expression
+    {
+        return Expression(SymbolDerivative(this, dv))
+    }
+}
+
+/** Derivative of a symbol with respect to the specified variable. They can be chained for higher
+ * order derivative (possibly with respect to different variables).
+  */
+class SymbolDerivative(val sym: Symbol, val dv: Variable): Symbol(sym.name) {
+
+    override fun ToString(args: Array<Expression>): String
+    {
+        return "${sym.ToString(emptyArray())}'($dv)"
+    }
+
+    override fun Evaluate(args: DoubleArray): Double
+    {
+        throw Error("Symbol cannot be evaluated: " + ToString(emptyArray()))
+    }
+
+    override fun Derivative(dv: Variable, args: Array<Expression>): Expression
+    {
+        return Expression(SymbolDerivative(this, dv))
+    }
+}
+
 object Add: Function(-1) {
 
     override fun Evaluate(args: DoubleArray): Double

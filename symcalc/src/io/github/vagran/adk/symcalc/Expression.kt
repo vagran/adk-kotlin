@@ -46,6 +46,9 @@ class Expression {
         constant = null
         variable = null
         isConst = run {
+            if (function is Symbol) {
+                return@run false
+            }
             for (e in args) {
                 if (!e.isConst) {
                     return@run false
@@ -77,6 +80,10 @@ class Expression {
         }
         if (variable != null) {
             return variable === v
+        }
+        /* Assuming symbol depends on any variable. */
+        if (function is Symbol) {
+            return true
         }
         funcArgs!!.forEach {
             if (it.HasVariable(v)) {
