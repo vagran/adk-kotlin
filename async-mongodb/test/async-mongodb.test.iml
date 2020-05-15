@@ -14,5 +14,6 @@
     <orderEntry type="module" module-name="async" />
     <orderEntry type="module" module-name="log.slf4j" />
     <orderEntry type="module" module-name="log" />
+    <orderEntry type="library" scope="TEST" name="org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.5" level="application" />
   </component>
 </module>
