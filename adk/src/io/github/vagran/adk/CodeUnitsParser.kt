@@ -60,6 +60,11 @@ class CodeUnitsParser(private val codePointHandler: (codePoint: Int) -> Unit,
         codePointHandler(Character.toCodePoint(hiC, loC))
     }
 
+    fun Feed(c: Char)
+    {
+        Feed(c.toInt())
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private var pendingUnit: Int = -1
 

@@ -55,6 +55,11 @@ class Configuration {
         root = MergeConfigEntry(root, other.root)
     }
 
+    fun get(path: String): String
+    {
+        return GetString(path)
+    }
+
     fun GetString(path: String, allowMissing: Boolean): String?
     {
         return (ResolvePath(path, allowMissing) ?: return null) as? String
