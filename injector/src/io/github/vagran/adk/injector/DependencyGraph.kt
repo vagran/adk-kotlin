@@ -45,15 +45,15 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 for (dep in deps) {
                     var depNode: Node? = nodes[dep.key]
                     if (depNode == null) {
-                        if (dep.key.qualifiers != null) {
-                            throw DI.Exception(
-                                "Unresolved qualified injection ${dep.key} in ${node.origin}")
-                        }
-                        depNode = CreateClassNode(dep.key, false)
-                        if (dep.key.type != TypeKey.Type.FACTORY && depNode.HasFactoryParams()) {
-                            throw DI.Exception(
-                                "Direct injection not allowed for factory-produced class: " +
-                                "${depNode.origin} required from ${node.origin}")
+                        depNode = if (dep.key.type == TypeKey.Type.FACTORY) {
+                            CreateFactoryNode(dep.key)
+
+                        } else {
+                            if (dep.key.qualifiers != null) {
+                                throw DI.Exception(
+                                    "Unresolved qualified injection ${dep.key} in ${node.origin}")
+                            }
+                            CreateClassNode(dep.key, false)
                         }
                         nodes[depNode.key] = depNode
                     }
@@ -159,8 +159,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             }
             @Suppress("NON_EXHAUSTIVE_WHEN")
             when (type) {
-                DependencyGraph.TypeKey.Type.PROXY -> h *= 13
-                DependencyGraph.TypeKey.Type.FACTORY -> h *= 17
+                Type.PROXY -> h *= 13
+                Type.FACTORY -> h *= 17
             }
             return h
         }
@@ -216,6 +216,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
         /** Injectable fields if any. */
         var injectFields: Array<InjectableField>? = null
+
+        /** Dependency for factory (class node). */
+        var factoryDep: DepRef? = null
     }
 
     /** Dependency graph node.  */
@@ -238,19 +241,27 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         /** Injectable fields if any. */
         val injectFields: Array<InjectableField>? = params.injectFields
 
+        val factoryDep: DepRef? = params.factoryDep
+
         /** Singleton instance stored here for singleton node. Factory instance for factory node. */
         @Volatile var singletonInstance: Any? = null
 
 
-        /** Check if node constructor (if any) has factory parameters placeholders.  */
+        /** Check if node constructor or provider has factory parameters placeholders.  */
         fun HasFactoryParams(): Boolean
         {
-            if (ctrDeps == null) {
-                return false
+            if (ctrDeps != null) {
+                for (ref in ctrDeps) {
+                    if (ref === FACTORY_PARAM) {
+                        return true
+                    }
+                }
             }
-            for (ref in ctrDeps) {
-                if (ref === FACTORY_PARAM) {
-                    return true
+            if (providerDeps != null) {
+                for (ref in providerDeps) {
+                    if (ref === FACTORY_PARAM) {
+                        return true
+                    }
                 }
             }
             return false
@@ -282,6 +293,11 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                     if (predicate == null || predicate.test(f.dep)) {
                         result.add(f.dep)
                     }
+                }
+            }
+            if (factoryDep != null) {
+                if (predicate == null || predicate.test(factoryDep)) {
+                    result.add(factoryDep)
                 }
             }
             return if (result.size == 0) null else result
@@ -321,23 +337,23 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         }
 
         /** Instantiate the node.  */
-        fun Create(): Any
+        fun Create(factoryParams: Array<out Any?>? = null): Any
         {
             return when {
                 isSingleton -> {
                     singletonInstance ?: synchronized(this) {
-                        singletonInstance ?: Create(null).also { singletonInstance = it }
+                        singletonInstance ?: CreateImpl(factoryParams).also { singletonInstance = it }
                     }
                 }
 
                 /* Factory instance is stored here during compilation. */
                 key.type == TypeKey.Type.FACTORY -> singletonInstance!!
 
-                else -> Create(null)
+                else -> CreateImpl(factoryParams)
             }
         }
 
-        private fun Create(factoryParams: Array<out Any?>?): Any
+        private fun CreateImpl(factoryParams: Array<out Any?>?): Any
         {
             val result: Any
 
@@ -348,7 +364,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 return try {
                     if (providerDeps != null) {
                         providerMethod.call(providerModule,
-                                            *GetDependentParameters(providerDeps, null))!!
+                                            *GetDependentParameters(providerDeps, factoryParams))!!
                     } else {
                         providerMethod.call(providerModule)!!
                     }
@@ -390,7 +406,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         inner class FactoryImpl: DI.Factory<Any> {
             override fun Create(vararg params: Any?): Any
             {
-                return this@Node.Create(params)
+                return this@Node.factoryDep!!.node!!.Create(params)
             }
         }
     }
@@ -475,6 +491,11 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         if (deps != null) {
             for (dep in deps) {
                 if (dep !== FACTORY_PARAM) {
+                    if (startNode.key.type != TypeKey.Type.FACTORY && dep.node!!.HasFactoryParams()) {
+                        throw DI.Exception(
+                            "Direct injection not allowed for factory-produced class: " +
+                            "${dep.node!!.origin} required from ${startNode.origin}")
+                    }
                     DetectCircularDeps(dep.node!!, stack)
                 }
             }
@@ -551,10 +572,6 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             val paramAnn = param.annotations
             val paramType = param.type
             if (IsFactoryParam(paramAnn)) {
-                if (hasReceiver) {
-                    throw DI.Exception(
-                        "Factory parameters not allowed in provider method: " + callable.name)
-                }
                 return@Array FACTORY_PARAM
             }
             val factoryType = GetFactoryParamClass(paramType)
@@ -716,6 +733,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
     /** Create node for the specified injectable class.  */
     private fun CreateClassNode(key: TypeKey, makeSingleton: Boolean): Node
     {
+        if (key.type != TypeKey.Type.REGULAR && key.type != TypeKey.Type.PROXY) {
+            throw Error("Unexpected node type")
+        }
         val origin = "Class " + key.cls.qualifiedName
         val nodeParams = NodeParams(key, origin,
                                     makeSingleton || key.cls.findAnnotation<Singleton>() != null)
@@ -768,12 +788,15 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             nodeParams.injectFields = fields.toTypedArray()
         }
 
-        val node = Node(nodeParams)
+        return Node(nodeParams)
+    }
 
-        if (key.type == TypeKey.Type.FACTORY) {
-            node.singletonInstance = node.FactoryImpl()
-        }
-
+    private fun CreateFactoryNode(key: TypeKey): Node
+    {
+        val params = NodeParams(key, "Class " + key.cls.qualifiedName, false)
+        params.factoryDep = DepRef(TypeKey(key.cls, key.qualifiers, TypeKey.Type.REGULAR))
+        val node = Node(params)
+        node.singletonInstance = node.FactoryImpl()
         return node
     }
 }

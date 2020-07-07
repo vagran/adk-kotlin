@@ -21,6 +21,7 @@ class Singletons {
 
     class C
 
+    @Singleton
     class D @Inject constructor(@param:FactoryParam val i: Int)
 
     @Module
@@ -30,13 +31,6 @@ class Singletons {
         fun GetC(): C
         {
             return C()
-        }
-
-        @Singleton
-        @Provides
-        fun GetD(factory: DI.Factory<D>): D
-        {
-            return factory.Create(42)
         }
     }
 
@@ -55,9 +49,7 @@ class Singletons {
         @Inject
         lateinit var c2: C
         @Inject
-        lateinit var d1: D
-        @Inject
-        lateinit var d2: D
+        lateinit var dFactory: DI.Factory<D>
     }
 
     @Test
@@ -67,6 +59,6 @@ class Singletons {
         assertTrue(comp.a1 !== comp.a2)
         assertTrue(comp.b1 === comp.b2)
         assertTrue(comp.c1 === comp.c2)
-        assertTrue(comp.d1 === comp.d2)
+        assertTrue(comp.dFactory.Create(42) === comp.dFactory.Create(43))
     }
 }

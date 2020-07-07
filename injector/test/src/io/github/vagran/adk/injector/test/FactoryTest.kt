@@ -31,12 +31,39 @@ class FactoryTest {
         var i = 43
     }
 
+    class E(val i: Int)
+
+    class F {
+        var i: Int = 0
+    }
+
+    class G(val i: Int)
+
     @Module
     class M {
         @Provides
         fun GetA(): A
         {
             return A(42)
+        }
+
+        @Provides
+        fun GetE(): E
+        {
+            return E(55)
+        }
+
+        @Provides
+        fun GetF(f: F): F
+        {
+            f.i = 66
+            return f
+        }
+
+        @Provides
+        fun GetG(@FactoryParam i: Int): G
+        {
+            return G(i)
         }
     }
 
@@ -50,25 +77,37 @@ class FactoryTest {
         lateinit var c: C
         @Inject
         lateinit var dFactory: DI.Factory<D>
+        @Inject
+        lateinit var eFactory: DI.Factory<E>
+        @Inject
+        lateinit var fFactory: DI.Factory<F>
+        @Inject
+        lateinit var gFactory: DI.Factory<G>
     }
 
     @Module
-    class M3 {
+    class M4 {
         @Provides
-        fun GetA(@FactoryParam i: Int): A
+        fun GetA(): A
         {
-            return A(i)
+            return A(42)
         }
-    }
 
-    @Component(modules = [M3::class])
-    class Comp5 {
-        @Inject
-        lateinit var a: A
+        @Provides
+        fun GetB(b: B): B
+        {
+            return b
+        }
     }
 
     @Component(modules = [M::class])
     class Comp6 {
+        @Inject
+        lateinit var b: B
+    }
+
+    @Component(modules = [M4::class])
+    class Comp7 {
         @Inject
         lateinit var b: B
     }
@@ -91,15 +130,15 @@ class FactoryTest {
         assertEquals(42, b.a1.i)
 
         assertEquals(43, comp.dFactory.Create().i)
-    }
 
-    @Test
-    fun FactoryParamInProviderFailure()
-    {
-        val msg = assertThrows<DI.Exception> {
-            DI.CreateComponent<Comp5>()
-        }.message!!
-        assertTrue(msg.startsWith("Factory parameters not allowed in provider method"))
+        val e = comp.eFactory.Create()
+        assertEquals(55, e.i)
+
+        val f = comp.fFactory.Create()
+        assertEquals(66, f.i)
+
+        val g = comp.gFactory.Create(77)
+        assertEquals(77, g.i)
     }
 
     @Test
@@ -107,6 +146,14 @@ class FactoryTest {
     {
         val msg = assertThrows<DI.Exception> {
             DI.CreateComponent<Comp6>()
+        }.message!!
+        assertTrue(msg.startsWith("Direct injection not allowed for factory-produced class"))
+    }
+    @Test
+    fun FactoryClassInjectProxyFailure()
+    {
+        val msg = assertThrows<DI.Exception> {
+            DI.CreateComponent<Comp7>()
         }.message!!
         assertTrue(msg.startsWith("Direct injection not allowed for factory-produced class"))
     }
