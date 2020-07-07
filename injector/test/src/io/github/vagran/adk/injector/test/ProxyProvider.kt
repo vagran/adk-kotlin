@@ -29,6 +29,8 @@ class ProxyProvider {
         lateinit var b: B
     }
 
+    class D @Inject constructor(@param:FactoryParam var k: Int)
+
     @Module
     inner class M {
         @Provides
@@ -58,6 +60,12 @@ class ProxyProvider {
         {
             return C().also { it.b = b }
         }
+
+        @Provides
+        fun GetD(dFactory: DiFactory<D>): D
+        {
+            return dFactory.Create(33)
+        }
     }
 
     @Component(modules = [M::class])
@@ -66,6 +74,8 @@ class ProxyProvider {
         lateinit var b: B
         @Inject
         lateinit var c: C
+        @Inject
+        lateinit var d: D
     }
 
     @Test
@@ -75,5 +85,6 @@ class ProxyProvider {
         assertEquals(42, comp.b.a.i)
         assertEquals(10, comp.b.j)
         assertEquals(42, comp.c.b.j)
+        assertEquals(33, comp.d.k)
     }
 }
