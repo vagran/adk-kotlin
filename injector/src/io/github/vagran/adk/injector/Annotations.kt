@@ -33,7 +33,10 @@ annotation class Named(
 @Target(AnnotationTarget.FUNCTION,
         AnnotationTarget.PROPERTY,
         AnnotationTarget.CLASS)
-annotation class Singleton
+annotation class Singleton(
+    /** One instance per scope when true, one global instance if false. */
+    val perScope: Boolean = false
+)
 
 
 /** Declares component which contains roots of DI objects hierarchy. Should be usual injectable

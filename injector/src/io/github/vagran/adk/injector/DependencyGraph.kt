@@ -45,7 +45,10 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 for (dep in deps) {
                     var depNode: Node? = nodes[dep.key]
                     if (depNode == null) {
-                        depNode = if (dep.key.type == TypeKey.Type.FACTORY) {
+                        depNode = if (dep.key.type == TypeKey.Type.SCOPE) {
+                            CreateScopeNode(dep.key)
+
+                        } else if (dep.key.type == TypeKey.Type.FACTORY) {
                             CreateFactoryNode(dep.key)
 
                         } else {
@@ -70,12 +73,12 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         isCompiled = true
     }
 
-    fun CreateRoot(): Any
+    fun CreateRoot(scope: DI.Scope? = null): Any
     {
         if (!isCompiled) {
             throw IllegalStateException("Should be compiled before instantiation")
         }
-        return rootNode.Create()
+        return rootNode.Create(scope)!!
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,7 +106,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             /** Indicates proxy provider dependency of unqualified injectable class.  */
             PROXY,
             /** Factory for the specified class.  */
-            FACTORY
+            FACTORY,
+            /** Scope object. */
+            SCOPE
         }
 
         init {
@@ -194,15 +199,21 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
     }
 
     private class InjectableField(
-        val field: KMutableProperty1<Any, Any>,
+        val field: KMutableProperty1<Any, Any?>,
         val dep: DepRef
     )
+
+    private enum class SingletonType {
+        NONE,
+        GLOBAL,
+        SCOPED
+    }
 
     private class NodeParams(
         val key: TypeKey,
         /** Describes where the node is originated from. */
         val origin: String,
-        val isSingleton: Boolean
+        val singletonType: SingletonType
     ) {
         /**  Provider module if any. */
         var providerModule: Any? = null
@@ -226,7 +237,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         val key: TypeKey = params.key
         /** Describes where the node is originated from. */
         val origin: String = params.origin
-        val isSingleton: Boolean = params.isSingleton
+        val singletonType: SingletonType = params.singletonType
+        val isScope: Boolean get() = key.type == TypeKey.Type.SCOPE
 
         /**  Provider module if any. */
         val providerModule: Any? = params.providerModule
@@ -243,7 +255,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
         val factoryDep: DepRef? = params.factoryDep
 
-        /** Singleton instance stored here for singleton node. Factory instance for factory node. */
+        /** Singleton instance stored here for singleton node. Factory instance (bound to global
+         * scope) for factory node.
+         */
         @Volatile var singletonInstance: Any? = null
 
 
@@ -313,7 +327,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
          * dependency references array. Constructor may contain factory parameters which are
          * provided in factoryParams.
          */
-        private fun GetDependentParameters(deps: Array<DepRef>,
+        private fun GetDependentParameters(scope: DI.Scope?, deps: Array<DepRef>,
                                            factoryParams: Array<out Any?>?): Array<Any?>
         {
             var curFactoryParamIdx = 0
@@ -321,7 +335,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 i ->
                 val dep = deps[i]
                 if (dep !== FACTORY_PARAM) {
-                    return@Array dep.node!!.Create()
+                    return@Array dep.node!!.Create(scope)
                 } else {
                     /* Factory parameter placeholder. */
                     if (curFactoryParamIdx >= factoryParams!!.size) {
@@ -336,24 +350,38 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             return result
         }
 
-        /** Instantiate the node.  */
-        fun Create(factoryParams: Array<out Any?>? = null): Any
+        /** Instantiate the node. Null can be returned for scope node in global scope. */
+        fun Create(scope: DI.Scope?, factoryParams: Array<out Any?>? = null): Any?
         {
             return when {
-                isSingleton -> {
+                singletonType == SingletonType.GLOBAL ||
+                (singletonType == SingletonType.SCOPED && scope == null) -> {
                     singletonInstance ?: synchronized(this) {
-                        singletonInstance ?: CreateImpl(factoryParams).also { singletonInstance = it }
+                        singletonInstance ?: CreateImpl(scope, factoryParams)
+                            .also { singletonInstance = it }
                     }
                 }
 
-                /* Factory instance is stored here during compilation. */
-                key.type == TypeKey.Type.FACTORY -> singletonInstance!!
+                singletonType == SingletonType.SCOPED -> {
+                    scope!!.CreateSingleton(key) { CreateImpl(scope, factoryParams) }
+                }
 
-                else -> CreateImpl(factoryParams)
+                /* Factory instance is stored here during compilation. */
+                key.type == TypeKey.Type.FACTORY -> {
+                    if (scope != null) {
+                        FactoryImpl(scope)
+                    } else {
+                        singletonInstance!!
+                    }
+                }
+
+                key.type == TypeKey.Type.SCOPE -> scope
+
+                else -> CreateImpl(scope, factoryParams)
             }
         }
 
-        private fun CreateImpl(factoryParams: Array<out Any?>?): Any
+        private fun CreateImpl(scope: DI.Scope?, factoryParams: Array<out Any?>?): Any
         {
             val result: Any
 
@@ -364,7 +392,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 return try {
                     if (providerDeps != null) {
                         providerMethod.call(providerModule,
-                                            *GetDependentParameters(providerDeps, factoryParams))!!
+                                            *GetDependentParameters(scope, providerDeps, factoryParams))!!
                     } else {
                         providerMethod.call(providerModule)!!
                     }
@@ -378,7 +406,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 }
                 result = try {
                     if (ctrDeps != null) {
-                        injectCtr.call(*GetDependentParameters(ctrDeps, factoryParams))!!
+                        injectCtr.call(*GetDependentParameters(scope, ctrDeps, factoryParams))!!
                     } else {
                         injectCtr.call()!!
                     }
@@ -393,7 +421,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             if (injectFields != null) {
                 for (f in injectFields) {
                     try {
-                        f.field.set(result, f.dep.node!!.Create())
+                        f.field.set(result, f.dep.node!!.Create(scope))
                     } catch (e: Exception) {
                         throw DI.Exception("Failed to set injectable field: ${f.field.name}", e)
                     }
@@ -403,10 +431,15 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             return result
         }
 
-        inner class FactoryImpl: DI.Factory<Any> {
+        inner class FactoryImpl(val scope: DI.Scope?): DI.Factory<Any> {
             override fun Create(vararg params: Any?): Any
             {
-                return this@Node.factoryDep!!.node!!.Create(params)
+                return this@Node.factoryDep!!.node!!.Create(scope, params)!!
+            }
+
+            override fun CreateScoped(scope: DI.Scope, vararg params: Any?): Any
+            {
+                return this@Node.factoryDep!!.node!!.Create(scope, params)!!
             }
         }
     }
@@ -453,21 +486,32 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         return type.classifier as KClass<*>
     }
 
-    private fun GetInjectableField(field: KMutableProperty1<Any, Any>): InjectableField
+    private fun GetInjectableField(field: KMutableProperty1<Any, Any?>): InjectableField
     {
         val type = field.returnType.jvmErasure
         val qualifiers = GetQualifiers(field.annotations)
         val key: TypeKey
-        key = if (type == DI.Factory::class) {
-            if (!qualifiers.isEmpty()) {
-                throw DI.Exception(
-                    "Qualifiers not allowed for factory field: " +
-                    "${field.parameters[0].type}::${field.name}")
+        key = when {
+            type == DI.Factory::class -> {
+                if (qualifiers.isNotEmpty()) {
+                    throw DI.Exception(
+                        "Qualifiers not allowed for factory field: " +
+                        "${field.parameters[0].type}::${field.name}")
+                }
+                val factoryType = GetFactoryParamClass(field.returnType)!!
+                TypeKey(factoryType, null, TypeKey.Type.FACTORY)
             }
-            val factoryType = GetFactoryParamClass(field.returnType)!!
-            TypeKey(factoryType, null, TypeKey.Type.FACTORY)
-        } else {
-            TypeKey(type, qualifiers)
+            type.isSubclassOf(DI.Scope::class) -> {
+                if (qualifiers.isNotEmpty()) {
+                    throw DI.Exception(
+                        "Qualifiers not allowed for scope field: " +
+                        "${field.parameters[0].type}::${field.name}")
+                }
+                TypeKey(type, null, TypeKey.Type.SCOPE)
+            }
+            else -> {
+                TypeKey(type, qualifiers)
+            }
         }
         field.isAccessible = true
         return InjectableField(field, DepRef(key))
@@ -528,6 +572,12 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         return nodes
     }
 
+    private fun GetSingletonType(annotations: List<Annotation>): SingletonType
+    {
+        val a = annotations.firstOrNull { it is Singleton } ?: return SingletonType.NONE
+        return if ((a as Singleton).perScope) SingletonType.SCOPED else SingletonType.GLOBAL
+    }
+
     /** Create node for provider method in the specified module.  */
     private fun CreateProviderNode(module: Any, method: KFunction<*>,
                                    annotations: List<Annotation>): Node
@@ -536,8 +586,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         val qualifiers = GetQualifiers(annotations)
         val key = TypeKey(type, qualifiers)
         val origin = "Module ${method.parameters[0].type}::${method.name}"
-        val isSingleton = annotations.firstOrNull { it is Singleton } != null
-        val nodeParams = NodeParams(key, origin, isSingleton)
+        val nodeParams = NodeParams(key, origin, GetSingletonType(annotations))
 
         nodeParams.providerModule = module
         method.isAccessible = true
@@ -583,6 +632,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                         "Qualifiers not allowed for factory parameter: " + callable.name)
                 }
                 return@Array DepRef(TypeKey(factoryType, null, TypeKey.Type.FACTORY))
+
+            } else if (paramType.jvmErasure.isSubclassOf(DI.Scope::class)) {
+                return@Array DepRef(TypeKey(paramType.jvmErasure, null, TypeKey.Type.SCOPE))
 
             } else {
                 /* Detect proxy provider parameter. */
@@ -737,8 +789,12 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             throw Error("Unexpected node type")
         }
         val origin = "Class " + key.cls.qualifiedName
-        val nodeParams = NodeParams(key, origin,
-                                    makeSingleton || key.cls.findAnnotation<Singleton>() != null)
+        val singletonType = if (makeSingleton) {
+            SingletonType.GLOBAL
+        } else {
+            GetSingletonType(key.cls.annotations)
+        }
+        val nodeParams = NodeParams(key, origin, singletonType)
 
         if (key.cls.isInner) {
             throw DI.Exception("Inner class not allowed, either make it static or define provider: " +
@@ -781,7 +837,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 throw DI.Exception("Mutable property expected: $field")
             }
             @Suppress("UNCHECKED_CAST")
-            fields.add(GetInjectableField(field as KMutableProperty1<Any, Any>))
+            fields.add(GetInjectableField(field as KMutableProperty1<Any, Any?>))
         }
 
         if (fields.size != 0) {
@@ -793,10 +849,15 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
     private fun CreateFactoryNode(key: TypeKey): Node
     {
-        val params = NodeParams(key, "Class " + key.cls.qualifiedName, false)
+        val params = NodeParams(key, "Class " + key.cls.qualifiedName, SingletonType.NONE)
         params.factoryDep = DepRef(TypeKey(key.cls, key.qualifiers, TypeKey.Type.REGULAR))
         val node = Node(params)
-        node.singletonInstance = node.FactoryImpl()
+        node.singletonInstance = node.FactoryImpl(null)
         return node
+    }
+
+    private fun CreateScopeNode(key: TypeKey): Node
+    {
+        return Node(NodeParams(key, "Scope class " + key.cls.qualifiedName, SingletonType.NONE))
     }
 }

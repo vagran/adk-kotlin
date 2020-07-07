@@ -19,6 +19,24 @@ class DI {
          * @param params Arguments for injectable constructor which have FactoryParam annotation.
          */
         fun Create(vararg params: Any?): T
+
+        /** Create instance of injectable type T in a new scope.
+         * @param scope Scope object.
+         * @param params Arguments for injectable constructor which have FactoryParam annotation.
+         */
+        fun CreateScoped(scope: Scope, vararg params: Any?): T
+    }
+
+    /** Base class for custom scopes. */
+    open class Scope {
+        internal fun CreateSingleton(key: Any, factory: () -> Any): Any
+        {
+            synchronized(singletons) {
+                return singletons.computeIfAbsent(key) { factory() }
+            }
+        }
+
+        private val singletons = HashMap<Any, Any>()
     }
 
     companion object {
