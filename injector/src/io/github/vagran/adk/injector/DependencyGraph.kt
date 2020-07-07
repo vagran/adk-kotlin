@@ -467,7 +467,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 node = stack.removeLast()
                 sb.append(" <- ${node.key} [${node.origin}]")
             } while (node !== startNode)
-            throw DI.Exception("Circular dependency detected: <loop>" + sb.toString())
+            throw DI.Exception("Circular dependency detected: <loop>$sb")
         }
         /* Traverse node dependencies. */
         stack.addLast(startNode)
