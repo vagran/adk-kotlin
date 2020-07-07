@@ -115,7 +115,7 @@ class ModuleInheritance {
     @Test
     fun RedundantModuleSubclassError()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.ComponentBuilder<Comp>().WithModule(M_A()).WithModule(M_B()).Build()
         }.message!!
         assertTrue(msg.startsWith("Module instance provided twice"))
@@ -124,7 +124,7 @@ class ModuleInheritance {
     @Test
     fun AbstractModuleError()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.CreateComponent<Comp>()
         }.message!!
         assertTrue(msg.startsWith("Cannot instantiate abstract module class"))
@@ -140,7 +140,7 @@ class ModuleInheritance {
     @Test
     fun NotAnnotatedModuleError()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.ComponentBuilder<Comp2>().WithModule(M_C()).Build()
         }.message!!
         assertTrue(msg.startsWith("Module class is not annotated with @Module"))
@@ -156,7 +156,7 @@ class ModuleInheritance {
 
     @Test
     fun IncludeModuleError() {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.ComponentBuilder<Comp2>().WithModule(M_D()).Build()
         }.message!!
         assertTrue(msg.startsWith("Include not allowed in inherited module instance"))

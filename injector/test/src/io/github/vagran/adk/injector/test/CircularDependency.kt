@@ -8,7 +8,6 @@ package io.github.vagran.adk.injector.test
 
 import io.github.vagran.adk.injector.Component
 import io.github.vagran.adk.injector.DI
-import io.github.vagran.adk.injector.DiException
 import io.github.vagran.adk.injector.Inject
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -36,7 +35,7 @@ class CircularDependency {
 
     @Test
     fun ResolvedQualifier() {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.CreateComponent(Comp::class)
         }.message!!
         assertTrue(msg.startsWith("Circular dependency detected"))

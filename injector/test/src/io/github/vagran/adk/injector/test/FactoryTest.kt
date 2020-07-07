@@ -25,7 +25,7 @@ class FactoryTest {
     }
 
     class C @Inject
-    constructor(val a: A, val bFactory: DiFactory<B>)
+    constructor(val a: A, val bFactory: DI.Factory<B>)
 
     class D {
         var i = 43
@@ -45,11 +45,11 @@ class FactoryTest {
         @Inject
         lateinit var a: A
         @Inject
-        lateinit var bFactory: DiFactory<B>
+        lateinit var bFactory: DI.Factory<B>
         @Inject
         lateinit var c: C
         @Inject
-        lateinit var dFactory: DiFactory<D>
+        lateinit var dFactory: DI.Factory<D>
     }
 
     @Module
@@ -96,7 +96,7 @@ class FactoryTest {
     @Test
     fun FactoryParamInProviderFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.CreateComponent<Comp5>()
         }.message!!
         assertTrue(msg.startsWith("Factory parameters not allowed in provider method"))
@@ -105,7 +105,7 @@ class FactoryTest {
     @Test
     fun FactoryClassInjectFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.CreateComponent<Comp6>()
         }.message!!
         assertTrue(msg.startsWith("Direct injection not allowed for factory-produced class"))
@@ -114,7 +114,7 @@ class FactoryTest {
     @Test
     fun WrongFactoryParamsLessFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             val comp = DI.CreateComponent<Comp>()
             comp.bFactory.Create()
         }.message!!
@@ -124,7 +124,7 @@ class FactoryTest {
     @Test
     fun WrongFactoryParamsMoreFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             val comp = DI.CreateComponent<Comp>()
             comp.bFactory.Create(42, "aaa")
         }.message!!
@@ -134,7 +134,7 @@ class FactoryTest {
     @Test
     fun WrongFactoryParamsFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             val comp = DI.CreateComponent<Comp>()
             comp.bFactory.Create("aaa")
         }.cause!!.message!!

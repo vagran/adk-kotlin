@@ -122,7 +122,7 @@ class Qualifiers {
     @Test
     fun UnresolvedQualifierFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.CreateComponent<Comp>()
         }.message!!
         assertTrue(msg.startsWith("Unresolved qualified injection"))
@@ -159,7 +159,7 @@ class Qualifiers {
     @Test
     fun DuplicatedProviderFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.CreateComponent<Comp4>()
         }.message!!
         assertTrue(msg.startsWith("Duplicated provider"))
@@ -168,7 +168,7 @@ class Qualifiers {
     @Test
     fun UndeclaredModuleFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.ComponentBuilder<Comp>().WithModule(M2()).Build()
         }.message!!
         assertTrue(msg.startsWith("Specified module instance not declared in component modules"))

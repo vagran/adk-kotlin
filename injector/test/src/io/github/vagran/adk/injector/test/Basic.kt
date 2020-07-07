@@ -190,7 +190,7 @@ private class Basic {
     @Test
     fun NonDefaultModuleConstructorFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.CreateComponent<Comp>()
         }.message
         assertEquals("Module default constructor not found: io.github.vagran.adk.injector.test.Basic.M1", msg)
@@ -199,7 +199,7 @@ private class Basic {
     @Test
     fun NonComponentConstructionFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.CreateComponent<M1>()
         }.message
         assertEquals(
@@ -210,7 +210,7 @@ private class Basic {
     @Test
     fun NotAnnotatedModuleFailure()
     {
-        val msg = assertThrows<DiException> {
+        val msg = assertThrows<DI.Exception> {
             DI.ComponentBuilder<Comp>().WithModule(M1(42)).OverrideModule(B(0)).Build()
         }.message
         assertEquals(

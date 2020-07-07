@@ -62,7 +62,7 @@ class ProxyProvider {
         }
 
         @Provides
-        fun GetD(dFactory: DiFactory<D>): D
+        fun GetD(dFactory: DI.Factory<D>): D
         {
             return dFactory.Create(33)
         }

@@ -27,7 +27,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
         val rootKey = TypeKey(rootClass, null)
         nodes[rootKey]?.also {
-            throw DiException(
+            throw DI.Exception(
                 "Component class ${rootClass.qualifiedName} should not be provided by modules, " +
                 "found in ${it.origin}")
         }
@@ -46,12 +46,12 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                     var depNode: Node? = nodes[dep.key]
                     if (depNode == null) {
                         if (dep.key.qualifiers != null) {
-                            throw DiException(
+                            throw DI.Exception(
                                 "Unresolved qualified injection ${dep.key} in ${node.origin}")
                         }
                         depNode = CreateClassNode(dep.key, false)
                         if (dep.key.type != TypeKey.Type.FACTORY && depNode.HasFactoryParams()) {
-                            throw DiException(
+                            throw DI.Exception(
                                 "Direct injection not allowed for factory-produced class: " +
                                 "${depNode.origin} required from ${node.origin}")
                         }
@@ -309,13 +309,13 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 } else {
                     /* Factory parameter placeholder. */
                     if (curFactoryParamIdx >= factoryParams!!.size) {
-                        throw DiException("Insufficient number of factory arguments specified")
+                        throw DI.Exception("Insufficient number of factory arguments specified")
                     }
                     return@Array factoryParams[curFactoryParamIdx++]
                 }
             }
             if (factoryParams != null && curFactoryParamIdx < factoryParams.size) {
-                throw DiException("Too many factory arguments specified")
+                throw DI.Exception("Too many factory arguments specified")
             }
             return result
         }
@@ -353,7 +353,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                         providerMethod.call(providerModule)!!
                     }
                 } catch (e: Exception) {
-                    throw DiException("Failed to invoke provider: $origin", e)
+                    throw DI.Exception("Failed to invoke provider: $origin", e)
                 }
 
             } else {
@@ -366,10 +366,10 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                     } else {
                         injectCtr.call()!!
                     }
-                } catch (e: DiException) {
+                } catch (e: DI.Exception) {
                     throw e
                 } catch (e: Exception) {
-                    throw DiException("Failed to invoke constructor: $origin", e)
+                    throw DI.Exception("Failed to invoke constructor: $origin", e)
                 }
             }
 
@@ -379,7 +379,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                     try {
                         f.field.set(result, f.dep.node!!.Create())
                     } catch (e: Exception) {
-                        throw DiException("Failed to set injectable field: ${f.field.name}", e)
+                        throw DI.Exception("Failed to set injectable field: ${f.field.name}", e)
                     }
                 }
             }
@@ -387,7 +387,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             return result
         }
 
-        inner class FactoryImpl: DiFactory<Any> {
+        inner class FactoryImpl: DI.Factory<Any> {
             override fun Create(vararg params: Any?): Any
             {
                 return this@Node.Create(params)
@@ -397,7 +397,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
     private fun ThrowNotAnnotatedModule(moduleCls: KClass<*>): Nothing
     {
-        throw DiException("Module class is not annotated with @Module: " + moduleCls.qualifiedName)
+        throw DI.Exception("Module class is not annotated with @Module: " + moduleCls.qualifiedName)
     }
 
     /** Get qualifier annotations from the specified annotations array.  */
@@ -426,13 +426,13 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
     /** Get produced value type for factory parameter of provider or constructor. Null of not factory.  */
     private fun GetFactoryParamClass(paramType: KType): KClass<*>?
     {
-        if (paramType.jvmErasure != DiFactory::class) {
+        if (paramType.jvmErasure != DI.Factory::class) {
             return null
         }
         val proj = paramType.arguments[0]
-        val type = proj.type ?: throw DiException("Star projection not allowed for factory type")
+        val type = proj.type ?: throw DI.Exception("Star projection not allowed for factory type")
         if (proj.variance != KVariance.INVARIANT) {
-            throw DiException("Only invariant type projection allowed for factory type")
+            throw DI.Exception("Only invariant type projection allowed for factory type")
         }
         return type.classifier as KClass<*>
     }
@@ -442,9 +442,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         val type = field.returnType.jvmErasure
         val qualifiers = GetQualifiers(field.annotations)
         val key: TypeKey
-        key = if (type == DiFactory::class) {
+        key = if (type == DI.Factory::class) {
             if (!qualifiers.isEmpty()) {
-                throw DiException(
+                throw DI.Exception(
                     "Qualifiers not allowed for factory field: " +
                     "${field.parameters[0].type}::${field.name}")
             }
@@ -467,7 +467,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 node = stack.removeLast()
                 sb.append(" <- ${node.key} [${node.origin}]")
             } while (node !== startNode)
-            throw DiException("Circular dependency detected: <loop>" + sb.toString())
+            throw DI.Exception("Circular dependency detected: <loop>" + sb.toString())
         }
         /* Traverse node dependencies. */
         stack.addLast(startNode)
@@ -552,7 +552,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             val paramType = param.type
             if (IsFactoryParam(paramAnn)) {
                 if (hasReceiver) {
-                    throw DiException(
+                    throw DI.Exception(
                         "Factory parameters not allowed in provider method: " + callable.name)
                 }
                 return@Array FACTORY_PARAM
@@ -562,7 +562,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
             if (factoryType != null) {
                 if (!qualifiers.isEmpty()) {
-                    throw DiException(
+                    throw DI.Exception(
                         "Qualifiers not allowed for factory parameter: " + callable.name)
                 }
                 return@Array DepRef(TypeKey(factoryType, null, TypeKey.Type.FACTORY))
@@ -583,7 +583,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
     private fun GetComponentModules(): Set<KClass<*>>
     {
         val compAnn = rootClass.findAnnotation<Component>()
-            ?: throw DiException("Root component class is not annotated with @Component: " +
+            ?: throw DI.Exception("Root component class is not annotated with @Component: " +
                                      rootClass.qualifiedName)
         val result = HashSet<KClass<*>>()
         for (moduleCls in compAnn.modules) {
@@ -616,7 +616,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         for (cls in componentModules) {
             if (cls.isSuperclassOf(moduleCls)) {
                 if (cls != moduleCls && moduleAnn.include.isNotEmpty()) {
-                    throw DiException("Include not allowed in inherited module instance: $moduleCls")
+                    throw DI.Exception("Include not allowed in inherited module instance: $moduleCls")
                 }
                 return cls
             }
@@ -650,13 +650,13 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         for (module in this.modules) {
             val moduleCls = module::class
             val declaredModuleCls = CheckModuleInstance(moduleCls, componentModules)
-                ?: throw DiException(
+                ?: throw DI.Exception(
                     "Specified module instance not declared in component modules: " +
                     moduleCls.qualifiedName)
             val prevModule = modules.put(declaredModuleCls, module)
             if (prevModule != null) {
-                throw DiException("Module instance provided twice: $declaredModuleCls, " +
-                                  "provided $moduleCls, previous $prevModule")
+                throw DI.Exception("Module instance provided twice: $declaredModuleCls, " +
+                                   "provided $moduleCls, previous $prevModule")
             }
         }
 
@@ -666,17 +666,17 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 continue
             }
             if (moduleCls.isInner) {
-                throw DiException(
+                throw DI.Exception(
                     "Inner class not allowed, either make it static or provide module instance: " +
                     moduleCls.qualifiedName)
             }
             if (moduleCls.isAbstract) {
-                throw DiException(
+                throw DI.Exception(
                     "Cannot instantiate abstract module class: ${moduleCls.qualifiedName}")
             }
 
             val ctr = moduleCls.constructors.singleOrNull { it.parameters.all(KParameter::isOptional) }
-                ?: throw DiException("Module default constructor not found: ${moduleCls.qualifiedName}")
+                ?: throw DI.Exception("Module default constructor not found: ${moduleCls.qualifiedName}")
 
             if (ctr.javaConstructor?.canAccess(null) == false) {
                 ctr.isAccessible = true
@@ -685,7 +685,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             try {
                 module = ctr.callBy(emptyMap())
             } catch (e: Exception) {
-                throw DiException("Module constructor failed for ${moduleCls.qualifiedName}", e)
+                throw DI.Exception("Module constructor failed for ${moduleCls.qualifiedName}", e)
             }
 
             modules[moduleCls] = module
@@ -696,7 +696,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
             val prev = providers.put(node.key, node)
             if (!allowOverride && prev != null) {
-                throw DiException(
+                throw DI.Exception(
                     "Duplicated provider:${node.key} at ${node.origin}, " +
                     "previously defined at ${prev.origin}")
             }
@@ -721,7 +721,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                                     makeSingleton || key.cls.findAnnotation<Singleton>() != null)
 
         if (key.cls.isInner) {
-            throw DiException("Inner class not allowed, either make it static or define provider: " +
+            throw DI.Exception("Inner class not allowed, either make it static or define provider: " +
                               key.cls.qualifiedName)
         }
 
@@ -731,7 +731,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 continue
             }
             if (nodeParams.injectCtr != null) {
-                throw DiException(
+                throw DI.Exception(
                     "More than one injectable constructor in class ${key.cls.qualifiedName}")
             }
             if (ctr.javaConstructor?.canAccess(null) == false) {
@@ -744,7 +744,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         /* Use default constructor if no injectable one found. */
         if (nodeParams.injectCtr == null) {
             val ctr = key.cls.constructors.singleOrNull { it.parameters.isEmpty() }
-                ?: throw DiException("Class default constructor not found: ${key.cls.qualifiedName}")
+                ?: throw DI.Exception("Class default constructor not found: ${key.cls.qualifiedName}")
             if (ctr.javaConstructor?.canAccess(null) == false) {
                 ctr.isAccessible = true
             }
@@ -758,7 +758,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 continue
             }
             if (field !is KMutableProperty1) {
-                throw DiException("Mutable property expected: $field")
+                throw DI.Exception("Mutable property expected: $field")
             }
             @Suppress("UNCHECKED_CAST")
             fields.add(GetInjectableField(field as KMutableProperty1<Any, Any>))
