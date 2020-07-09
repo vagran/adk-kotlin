@@ -17,7 +17,7 @@ class ComponentBuilder<T: Any> internal constructor(private val rootCls: KClass<
     {
         val dg = DependencyGraph(rootCls, modules, overrideModules)
         dg.Compile()
-        return dg.CreateRoot(scope) as T
+        return dg.CreateRoot(scope, attrs) as T
     }
 
     /** Specify module instance. Must be specified for modules which do not have default
@@ -47,8 +47,18 @@ class ComponentBuilder<T: Any> internal constructor(private val rootCls: KClass<
         return this
     }
 
+    fun WithAttributes(attrs: DI.Attributes): ComponentBuilder<T>
+    {
+        if (this.attrs != null) {
+            throw Error("Overriding previously specified attributes")
+        }
+        this.attrs = attrs
+        return this
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val modules = ArrayList<Any>()
     private val overrideModules = ArrayList<Any>()
     private var scope: DI.Scope? = null
+    private var attrs: DI.Attributes? = null
 }

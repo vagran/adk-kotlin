@@ -16,13 +16,15 @@ class DI {
 
         /** Create instance of injectable type T.
          *
-         * @param params Arguments for injectable constructor which have FactoryParam annotation.
+         * @param params Arguments for injectable constructor or provider method which have
+         * FactoryParam annotation.
          */
         fun Create(vararg params: Any?): T
 
-        /** Create instance of injectable type T in a new scope.
+        /** Create instance of injectable type T in the specified scope.
          * @param scope Scope object.
-         * @param params Arguments for injectable constructor which have FactoryParam annotation.
+         * @param params Arguments for injectable constructor or provider method which have
+         * FactoryParam annotation.
          */
         fun CreateScoped(scope: Scope, vararg params: Any?): T
     }
@@ -37,6 +39,19 @@ class DI {
         }
 
         private val singletons = HashMap<Any, Any>()
+    }
+
+    /** List of attributes attached to value declaration. */
+    class Attributes(val list: List<Annotation>) {
+        inline fun <reified T: Annotation> Get(): T?
+        {
+            for (attr in list) {
+                if (attr is T) {
+                    return attr
+                }
+            }
+            return null
+        }
     }
 
     companion object {
