@@ -5,6 +5,7 @@
  */
 
 dependencies {
+    implementation project(":omm")
     implementation project(":json")
     implementation project(":json:adk_codecs")
 }

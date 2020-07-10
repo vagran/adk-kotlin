@@ -6,4 +6,5 @@
 
 dependencies {
     implementation project(":json")
+    implementation project(":omm")
 }

@@ -7,4 +7,5 @@
 dependencies {
     implementation project(":adk")
     implementation project(":json")
+    implementation project(":omm")
 }
