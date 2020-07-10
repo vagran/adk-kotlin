@@ -83,6 +83,8 @@ class FactoryTest {
         lateinit var fFactory: DI.Factory<F>
         @Inject
         lateinit var gFactory: DI.Factory<G>
+        @Inject
+        lateinit var graph: DI.Graph
     }
 
     @Module
@@ -139,6 +141,9 @@ class FactoryTest {
 
         val g = comp.gFactory.Create(77)
         assertEquals(77, g.i)
+
+        assertEquals(42, comp.graph.Create<A>().i)
+        assertEquals(88, comp.graph.Create<G>(88).i)
     }
 
     @Test

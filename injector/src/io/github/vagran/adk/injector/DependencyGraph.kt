@@ -49,6 +49,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                             TypeKey.Type.SCOPE -> CreateScopeNode(dep.key)
                             TypeKey.Type.FACTORY -> CreateFactoryNode(dep.key)
                             TypeKey.Type.ATTRIBUTES -> CreateAttributesNode(dep.key)
+                            TypeKey.Type.GRAPH -> CreateGraphNode(dep.key)
                             else -> {
                                 if (dep.key.qualifiers != null) {
                                     throw DI.Exception(
@@ -64,6 +65,21 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 numResolved++
             }
         } while (numResolved != 0)
+
+        /* Create factory nodes for all registered unqualified classes to make them dynamically
+         * instantiable via graph injection.
+         */
+        val classKeys = nodes.keys.filter { it.type == TypeKey.Type.REGULAR && it.qualifiers == null }
+        for (key in classKeys) {
+            val factoryKey = TypeKey(key.cls, null, TypeKey.Type.FACTORY)
+            var node = nodes[factoryKey]
+            if (node != null) {
+                continue
+            }
+            node = CreateFactoryNode(factoryKey)
+            node.factoryDep!!.node = nodes[key]
+            nodes[factoryKey] = node
+        }
 
         /* Recursively traverse the graph and detect circular dependencies if any. */
         val stack = ArrayDeque<Node>()
@@ -84,6 +100,7 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
     private val nodes = HashMap<TypeKey, Node>()
     private lateinit var rootNode: Node
     private var isCompiled = false
+    private val graphImpl = GraphImpl()
 
     private companion object {
         /** Represents placeholder for factory parameter in a constructor. */
@@ -110,7 +127,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             /** Scope object. */
             SCOPE,
             /** Attributes list. */
-            ATTRIBUTES
+            ATTRIBUTES,
+            /** Dependency graph object. */
+            GRAPH
         }
 
         init {
@@ -399,6 +418,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
                 key.type == TypeKey.Type.SCOPE -> scope
 
+                key.type == TypeKey.Type.GRAPH -> singletonInstance
+
                 else -> CreateImpl(scope, attrs, factoryParams)
             }
         }
@@ -466,6 +487,17 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             {
                 return this@Node.factoryDep!!.node!!.Create(scope, null, params)!!
             }
+        }
+    }
+
+    private inner class GraphImpl: DI.Graph {
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T: Any> GetFactory(cls: KClass<T>): DI.Factory<T>
+        {
+            val key = TypeKey(cls, null, TypeKey.Type.FACTORY)
+            val node = nodes[key] ?: throw DI.Exception("Unresolved type: ${cls.qualifiedName}")
+            return node.Create(null, null, null) as DI.Factory<T>
         }
     }
 
@@ -547,6 +579,9 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             }
             type == DI.Attributes::class -> {
                 TypeKey(type, null, TypeKey.Type.ATTRIBUTES)
+            }
+            type == DI.Graph::class -> {
+                TypeKey(type, null, TypeKey.Type.GRAPH)
             }
             else -> {
                 TypeKey(type, qualifiers)
@@ -665,28 +700,34 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             val factoryType = GetFactoryParamClass(paramType)
             val qualifiers = GetQualifiers(paramAnn)
 
-            if (factoryType != null) {
-                if (!qualifiers.isEmpty()) {
-                    throw DI.Exception(
-                        "Qualifiers not allowed for factory parameter: " + callable.name)
+            when {
+                factoryType != null -> {
+                    if (!qualifiers.isEmpty()) {
+                        throw DI.Exception(
+                                "Qualifiers not allowed for factory parameter: " + callable.name)
+                    }
+                    return@Array DepRef(TypeKey(factoryType, null, TypeKey.Type.FACTORY))
+
                 }
-                return@Array DepRef(TypeKey(factoryType, null, TypeKey.Type.FACTORY))
-
-            } else if (paramType.jvmErasure.isSubclassOf(DI.Scope::class)) {
-                return@Array DepRef(TypeKey(paramType.jvmErasure, null, TypeKey.Type.SCOPE))
-
-            } else if (paramType.jvmErasure == DI.Attributes::class) {
-                return@Array DepRef(TypeKey(paramType.jvmErasure, null, TypeKey.Type.ATTRIBUTES))
-
-            } else {
-                /* Detect proxy provider parameter. */
-                val isProxy = providerType != null &&
-                        qualifiers.isEmpty() &&
-                        paramType.jvmErasure == providerType
-                return@Array DepRef(
-                    TypeKey(paramType.jvmErasure, qualifiers,
-                            if (isProxy) TypeKey.Type.PROXY else TypeKey.Type.REGULAR),
-                    GetAttributes(param.annotations))
+                paramType.jvmErasure.isSubclassOf(DI.Scope::class) -> {
+                    return@Array DepRef(TypeKey(paramType.jvmErasure, null, TypeKey.Type.SCOPE))
+                }
+                paramType.jvmErasure == DI.Attributes::class -> {
+                    return@Array DepRef(TypeKey(paramType.jvmErasure, null, TypeKey.Type.ATTRIBUTES))
+                }
+                paramType.jvmErasure == DI.Graph::class -> {
+                    return@Array DepRef(TypeKey(paramType.jvmErasure, null, TypeKey.Type.GRAPH))
+                }
+                else -> {
+                    /* Detect proxy provider parameter. */
+                    val isProxy = providerType != null &&
+                            qualifiers.isEmpty() &&
+                            paramType.jvmErasure == providerType
+                    return@Array DepRef(
+                            TypeKey(paramType.jvmErasure, qualifiers,
+                                    if (isProxy) TypeKey.Type.PROXY else TypeKey.Type.REGULAR),
+                            GetAttributes(param.annotations))
+                }
             }
         }
     }
@@ -907,5 +948,12 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
     private fun CreateAttributesNode(key: TypeKey): Node
     {
         return Node(NodeParams(key, "Attributes", SingletonType.NONE))
+    }
+
+    private fun CreateGraphNode(key: TypeKey): Node
+    {
+        val node = Node(NodeParams(key, "Graph", SingletonType.NONE))
+        node.singletonInstance = graphImpl
+        return node
     }
 }

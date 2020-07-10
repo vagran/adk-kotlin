@@ -14,7 +14,7 @@ class DI {
     /** Factory for creating some injectable type T.  */
     interface Factory<T> {
 
-        /** Create instance of injectable type T.
+        /** Create instance of injectable type T. Can have scope bound.
          *
          * @param params Arguments for injectable constructor or provider method which have
          * FactoryParam annotation.
@@ -54,6 +54,18 @@ class DI {
         }
     }
 
+    /** Represents whole the dependency graph and provides possibility to dynamically create any
+     * instantiate any its class.
+     */
+    interface Graph {
+        fun <T: Any> GetFactory(cls: KClass<T>): Factory<T>
+
+        fun <T: Any> Create(cls: KClass<T>, vararg params: Any?): T
+        {
+            return GetFactory(cls).Create(*params)
+        }
+    }
+
     companion object {
         inline fun <reified T: Any> CreateComponent(): T
         {
@@ -77,3 +89,12 @@ class DI {
     }
 }
 
+inline fun <reified T: Any> DI.Graph.GetFactory(): DI.Factory<T>
+{
+    return GetFactory(T::class)
+}
+
+inline fun <reified T: Any> DI.Graph.Create(vararg params: Any?): T
+{
+    return Create(T::class, *params)
+}
