@@ -9,6 +9,7 @@ package io.github.vagran.adk.injector
 import java.util.*
 import java.util.function.Predicate
 import kotlin.Array
+import kotlin.collections.ArrayList
 import kotlin.reflect.*
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.isAccessible
@@ -215,7 +216,17 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
     /** Dependency reference. Graph link. */
     private class DepRef(val key: TypeKey,
+                         val refType: Type = Type.NONE,
                          val attributes: DI.Attributes? = null) {
+
+        enum class Type {
+            NONE,
+            CONSTRUCTOR_ARG,
+            PROVIDER_ARG,
+            FIELD,
+            ADDITIONAL_REF
+        }
+
         /** Resolved node after linkage stage complete. */
         var node: Node? = null
 
@@ -260,6 +271,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
         /** Dependency for factory (class node). */
         var factoryDep: DepRef? = null
+        /** Additional references declared via AdditionalRefs annotation. */
+        var additionalRefs: Array<DepRef>? = null
     }
 
     /** Dependency graph node.  */
@@ -282,8 +295,10 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
         /** Injectable fields if any. */
         val injectFields: Array<InjectableField>? = params.injectFields
-
+        /** Dependency for factory (class node). */
         val factoryDep: DepRef? = params.factoryDep
+        /** Additional references declared via AdditionalRefs annotation. */
+        val additionalRefs: Array<DepRef>? = params.additionalRefs
 
         /** Singleton instance stored here for singleton node. Factory instance (bound to global
          * scope) for factory node.
@@ -347,6 +362,13 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             if (factoryDep != null) {
                 if (predicate == null || predicate.test(factoryDep)) {
                     result.add(factoryDep)
+                }
+            }
+            if (additionalRefs != null) {
+                for (ref in additionalRefs) {
+                    if (predicate == null || predicate.test(ref)) {
+                        result.add(ref)
+                    }
                 }
             }
             return if (result.size == 0) null else result
@@ -588,7 +610,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
             }
         }
         field.isAccessible = true
-        return InjectableField(field, DepRef(key, GetAttributes(field.annotations)))
+        return InjectableField(field, DepRef(key, DepRef.Type.FIELD,
+                                             GetAttributes(field.annotations)))
     }
 
     private fun DetectCircularDeps(startNode: Node, stack: Deque<Node>)
@@ -609,7 +632,10 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         if (deps != null) {
             for (dep in deps) {
                 if (dep !== FACTORY_PARAM) {
-                    if (startNode.key.type != TypeKey.Type.FACTORY && dep.node!!.HasFactoryParams()) {
+                    if (dep.refType != DepRef.Type.ADDITIONAL_REF &&
+                        startNode.key.type != TypeKey.Type.FACTORY &&
+                        dep.node!!.HasFactoryParams()) {
+
                         throw DI.Exception(
                             "Direct injection not allowed for factory-produced class: " +
                             "${dep.node!!.origin} required from ${startNode.origin}")
@@ -726,6 +752,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                     return@Array DepRef(
                             TypeKey(paramType.jvmErasure, qualifiers,
                                     if (isProxy) TypeKey.Type.PROXY else TypeKey.Type.REGULAR),
+                            if (providerType != null)
+                                DepRef.Type.PROVIDER_ARG else DepRef.Type.CONSTRUCTOR_ARG,
                             GetAttributes(param.annotations))
                 }
             }
@@ -926,6 +954,15 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
         if (fields.size != 0) {
             nodeParams.injectFields = fields.toTypedArray()
+        }
+
+        key.cls.findAnnotation<AdditionalRefs>()?.also {
+            ann ->
+            val refs = ArrayList<DepRef>()
+            for (ref in ann.refs) {
+                refs.add(DepRef(TypeKey(ref, null), DepRef.Type.ADDITIONAL_REF))
+            }
+            nodeParams.additionalRefs = refs.toTypedArray()
         }
 
         return Node(nodeParams)

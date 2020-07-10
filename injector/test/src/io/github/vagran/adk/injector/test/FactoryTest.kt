@@ -33,11 +33,16 @@ class FactoryTest {
 
     class E(val i: Int)
 
+    @AdditionalRefs([H::class])
     class F {
         var i: Int = 0
+        @Inject
+        lateinit var graph: DI.Graph
     }
 
     class G(val i: Int)
+
+    class H @Inject constructor(@param:FactoryParam val i: Int)
 
     @Module
     class M {
@@ -83,8 +88,6 @@ class FactoryTest {
         lateinit var fFactory: DI.Factory<F>
         @Inject
         lateinit var gFactory: DI.Factory<G>
-        @Inject
-        lateinit var graph: DI.Graph
     }
 
     @Module
@@ -142,8 +145,9 @@ class FactoryTest {
         val g = comp.gFactory.Create(77)
         assertEquals(77, g.i)
 
-        assertEquals(42, comp.graph.Create<A>().i)
-        assertEquals(88, comp.graph.Create<G>(88).i)
+        assertEquals(42, f.graph.Create<A>().i)
+        assertEquals(88, f.graph.Create<G>(88).i)
+        assertEquals(99, f.graph.Create<H>(99).i)
     }
 
     @Test

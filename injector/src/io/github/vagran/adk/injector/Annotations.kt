@@ -46,8 +46,8 @@ annotation class Singleton(
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Component(
     /** List of modules to use in this component.  */
-    val modules: Array<KClass<*>> = [])
-
+    val modules: Array<KClass<*>> = []
+)
 
 /** Declares a module. A module should have factory methods annotated with @Provides annotation.  */
 @Target(AnnotationTarget.CLASS)
@@ -78,3 +78,12 @@ annotation class FactoryParam
 @Target(AnnotationTarget.ANNOTATION_CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Attribute
+
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class AdditionalRefs(
+    /** Additional classes to include into the dependency graph. Useful for classes which are not
+     * reachable from root component and created purely dynamically via injected graph object.
+     */
+    val refs: Array<KClass<*>> = []
+)
