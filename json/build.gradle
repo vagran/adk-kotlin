@@ -5,5 +5,5 @@
  */
 
 dependencies {
-    compile project(":omm")
+    implementation project(":omm")
 }

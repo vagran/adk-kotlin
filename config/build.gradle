@@ -5,6 +5,6 @@
  */
 
 dependencies {
-    compile project(":json")
-    compile project(":json:adk_codecs")
+    implementation project(":json")
+    implementation project(":json:adk_codecs")
 }

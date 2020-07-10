@@ -5,8 +5,8 @@
  */
 
 dependencies {
-    compile project(":adk")
-    compile project(":async")
-    compile project(":omm")
-    compile "org.mongodb:mongodb-driver-async:3.8.2"
+    implementation project(":adk")
+    implementation project(":async")
+    implementation project(":omm")
+    implementation "org.mongodb:mongodb-driver-async:3.8.2"
 }

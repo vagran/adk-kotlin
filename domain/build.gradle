@@ -5,8 +5,8 @@
  */
 
 dependencies {
-    compile project(":adk")
-    compile project(":async")
-    compile project(":json")
-    compile project(":log")
+    implementation project(":adk")
+    implementation project(":async")
+    implementation project(":json")
+    implementation project(":log")
 }

@@ -5,5 +5,5 @@
  */
 
 dependencies {
-    compile project(":json")
+    implementation project(":json")
 }

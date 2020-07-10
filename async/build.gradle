@@ -5,5 +5,5 @@
  */
 
 dependencies {
-    compile project(":adk")
+    implementation project(":adk")
 }
