@@ -13,6 +13,9 @@ goog.require("wdk.class");
 
 (function(wdk) {
 
+    /* Refresh interval in ms for polled views. */
+    wdk.REFRESH_INTERVAL = 1000;
+
     /** Parse URI query parameters into JS object.
      * @param query Optional query string. Current location is used if not specified.
      */
@@ -61,6 +64,19 @@ goog.require("wdk.class");
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
-    }
+    };
+
+    wdk.PostRequest = function(url, data) {
+        let params = {
+            url: url,
+            type: data !== undefined ? "POST" : "GET"
+        };
+        if (data !== undefined) {
+            params.data = JSON.stringify(data);
+            params.contentType = "application/json; charset=utf-8";
+            params.dataType = "json";
+        }
+        return $.ajax(params);
+    };
 
 })(window.wdk || (window.wdk = {}));

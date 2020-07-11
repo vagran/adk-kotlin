@@ -15,3 +15,5 @@ goog.require("wdk.components.EditableField");
 goog.require("wdk.components.ModalDialog");
 goog.require("wdk.components.TemplateForm");
 goog.require("wdk.components.EditableProperties");
+goog.require("wdk.components.LocalId");
+goog.require("wdk.components.EntitiesList");

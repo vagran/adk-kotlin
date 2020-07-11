@@ -1,0 +1,37 @@
+.wdk_EntitiesList {
+    table {
+        width: auto;
+        margin-bottom: 0;
+    }
+
+    div.card-body {
+        padding: 0.6rem;
+    }
+
+    .deleteButton {
+        opacity: 0.3;
+        cursor: pointer;
+        color: var(--danger);
+        border: 1px solid var(--danger);
+        border-radius: 0.1em;
+        padding: 0 0.2em;
+        margin-left: 0.2em;
+
+        &:hover {
+            opacity: 1.0;
+        }
+    }
+
+    span.item.editable {
+        cursor: pointer;
+
+        &:hover {
+            background: #e0e0e0;
+            text-decoration: underline;
+        }
+    }
+
+    td.monospaceFont .item {
+        font-family: var(--font-family-monospace);
+    }
+}
