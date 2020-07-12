@@ -10,6 +10,7 @@ goog.require("wdk.components.Card");
      * * onAdded(name)
      * * onDeleted(entity)
      * * onEdit(entity)
+     * * onModify(entity, fieldName, value)
      * Slots:
      * * prefixInfo - prepended auxiliary info block
      * * suffixInfo - appended auxiliary info block
@@ -23,22 +24,39 @@ goog.require("wdk.components.Card");
     
     <table v-else-if="entities !== null" class="table table-sm">
         <tbody>
-            <tr v-for="info in entities" :key="info.id">
-                <td v-if="prefixInfoSpecified">
-                    <slot name="prefixInfo" :info="info"/>
-                </td>
-                <td :class="{monospaceFont: monospaceFont}">
-                    <span v-if="itemLink === null" class="item" :class="{editable: editable}"
-                          @click="_EditItem(info)">{{itemDisplayName(info)}}</span>
-                    <a v-else class="item" rel="noreferrer" :href="itemLink(info)">{{itemDisplayName(info)}}</a>
-                    <span v-if="deleteReq !== null"
-                            class="deleteButton"
-                            @click="_DeleteEntity(info)"><i class="fas fa-times"></i></span>
-                </td>
-                <td v-if="suffixInfoSpecified">
-                    <slot name="suffixInfo" :info="info"/>
-                </td>
-            </tr>
+            <template v-for="info in entities">
+                <tr :key="info[idField]">
+                    <td v-if="prefixInfoSpecified">
+                        <slot name="prefixInfo" :info="info"/>
+                    </td>
+                    <td :class="{monospaceFont: monospaceFont}">
+                        <span v-if="itemLink === null" class="item" :class="{editable: editable}"
+                              @click="_EditItem(info)">{{itemDisplayName(info)}}</span>
+                        <a v-else class="item" rel="noreferrer" :href="itemLink(info)">{{itemDisplayName(info)}}</a>
+                        <span v-if="deleteReq !== null"
+                                class="deleteButton"
+                                @click="_DeleteEntity(info)"><i class="fas fa-times"></i></span>
+                    </td>
+                    <td v-if="suffixInfoSpecified">
+                        <slot name="suffixInfo" :info="info"/>
+                    </td>
+                </tr>
+                <transition name="dropdown">
+                    <tr v-if="editItem !== null && info[idField] == editItem[idField]" class="editItem">
+                        <td colspan="3">
+                            <div class="editItemContainer">
+                                <status-view :status="editStatus" class="my-2" :isToast="true" />
+                                <h1>Edit entity</h1>
+                                <editable-properties :data="editItem" :fields="editFields" 
+                                                     @updated="_UpdateItem"/>
+                                <div class="closeLink">
+                                    <a class="closeLink" href="#" @click="editItem = null">Close</a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </transition>
+            </template>
         </tbody>
     </table>
 
@@ -84,9 +102,9 @@ goog.require("wdk.components.Card");
                 type: Function,
                 default(info) {
                     if (this.isLocalId) {
-                        return "#" + app.LocalIdShortDisplay(info.id);
+                        return "#" + app.LocalIdShortDisplay(info[this.idField]);
                     }
-                    return "#" + info.id;
+                    return "#" + info[this.idField];
                 }
             },
             monospaceFont: {
@@ -99,11 +117,16 @@ goog.require("wdk.components.Card");
                 default: null
             },
             /** Item can be edited by clicking on it. onEdit event is emitted. Mutually exclusive
-             * with itemLink.
+             * with itemLink and editFields.
              */
             editable: {
                 type: Boolean,
                 default: false
+            },
+            /** Fields descriptors for EditableProperties component if inline editing allowed. */
+            editFields: {
+                type: Object,
+                default: null
             },
             newUrl: {
                 default: null
@@ -119,6 +142,13 @@ goog.require("wdk.components.Card");
                 type: Function,
                 default: null
             },
+            /** Should return request object with "url" and optional "params" object.
+             * Arguments: (entity, fieldName, value)
+             */
+            modifyReq: {
+                type: Function,
+                default: null
+            },
             /** Display as shortened LocalId by default. */
             isLocalId: {
                 default: false
@@ -127,6 +157,10 @@ goog.require("wdk.components.Card");
             sortFunc: {
                 type: Function,
                 default: null
+            },
+            idField: {
+                type: String,
+                default: "id"
             }
         },
 
@@ -138,7 +172,9 @@ goog.require("wdk.components.Card");
                     op: null
                 },
                 entities: null,
-                newName: null
+                newName: null,
+                editItem: null,
+                editStatus: null
             }
         },
 
@@ -224,6 +260,28 @@ goog.require("wdk.components.Card");
             _EditItem(info) {
                 if (this.editable) {
                     this.$emit("onEdit", info);
+                } else if (this.editFields !== null) {
+                    this.editItem = info;
+                }
+            },
+
+            _UpdateItem(field, value) {
+                if (this.editItem === null) {
+                    return;
+                }
+                this.editItem[field] = value;
+                this.$emit("onModify", this.editItem, field, value);
+                if (this.modifyReq !== null) {
+                    let req = this.modifyReq(this.editItem, field, value);
+                    wdk.PostRequest(req.url, req.params)
+                        .done(result => {
+                            this.editStatus = null;
+                            this._Fetch();
+                        })
+                        .fail(error => {
+                            console.error(error);
+                            this.editStatus = error;
+                        });
                 }
             }
         },

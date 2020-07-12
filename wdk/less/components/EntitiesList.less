@@ -34,4 +34,43 @@
     td.monospaceFont .item {
         font-family: var(--font-family-monospace);
     }
+
+    tr.editItem {
+        & > td {
+            border: solid 1px #dddddd;
+
+            h1 {
+                font-size: 0.9rem;
+                font-style: italic;
+                opacity: 0.8;
+                margin: 2px 5px 4px;
+            }
+
+            div.closeLink {
+                text-align: right;
+                margin-right: 10px;
+                font-size: 0.9rem;
+            }
+        }
+
+        &.dropdown-enter-active {
+            & > td {
+                div.editItemContainer {
+                    max-height: 100px;
+                    overflow: hidden;
+                    transition: max-height 0.2s ease-in;
+                }
+            }
+            transition: all 0.2s ease-in;
+        }
+
+        &.dropdown-enter {
+            & > td {
+                div.editItemContainer {
+                    max-height: 0;
+                    overflow: hidden;
+                }
+            }
+        }
+    }
 }

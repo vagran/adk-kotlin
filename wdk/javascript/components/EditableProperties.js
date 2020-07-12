@@ -13,7 +13,7 @@ goog.require("wdk.components.MessageBox");
  * {
  *      someField: {
  *          label: "Some field",
- *          type: "number", // "string", "check", "radio",
+ *          type: "number", // "integer", "float", "string", "check", "radio",
  *          disabled: true,
  *          order: 1
  *      },
@@ -21,41 +21,44 @@ goog.require("wdk.components.MessageBox");
  *          isLink: true
  *      }
  * }
+ * Events:
+ *  - updated(fieldName, newValue) - emitted when some property updated.
  */
 (function(app) {
 
     // language=HTML
     let tpl = `
-<div class="EditableProperties">
-    <table >
-        <tbody>
-        <tr v-for="field in sortedFields">
-            <td class="label">{{field.label}}:</td>
-            <td>
-                <template v-if="field.hasOwnProperty('disabled') && field.disabled">
-                    {{data[field.name]}}
-                </template>
-                <editable-field v-else-if="IsTextField(field)"
-                                :value="data[field.name]"
-                                :isLink="field.hasOwnProperty('isLink') && field.isLink"
-                                @updated="(value) => _OnUpdated(field, value)"/>
-                
-                <div v-else-if="field.type === 'check'" class="form-check">
-                    <input type="checkbox" class="form-check-input position-static"
-                           :checked="data[field.name]"
-                           @change="(e) => _OnUpdated(field, e.target.checked)"
-                           :disabled="field.hasOwnProperty('disabled') && field.disabled"/>
-                </div>
-                
-                <!-- radio not yet implemented -->
-                <div v-else style="color: #d00;">Unrecognized field type {{field.type}}</div>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-    <message-box ref="msgBox" />
-</div>
-`;
+        <div class="EditableProperties">
+            <table>
+                <tbody>
+                <tr v-for="field in sortedFields">
+                    <td class="label">{{field.label}}:</td>
+                    <td>
+                        <template v-if="field.hasOwnProperty('disabled') && field.disabled">
+                            {{data[field.name]}}
+                        </template>
+                        <editable-field v-else-if="IsTextField(field)"
+                                        :value="data[field.name]"
+                                        :isLink="field.hasOwnProperty('isLink') && field.isLink"
+                                        @updated="(value) => _OnUpdated(field, value)"/>
+
+                        <div v-else-if="field.type === 'check'" class="form-check">
+                            <input type="checkbox" class="form-check-input position-static"
+                                   :checked="data[field.name]"
+                                   @change="(e) => _OnUpdated(field, e.target.checked)"
+                                   :disabled="field.hasOwnProperty('disabled') && field.disabled"/>
+                        </div>
+
+                        <!-- radio not yet implemented -->
+                        <div v-else style="color: #dd0000;">Unrecognized field type {{field.type}}
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <message-box ref="msgBox"/>
+        </div>
+    `;
 
     Vue.component("editable-properties", {
         template: tpl,

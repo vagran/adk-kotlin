@@ -13,6 +13,25 @@ typealias MongoDocBuilderFunc = MongoDoc.() -> Unit
 /** BSON document builder with more convenient syntax. */
 class MongoDoc(builderFunc: MongoDocBuilderFunc): Document() {
 
+    class UpdateDocs(val filter: Document, val update: Document)
+
+    companion object {
+        /** Create update documents based on map which has fields to set new values for. ID field
+         * also should be present.
+         */
+        fun SetUpdate(data: Map<String, Any?>, idFieldName: String = "id"): UpdateDocs
+        {
+            val filter = MongoDoc("_id", data[idFieldName])
+            val update = Document()
+            for ((key, value) in data) {
+                if (key != idFieldName) {
+                    update.append(key, value)
+                }
+            }
+            return UpdateDocs(filter, Document("\$set", update))
+        }
+    }
+
     constructor(key: String, value: Any?):
         this({
             V(key, value)
