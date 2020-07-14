@@ -9,6 +9,7 @@ package io.github.vagran.adk.injector.test
 import io.github.vagran.adk.injector.Component
 import io.github.vagran.adk.injector.DI
 import io.github.vagran.adk.injector.Inject
+import io.github.vagran.adk.injector.Singleton
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -39,5 +40,35 @@ class CircularDependency {
             DI.CreateComponent(Comp::class)
         }.message!!
         assertTrue(msg.startsWith("Circular dependency detected"))
+    }
+}
+
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class FactoryCircularDependency {
+
+    @Singleton
+    class A {
+        @Inject
+        lateinit var bFactory: DI.Factory<B>
+    }
+
+    @Singleton
+    class B {
+        @Inject
+        lateinit var a: A
+    }
+
+    @Component
+    class Comp {
+        @Inject
+        lateinit var a: A
+    }
+
+    @Test
+    fun Run()
+    {
+        val comp = DI.CreateComponent<Comp>()
+        val b = comp.a.bFactory.Create()
+        assertTrue(b.a === comp.a)
     }
 }

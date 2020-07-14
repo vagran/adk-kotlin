@@ -616,8 +616,26 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
 
     private fun DetectCircularDeps(startNode: Node, stack: Deque<Node>)
     {
-        /* Check if the node is already in the stack. */
-        if (stack.contains(startNode)) {
+        /* Check if the node is already in the stack. Factory node breaks the link. */
+        val cycleFound = run {
+            val it = stack.descendingIterator()
+            var factoryFound = false
+            while (it.hasNext()) {
+                val node = it.next()
+                if (node === startNode) {
+                    if (factoryFound) {
+                        /* Cycle found but link is broken by factory. */
+                        return
+                    }
+                    return@run true
+                }
+                if (node.key.type == TypeKey.Type.FACTORY) {
+                    factoryFound = true
+                }
+            }
+            false
+        }
+        if (cycleFound) {
             val sb = StringBuilder()
             var node: Node
             do {
