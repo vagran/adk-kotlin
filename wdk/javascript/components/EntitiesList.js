@@ -30,7 +30,7 @@ goog.require("wdk.components.Card");
                         <slot name="prefixInfo" :info="info"/>
                     </td>
                     <td :class="{monospaceFont: monospaceFont}">
-                        <span v-if="itemLink === null" class="item" :class="{editable: editable}"
+                        <span v-if="itemLink === null" class="item" :class="{editable: editable || editFields !== null}"
                               @click="_EditItem(info)">{{itemDisplayName(info)}}</span>
                         <a v-else class="item" rel="noreferrer" :href="itemLink(info)">{{itemDisplayName(info)}}</a>
                         <span v-if="deleteReq !== null"
