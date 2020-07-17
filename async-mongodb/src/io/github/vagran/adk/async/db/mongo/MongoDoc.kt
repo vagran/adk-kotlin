@@ -7,6 +7,7 @@
 package io.github.vagran.adk.async.db.mongo
 
 import org.bson.Document
+import org.bson.types.ObjectId
 
 typealias MongoDocBuilderFunc = MongoDoc.() -> Unit
 
@@ -19,9 +20,11 @@ class MongoDoc(builderFunc: MongoDocBuilderFunc): Document() {
         /** Create update documents based on map which has fields to set new values for. ID field
          * also should be present.
          */
-        fun SetUpdate(data: Map<String, Any?>, idFieldName: String = "id"): UpdateDocs
+        fun SetUpdate(data: Map<String, Any?>, idFieldName: String = "id",
+                      idIsObjectId: Boolean = true): UpdateDocs
         {
-            val filter = MongoDoc("_id", data[idFieldName])
+            val id = data[idFieldName]
+            val filter = MongoDoc("_id", if (idIsObjectId) ObjectId(id as String) else id)
             val update = Document()
             for ((key, value) in data) {
                 if (key != idFieldName) {
