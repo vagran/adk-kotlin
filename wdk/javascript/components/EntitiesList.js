@@ -7,7 +7,7 @@ goog.require("wdk.components.Card");
 
     /* Events:
      * * fetched(entities)
-     * * onAdded(name)
+     * * onAdded(name|newItem)
      * * onDeleted(entity)
      * * onEdit(entity)
      * * onModify(entity, fieldName, value)
@@ -61,6 +61,13 @@ goog.require("wdk.components.Card");
     </table>
 
     <form v-if="newUrl !== null" class="my-2" @submit.prevent="_NewEntity()">
+        <div v-if="newItemData !== null" class="newItemContainer my-2">
+            <h1>Create new entity</h1>
+            <editable-properties :data="newItemData" :fields="editFields" @updated="_UpdateNewItem"/>
+            <div class="closeLink">
+                <a class="closeLink" href="#" @click="newItemData = null">Close</a>
+            </div>
+        </div>
         <div class="form-row">
             <div v-if="newNameRequired" class="col-auto">
                 <input type="text" class="form-control" v-model="newName" 
@@ -137,6 +144,11 @@ goog.require("wdk.components.Card");
             newNamePlaceholder: {
                 default: "New item name"
             },
+            /** New item template. This enables new item form. editFields are used if specified. */
+            newItem: {
+                type: Object,
+                default: null
+            },
             /** Should return request object with "url" and optional "params" object. */
             deleteReq: {
                 type: Function,
@@ -174,7 +186,8 @@ goog.require("wdk.components.Card");
                 entities: null,
                 newName: null,
                 editItem: null,
-                editStatus: null
+                editStatus: null,
+                newItemData: null
             }
         },
 
@@ -212,6 +225,26 @@ goog.require("wdk.components.Card");
             },
 
             _NewEntity() {
+                if (this.newItem !== null) {
+                    if (this.newItemData === null) {
+                        this.newItemData = Object.assign({}, this.newItem);
+                        return;
+                    }
+                    this.opStatus = "%>Processing...";
+                    wdk.PostRequest(this.newUrl, this.newItemData)
+                        .done(result => {
+                            this.status.op = null;
+                            this.$emit("onAdded", this.newItemData);
+                            this.newItemData = null;
+                            this._Fetch();
+                        })
+                        .fail(error => {
+                            console.error(error);
+                            this.status.op = error;
+                        });
+                    return;
+                }
+
                 let name = undefined;
                 if (this.newNameRequired) {
                     if (this.newName === null) {
@@ -283,6 +316,10 @@ goog.require("wdk.components.Card");
                             this.editStatus = error;
                         });
                 }
+            },
+
+            _UpdateNewItem(field, value) {
+                this.newItemData[field] = value;
             }
         },
 
