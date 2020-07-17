@@ -23,7 +23,7 @@ class MongoDoc(builderFunc: MongoDocBuilderFunc): Document() {
         fun SetUpdate(data: Map<String, Any?>, idFieldName: String = "id",
                       idIsObjectId: Boolean = true): UpdateDocs
         {
-            val id = data[idFieldName]
+            val id = data[idFieldName] ?: throw Error("ID field missing: $idFieldName")
             val _id = if (idIsObjectId && id !is ObjectId) {
                 ObjectId(id as String)
             } else {

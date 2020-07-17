@@ -10,7 +10,11 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlin.reflect.KCallable
 import kotlin.reflect.KParameter
+import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
+
+/** Used for string to enum conversion below. */
+private enum class DummyEnum
 
 /** Use it with data class instance copy() method.
  * @param params Map with parameters to override.
@@ -46,6 +50,11 @@ fun <T> MutateEntity(copyMethod: KCallable<T>, params: Map<String, Any?>): T
                                 return@convert
                             }
                         }
+                    } else if (value is String && paramCls.isSubclassOf(Enum::class)) {
+                        /* Cast to any enum class to succeed the cast. */
+                        @Suppress("UNCHECKED_CAST")
+                        _value = java.lang.Enum.valueOf(paramCls.java as Class<DummyEnum>, value)
+                        return@convert
                     }
                     throw Error(
                         "Parameter ${param.name} type mismatch: have $valCls, expected $paramCls")

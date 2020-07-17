@@ -56,6 +56,11 @@ class Deferred<T> private constructor(): Awaitable<T> {
             return defResult
         }
 
+        fun <T> WaitFunc(func: suspend () -> T): T
+        {
+            return ForFunc(func).WaitComplete().Get()
+        }
+
         /** Waiting for result. */
         private const val STATE_WAITING = 0
         /** Modifying subscribers list. */
