@@ -24,7 +24,12 @@ class MongoDoc(builderFunc: MongoDocBuilderFunc): Document() {
                       idIsObjectId: Boolean = true): UpdateDocs
         {
             val id = data[idFieldName]
-            val filter = MongoDoc("_id", if (idIsObjectId) ObjectId(id as String) else id)
+            val _id = if (idIsObjectId && id !is ObjectId) {
+                ObjectId(id as String)
+            } else {
+                id
+            }
+            val filter = MongoDoc("_id", _id)
             val update = Document()
             for ((key, value) in data) {
                 if (key != idFieldName) {
