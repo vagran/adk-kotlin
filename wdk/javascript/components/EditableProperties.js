@@ -13,12 +13,16 @@ goog.require("wdk.components.MessageBox");
  * {
  *      someField: {
  *          label: "Some field",
- *          type: "number", // "integer", "float", "string", "check", "radio",
+ *          type: "number", // "integer", "float", "string", "check", "radio", "option"
  *          disabled: true,
  *          order: 1
  *      },
  *      linkField: {
  *          isLink: true
+ *      },
+ *      optionField: {
+ *          type: "option",
+ *          optionValues: ["value1", "value2"]
  *      }
  * }
  * Events:
@@ -47,6 +51,14 @@ goog.require("wdk.components.MessageBox");
                                    :checked="data[field.name]"
                                    @change="(e) => _OnUpdated(field, e.target.checked)"
                                    :disabled="field.hasOwnProperty('disabled') && field.disabled"/>
+                        </div>
+                        <div v-else-if="field.type === 'option'" >
+                            <select class="form-control"
+                                    @change="(e) => _OnUpdated(field, e.target.value)"
+                                    :disabled="field.hasOwnProperty('disabled') && field.disabled">
+                                <option v-for="option in field.optionValues" 
+                                        :selected="data[field.name] === option">{{option}}</option>
+                            </select>
                         </div>
 
                         <!-- radio not yet implemented -->
