@@ -76,6 +76,8 @@ goog.provide("wdk.components.StatusView");
              *      expires: <optional expiration timeout override, seconds, zero for disabling>
              *   }
              *
+             * * Error instance
+             *
              * * jQuery XHR error.
              *
              * * jQuery XHR result with ADK domain server JSON error.
@@ -414,7 +416,14 @@ goog.provide("wdk.components.StatusView");
                     expires: ctx.expires !== 0 ? ctx.timestamp + ctx.expires * 1000 : 0
                 };
 
-                if ($.type(status) === "string") {
+                if (status instanceof Error) {
+                    result.level = "error";
+                    result.text = status.toString();
+                    if (result.stack !== undefined) {
+                        result.details = result.stack.toString();
+                    }
+
+                } else if ($.type(status) === "string") {
                     if (status.startsWith("I>")) {
                         result.level = "info";
                         result.text = status.substr(2);

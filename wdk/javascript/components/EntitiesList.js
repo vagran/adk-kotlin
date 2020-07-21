@@ -146,7 +146,7 @@ goog.require("wdk.components.Card");
             },
             /** New item template. This enables new item form. editFields are used if specified. */
             newItem: {
-                type: Object,
+                type: [Object, Function],
                 default: null
             },
             /** Should return request object with "url" and optional "params" object. */
@@ -227,7 +227,16 @@ goog.require("wdk.components.Card");
             _NewEntity() {
                 if (this.newItem !== null) {
                     if (this.newItemData === null) {
-                        this.newItemData = Object.assign({}, this.newItem);
+                        if (this.newItem instanceof Function) {
+                            try {
+                                this.newItemData = this.newItem();
+                            } catch (e) {
+                                this.status = e;
+                                return;
+                            }
+                        } else {
+                            this.newItemData = Object.assign({}, this.newItem);
+                        }
                         return;
                     }
                     this.opStatus = "%>Processing...";

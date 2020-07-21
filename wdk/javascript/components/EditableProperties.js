@@ -22,6 +22,8 @@ goog.require("wdk.components.MessageBox");
  *      },
  *      optionField: {
  *          type: "option",
+ *          // may be function as well, each element can be either string or object with "name" and
+ *          // "value" attributes.
  *          optionValues: ["value1", "value2"]
  *      }
  * }
@@ -56,8 +58,9 @@ goog.require("wdk.components.MessageBox");
                             <select class="form-control"
                                     @change="(e) => _OnUpdated(field, e.target.value)"
                                     :disabled="field.hasOwnProperty('disabled') && field.disabled">
-                                <option v-for="option in field.optionValues" 
-                                        :selected="data[field.name] === option">{{option}}</option>
+                                <option v-for="option in _GetOptionValues(field)" 
+                                        :value="option.value"
+                                        :selected="data[field.name] === option.value">{{option.name}}</option>
                             </select>
                         </div>
 
@@ -152,6 +155,25 @@ goog.require("wdk.components.MessageBox");
                     }
                 }
                 this.$emit("updated", field.name, value);
+            },
+
+            _GetOptionValues(field) {
+                let result = [];
+                let rawValues;
+                if (field.optionValues instanceof Function) {
+                    rawValues = field.optionValues();
+                } else {
+                    rawValues = field.optionValues;
+                }
+                for (let rawValue of rawValues) {
+                    if (rawValue instanceof Object) {
+                        result.push(rawValue);
+                    } else {
+                        let value = "" + rawValue;
+                        result.push({value: value, name: value});
+                    }
+                }
+                return result;
             }
         }
     });
