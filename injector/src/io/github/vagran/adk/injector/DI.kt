@@ -34,7 +34,16 @@ class DI {
         internal fun CreateSingleton(key: Any, factory: () -> Any): Any
         {
             synchronized(singletons) {
-                return singletons.computeIfAbsent(key) { factory() }
+                /* Factory can create other singletons when called. */
+                val obj = singletons[key]
+                if (obj != null) {
+                    return obj
+                }
+                val newObj = factory()
+                if (singletons.putIfAbsent(key, newObj) != null) {
+                    throw Error("Recursive singleton instantiation")
+                }
+                return newObj
             }
         }
 

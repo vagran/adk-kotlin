@@ -31,10 +31,11 @@ fun <T> MutateEntity(copyMethod: KCallable<T>, params: Map<String, Any?>): T
             val valCls = value::class
             val paramCls = param.type.jvmErasure
             if (valCls != paramCls) {
-                /* All numbers are represented as Double in JSON so convert them to other numeric
-                * type if necessary.
-                */
+
                 run convert@{
+                    /* All numbers are represented as Double in JSON so convert them to other
+                     * numeric type if necessary.
+                     */
                     if (value is Double) {
                         when (paramCls) {
                             Int::class -> {
