@@ -50,7 +50,7 @@ goog.require("wdk.components.Card");
                                 <editable-properties :data="editItem" :fields="editFields" 
                                                      @updated="_UpdateItem"/>
                                 <div class="closeLink">
-                                    <a class="closeLink" href="#" @click="editItem = null">Close</a>
+                                    <a class="closeLink" href="#" @click="_EditClose">Close</a>
                                 </div>
                             </div>
                         </td>
@@ -305,6 +305,11 @@ goog.require("wdk.components.Card");
                 } else if (this.editFields !== null) {
                     this.editItem = info;
                 }
+            },
+
+            _EditClose() {
+                this.editItem = null;
+                this.editStatus = null;
             },
 
             _UpdateItem(field, value) {
