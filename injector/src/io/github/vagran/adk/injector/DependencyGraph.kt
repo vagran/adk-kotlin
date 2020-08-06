@@ -726,7 +726,8 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
         /* Non-constructor function has receiver as first parameter which should not be processed
          * here.
          */
-        val hasReceiver = callable.parameters[0].kind != KParameter.Kind.VALUE
+        val hasReceiver =
+            callable.parameters.isNotEmpty() && callable.parameters[0].kind != KParameter.Kind.VALUE
         val size = if (hasReceiver) {
             callable.parameters.size - 1
         } else {
