@@ -6,6 +6,7 @@
 
 package io.github.vagran.adk.async.db.mongo
 
+import io.github.vagran.adk.LocalId
 import io.github.vagran.adk.async.db.mongo.codecs.*
 import io.github.vagran.adk.async.db.mongo.codecs.MapCodec
 import io.github.vagran.adk.omm.OmmParams
@@ -105,6 +106,7 @@ class MongoMapper(
     init {
         this.classCodecs[LocalDateTime::class] = { LocalDateTimeCodec() }
         this.classCodecs[BitSet::class] = { BitSetCodec() }
+        this.classCodecs[LocalId::class] = { LocalIdCodec() }
 
         this.subclassCodecs[Path::class] = { PathCodec() }
 

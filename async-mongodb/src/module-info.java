@@ -6,6 +6,7 @@ module io.github.vagran.adk.async.db.mongo {
     requires org.mongodb.bson;
     requires org.mongodb.driver.async.client;
     requires transitive io.github.vagran.adk.omm;
+    requires io.github.vagran.adk;
 
     exports io.github.vagran.adk.async.db.mongo;
 }

@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/adk/adk.iml" filepath="$PROJECT_DIR$/adk/adk.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/adk-kotlin.wdk.iml" filepath="$PROJECT_DIR$/.idea/modules/adk-kotlin.wdk.iml" />
       <module fileurl="file://$PROJECT_DIR$/adk/test/adk.test.iml" filepath="$PROJECT_DIR$/adk/test/adk.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/argparser/argparser.iml" filepath="$PROJECT_DIR$/argparser/argparser.iml" />
       <module fileurl="file://$PROJECT_DIR$/argparser/test/argparser.test.iml" filepath="$PROJECT_DIR$/argparser/test/argparser.test.iml" />
