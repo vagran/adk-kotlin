@@ -55,7 +55,7 @@ class ReferenceList<T: Any> private constructor(val obj: T,
         }
     }
 
-    fun IsReferenced(ensureNoRef: Boolean): Boolean
+    fun IsReferenced(): Boolean
     {
         return Lock { refs.isNotEmpty() }
     }
