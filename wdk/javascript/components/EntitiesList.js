@@ -39,6 +39,8 @@ goog.require("wdk.components.Card");
                         <span v-if="itemLink === null" class="item" :class="{editable: editable || editFields !== null}"
                               @click="_EditItem(info)">{{itemDisplayName(info)}}</span>
                         <a v-else class="item" rel="noreferrer" :href="itemLink(info)">{{itemDisplayName(info)}}</a>
+                        <span v-if="editable || editFields !== null" class="editButton"
+                              @click="_EditItem(info)"><i class="fas fa-edit"></i></span>
                         <span v-if="deleteReq !== null"
                                 class="deleteButton"
                                 @click="_DeleteEntity(info)"><i class="fas fa-times"></i></span>
@@ -130,7 +132,7 @@ goog.require("wdk.components.Card");
                 default: null
             },
             /** Item can be edited by clicking on it. onEdit event is emitted. Mutually exclusive
-             * with itemLink and editFields.
+             * with editFields. Separate edit button is shown when itemLink specified.
              */
             editable: {
                 type: Boolean,
