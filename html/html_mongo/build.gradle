@@ -5,7 +5,8 @@
  */
 
 dependencies {
+    implementation project(":html")
     implementation project(":omm")
-    implementation project(":json")
-    implementation project(":json:json_adk_codecs")
+    implementation project(":async-mongodb")
+    implementation "org.mongodb:mongodb-driver-async:3.8.2"
 }

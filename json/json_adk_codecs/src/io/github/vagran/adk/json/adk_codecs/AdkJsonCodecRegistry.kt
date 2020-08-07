@@ -10,8 +10,6 @@ import io.github.vagran.adk.LocalId
 import io.github.vagran.adk.json.JsonCodecRegistry
 import io.github.vagran.adk.json.adk_codecs.codecs.LocalIdJsonCodec
 
-object adkJsonCodecRegistry: JsonCodecRegistry() {
-    init {
-        classCodecs[LocalId::class] = { LocalIdJsonCodec() }
-    }
+val adkJsonCodecRegistry = JsonCodecRegistry().apply {
+    classCodecs[LocalId::class] = { LocalIdJsonCodec() }
 }

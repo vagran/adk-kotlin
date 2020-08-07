@@ -5,7 +5,7 @@
  */
 
 dependencies {
+    implementation project(":html")
     implementation project(":omm")
     implementation project(":json")
-    implementation project(":json:json_adk_codecs")
 }
