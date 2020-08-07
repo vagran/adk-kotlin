@@ -101,6 +101,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
     var requestValidationHook: HttpRequestHook? = null
     var log: Logger? = null
     var accessLog: Logger? = null
+    var authLog: Logger? = null
 
     enum class UnitResultMode {
         /** Empty body with HTTP 204 "No Content" result code. */
@@ -500,8 +501,9 @@ class HttpDomainServer(private val httpServer: HttpServer,
             } else {
                 code = defaultErrorCode
             }
-            log?.Error(error,
-                      "Request processing error ${request.requestMethod} ${request.requestURI}")
+            val logger = if (error is HttpAuthError) authLog else log
+            logger?.Error(error,
+                          "Request processing error ${request.requestMethod} ${request.requestURI}")
         } else {
             code = 200
         }

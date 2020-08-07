@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/adk/adk.iml" filepath="$PROJECT_DIR$/adk/adk.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/adk-kotlin.wdk.iml" filepath="$PROJECT_DIR$/.idea/modules/adk-kotlin.wdk.iml" />
       <module fileurl="file://$PROJECT_DIR$/adk/test/adk.test.iml" filepath="$PROJECT_DIR$/adk/test/adk.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/argparser/argparser.iml" filepath="$PROJECT_DIR$/argparser/argparser.iml" />
       <module fileurl="file://$PROJECT_DIR$/argparser/test/argparser.test.iml" filepath="$PROJECT_DIR$/argparser/test/argparser.test.iml" />
@@ -20,6 +19,10 @@
       <module fileurl="file://$PROJECT_DIR$/domain/test/domain.test.iml" filepath="$PROJECT_DIR$/domain/test/domain.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/gui-utils/gui-utils.iml" filepath="$PROJECT_DIR$/gui-utils/gui-utils.iml" />
       <module fileurl="file://$PROJECT_DIR$/gui-utils/test/gui-utils.test.iml" filepath="$PROJECT_DIR$/gui-utils/test/gui-utils.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/html/html.iml" filepath="$PROJECT_DIR$/html/html.iml" />
+      <module fileurl="file://$PROJECT_DIR$/html/json/html.json.iml" filepath="$PROJECT_DIR$/html/json/html.json.iml" />
+      <module fileurl="file://$PROJECT_DIR$/html/mongo/html.mongo.iml" filepath="$PROJECT_DIR$/html/mongo/html.mongo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/html/test/html.test.iml" filepath="$PROJECT_DIR$/html/test/html.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/injector/injector.iml" filepath="$PROJECT_DIR$/injector/injector.iml" />
       <module fileurl="file://$PROJECT_DIR$/injector/test/injector.test.iml" filepath="$PROJECT_DIR$/injector/test/injector.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/json/json.iml" filepath="$PROJECT_DIR$/json/json.iml" />
@@ -32,7 +35,7 @@
       <module fileurl="file://$PROJECT_DIR$/omm/test/omm.test.iml" filepath="$PROJECT_DIR$/omm/test/omm.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/symcalc/symcalc.iml" filepath="$PROJECT_DIR$/symcalc/symcalc.iml" />
       <module fileurl="file://$PROJECT_DIR$/symcalc/test/symcalc.test.iml" filepath="$PROJECT_DIR$/symcalc/test/symcalc.test.iml" />
-      <module fileurl="file://$PROJECT_DIR$/wdk/wdk.iml" filepath="$PROJECT_DIR$/wdk/wdk.iml" group="wdk" />
+      <module fileurl="file://$PROJECT_DIR$/wdk/wdk.iml" filepath="$PROJECT_DIR$/wdk/wdk.iml" />
     </modules>
   </component>
 </project>
