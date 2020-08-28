@@ -1,0 +1,180 @@
+/*
+ * This file is part of ADK project.
+ * Copyright (c) 2020 Artyom Lebedev <artyom.lebedev@gmail.com>. All rights reserved.
+ * See LICENSE file for full license details.
+ */
+
+package io.github.vagran.adk.math
+
+import kotlin.math.sqrt
+
+/** Arbitrary sized vector. */
+class Vector(val v: DoubleArray) {
+
+    companion object {
+        fun Zero(size: Int): Vector
+        {
+            return Vector(DoubleArray(size))
+        }
+
+        fun One(size: Int, axisIdx: Int): Vector
+        {
+            if (axisIdx >= size) {
+                throw IllegalArgumentException("Axis index out of range")
+            }
+            return Vector(DoubleArray(size) { idx -> if (idx == axisIdx) 1.0 else 0.0 })
+        }
+
+        fun Coords(vararg coords: Double): Vector
+        {
+            return Vector(coords)
+        }
+    }
+
+    val size = v.size
+
+    operator fun get(idx: Int): Double
+    {
+        return v[idx]
+    }
+
+    val magnitudeSquared: Double get()
+    {
+        var sum = 0.0
+        for (d in v) {
+            sum += d * d
+        }
+        return sum
+    }
+
+    val magnitude = sqrt(magnitudeSquared)
+
+    override fun equals(other: Any?): Boolean
+    {
+        other as Vector
+        for (i in v.indices) {
+            if (v[i] != other[i]) {
+                return false
+            }
+        }
+        return true
+    }
+
+    operator fun plus(other: Vector): Vector
+    {
+        return Zip(other) { d1, d2 -> d1 + d2 }
+    }
+
+    operator fun plusAssign(other: Vector)
+    {
+        ZipInplace(other) { d1, d2 -> d1 + d2 }
+    }
+
+    operator fun minus(other: Vector): Vector
+    {
+        return Zip(other) { d1, d2 -> d1 - d2 }
+    }
+
+    operator fun minusAssign(other: Vector)
+    {
+        ZipInplace(other) { d1, d2 -> d1 - d2 }
+    }
+
+    operator fun times(other: Vector): Vector
+    {
+        return Zip(other) { d1, d2 -> d1 * d2 }
+    }
+
+    operator fun timesAssign(other: Vector)
+    {
+        ZipInplace(other) { d1, d2 -> d1 * d2 }
+    }
+
+    operator fun times(a: Double): Vector
+    {
+        return Map { d -> d * a }
+    }
+
+    operator fun timesAssign(a: Double)
+    {
+        MapInplace { d -> d * a }
+    }
+
+    infix fun dot(other: Vector): Double
+    {
+        EnsureSameSize(other)
+        var sum = 0.0
+        val v1 = v
+        val v2 = other.v
+        for (idx in 0 until size) {
+            sum += v1[idx] * v2[idx]
+        }
+        return sum
+    }
+
+    fun DistanceSquared(other: Vector): Double
+    {
+        EnsureSameSize(other)
+        var sum = 0.0
+        val v1 = v
+        val v2 = other.v
+        for (idx in 0 until size) {
+            val d = v1[idx] - v2[idx]
+            sum += d * d
+        }
+        return sum
+    }
+
+    fun Distance(other: Vector): Double
+    {
+        return sqrt(DistanceSquared(other))
+    }
+
+    fun Clone(): Vector
+    {
+        return Vector(v.copyOf())
+    }
+
+    // /////////////////////////////////////////////////////////////////////////////////////////////
+
+    private inline fun Zip(other: Vector, func: (Double, Double) -> Double): Vector
+    {
+        EnsureSameSize(other)
+        val v1 = v
+        val v2 = other.v
+        return Vector(DoubleArray(size) { idx -> func(v1[idx], v2[idx]) })
+    }
+
+    private inline fun ZipInplace(other: Vector, func: (Double, Double) -> Double): Vector
+    {
+        EnsureSameSize(other)
+        val v1 = v
+        val v2 = other.v
+        for (idx in 0 until size) {
+            v1[idx] = func(v1[idx], v2[idx])
+        }
+        return this
+    }
+
+    private inline fun Map(func: (Double) -> Double): Vector
+    {
+        val v1 = v
+        return Vector(DoubleArray(size) { idx -> func(v1[idx]) })
+    }
+
+    private inline fun MapInplace(func: (Double) -> Double): Vector
+    {
+        val v1 = v
+        for (idx in 0 until size) {
+            v1[idx] = func(v1[idx])
+        }
+        return this
+    }
+
+    private fun EnsureSameSize(other: Vector)
+    {
+        if (size != other.size) {
+            throw IllegalArgumentException("The specified vector has different size: ${other.size}")
+        }
+    }
+}

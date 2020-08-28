@@ -28,6 +28,7 @@
       <module fileurl="file://$PROJECT_DIR$/json/json.iml" filepath="$PROJECT_DIR$/json/json.iml" />
       <module fileurl="file://$PROJECT_DIR$/json/json_adk_codecs/json.json_adk_codecs.iml" filepath="$PROJECT_DIR$/json/json_adk_codecs/json.json_adk_codecs.iml" />
       <module fileurl="file://$PROJECT_DIR$/json/test/json.test.iml" filepath="$PROJECT_DIR$/json/test/json.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/kdtree/kdtree.iml" filepath="$PROJECT_DIR$/kdtree/kdtree.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/log.iml" filepath="$PROJECT_DIR$/log/log.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/slf4j/log.slf4j.iml" filepath="$PROJECT_DIR$/log/slf4j/log.slf4j.iml" />
       <module fileurl="file://$PROJECT_DIR$/log/test/log.test.iml" filepath="$PROJECT_DIR$/log/test/log.test.iml" />
