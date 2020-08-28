@@ -120,9 +120,24 @@ class KdTree<TData>(private val vectorSize: Int,
         return result
     }
 
+    /** Delete all content of the tree.  */
+    fun Clear()
+    {
+        root = null
+        entries.clear()
+        nextEntryId = 1
+    }
+
+    /** Set user data for the specified entry.  */
+    fun SetData(entryId: Long, data: TData)
+    {
+        val e = entries[entryId] ?: throw IllegalArgumentException("Specified node not found")
+        e.data = data
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private class Entry<TData>(val id: Long,
-                               val data: TData,
+                               var data: TData,
                                val coord: Vector) {
 
         lateinit var node: Node<TData>
@@ -416,12 +431,12 @@ class KdTree<TData>(private val vectorSize: Int,
      * @return True if results limit reached.
      */
     private fun FindEntriesInRadius(node: Node<TData>,
-                                    pt: Vector, radius: Double,
+                                    pt: Vector,
+                                    radius: Double,
                                     result: MutableList<Result<TData>>,
                                     maxResultCount: Int): Boolean
     {
-        node.entries?.also {
-            entries ->
+        node.entries?.also { entries ->
             for (e in entries) {
                 if (e.IsInRadius(pt, radius)) {
                     result.add(e.ToResult())

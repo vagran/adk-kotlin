@@ -6,6 +6,11 @@
 
 package io.github.vagran.adk
 
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
+
 /** Random number generator based on CMWC4096 algorithm.  */
 class Random(seed: Int = System.nanoTime().toInt()) {
 
@@ -48,7 +53,7 @@ class Random(seed: Int = System.nanoTime().toInt()) {
         if (i == Integer.MIN_VALUE) {
             i++
         }
-        return Math.abs(i).toFloat() / Integer.MAX_VALUE
+        return abs(i).toFloat() / Integer.MAX_VALUE
     }
 
     fun GetDouble(): Double
@@ -57,7 +62,7 @@ class Random(seed: Int = System.nanoTime().toInt()) {
         if (l == java.lang.Long.MIN_VALUE) {
             l++
         }
-        return Math.abs(l).toDouble() / java.lang.Long.MAX_VALUE
+        return abs(l).toDouble() / java.lang.Long.MAX_VALUE
     }
 
     /** Get random number from Gaussian distribution. Median is zero.
@@ -68,7 +73,7 @@ class Random(seed: Int = System.nanoTime().toInt()) {
     {
         if (gaussValid) {
             gaussValid = false
-            return Math.sqrt(variance * gauss1) * Math.sin(gauss2)
+            return sqrt(variance * gauss1) * sin(gauss2)
         }
         gaussValid = true
         gauss1 = GetDouble()
@@ -77,7 +82,7 @@ class Random(seed: Int = System.nanoTime().toInt()) {
         }
         gauss1 = -2.0 * Math.log(gauss1)
         gauss2 = GetDouble() * Math.PI * 2.0
-        return Math.sqrt(variance * gauss1) * Math.cos(gauss2)
+        return sqrt(variance * gauss1) * cos(gauss2)
     }
 
     /** Get random number from Gaussian distribution.

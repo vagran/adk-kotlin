@@ -33,11 +33,6 @@ class Vector(val v: DoubleArray) {
 
     val size = v.size
 
-    operator fun get(idx: Int): Double
-    {
-        return v[idx]
-    }
-
     val magnitudeSquared: Double get()
     {
         var sum = 0.0
@@ -48,6 +43,16 @@ class Vector(val v: DoubleArray) {
     }
 
     val magnitude = sqrt(magnitudeSquared)
+
+    operator fun get(idx: Int): Double
+    {
+        return v[idx]
+    }
+
+    operator fun set(idx: Int, value: Double)
+    {
+        v[idx] = value
+    }
 
     override fun equals(other: Any?): Boolean
     {
@@ -128,6 +133,12 @@ class Vector(val v: DoubleArray) {
     fun Distance(other: Vector): Double
     {
         return sqrt(DistanceSquared(other))
+    }
+
+    fun Set(other: Vector)
+    {
+        EnsureSameSize(other)
+        System.arraycopy(other.v, 0, v, 0, v.size)
     }
 
     fun Clone(): Vector
