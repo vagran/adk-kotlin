@@ -6,6 +6,7 @@
 
 package io.github.vagran.adk.math
 
+import java.lang.StringBuilder
 import kotlin.math.sqrt
 
 /** Arbitrary sized vector. */
@@ -144,6 +145,25 @@ class Vector(val v: DoubleArray) {
     fun Clone(): Vector
     {
         return Vector(v.copyOf())
+    }
+
+    fun ToMatrix(): Matrix
+    {
+        return Matrix(this)
+    }
+
+    override fun toString(): String
+    {
+        val sb = StringBuilder()
+        sb.append("[")
+        for ((idx, d) in v.withIndex()) {
+            sb.append(d)
+            if (idx != v.size - 1) {
+                sb.append(", ")
+            }
+        }
+        sb.append("]")
+        return sb.toString()
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
