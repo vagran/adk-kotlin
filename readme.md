@@ -5,7 +5,7 @@ In an application project create file `build.gradle`:
 
 ```groovy
 buildscript {
-    ext.kotlin_version = "1.3.61"
+    ext.kotlin_version = "1.3.72"
 
     repositories {
         mavenCentral()
@@ -58,6 +58,10 @@ subprojects {
                 srcDirs = ["src"]
                 compileClasspath = main.compileClasspath
             }
+            resources {
+                srcDirs = ["src"]
+                exclude "**/*.kt", "**/*.java"
+            }
         }
     }
 }
@@ -74,6 +78,7 @@ gradle.ext.ADK_ROOT = ADK_ROOT
 
 void AdkModules(List<String> modules)
 {
+    gradle.ext.adkModules = modules
     for (name in modules) {
         include(":$name")
         def relPath = name.replaceAll(":", "/")
@@ -82,7 +87,42 @@ void AdkModules(List<String> modules)
 }
 
 AdkModules(["omm", "json", "adk"])
+
 include ":main"
+```
+
+`main/build.gradle`:
+```groovy
+apply plugin: "application"
+
+mainClassName = "io.github.vagran.some_project.MainKt"
+
+ext {
+    javaHome = System.getProperty('java.home')
+}
+
+dependencies {
+    implementation "org.mongodb:mongodb-driver-async:3.8.2"
+
+    for (module in gradle.adkModules) {
+        implementation project(":$module")
+    }
+}
+
+sourceSets.main.resources {
+    srcDirs = ["src"]
+    exclude "**/*.kt"
+    exclude "**/*.java"
+}
+
+jar {
+    manifest {
+        attributes "Main-Class": mainClassName
+    }
+    duplicatesStrategy = "exclude"
+
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+}
 ```
 
 `ADK_ROOT` can be specified via environment variable or in `gradle.properties`.
