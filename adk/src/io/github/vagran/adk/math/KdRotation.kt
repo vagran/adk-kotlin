@@ -9,8 +9,8 @@ package io.github.vagran.adk.math
 import kotlin.math.cos
 import kotlin.math.sqrt
 
-/** Generate rotation matrix in K-dimensional space in the plane specified by two orthonormal
- * vectors u and v. Basis vectors orthonormality should be ensured by caller.
+/** Generate rotation matrix in K-dimensional space in the (hyper-)plane specified by two
+ * orthonormal vectors u and v. Basis vectors orthonormality should be ensured by caller.
   */
 fun KdRotation(u: Vector, v: Vector, angle: Double): Matrix
 {

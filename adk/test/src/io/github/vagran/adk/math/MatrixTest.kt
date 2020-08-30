@@ -4,11 +4,9 @@
  * See LICENSE file for full license details.
  */
 
-package io.github.vagran.adk
+package io.github.vagran.adk.math
 
-import io.github.vagran.adk.math.KdRotation
-import io.github.vagran.adk.math.Matrix
-import io.github.vagran.adk.math.Vector
+import io.github.vagran.adk.Random
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -49,5 +47,26 @@ class MatrixTest {
         assertEquals(a, a2, 0.00001)
 
         assertEquals(x2.magnitude, y2.magnitude, 0.00001)
+    }
+
+    @Test
+    fun OrthonormalizeBasisTest()
+    {
+        val k = 10
+        val rnd = Random()
+        val b1 = Array(k) {
+            Vector(DoubleArray(k) {
+                rnd.GetDouble()
+            })
+        }
+        val b2 = KdOrhtonormalizeBasis(b1)
+        for (i in 0 until k) {
+            for (j in 0 until k) {
+                if (i == j) {
+                    continue
+                }
+                assertEquals(0.0, b2[i] dot b2[j], 0.00001)
+            }
+        }
     }
 }

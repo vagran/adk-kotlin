@@ -33,7 +33,7 @@ class Vector(val v: DoubleArray) {
         }
     }
 
-    val size = v.size
+    val size get() = v.size
 
     val magnitudeSquared: Double get()
     {
@@ -44,7 +44,7 @@ class Vector(val v: DoubleArray) {
         return sum
     }
 
-    val magnitude = sqrt(magnitudeSquared)
+    val magnitude get() = sqrt(magnitudeSquared)
 
     operator fun get(idx: Int): Double
     {
@@ -135,6 +135,18 @@ class Vector(val v: DoubleArray) {
     fun Distance(other: Vector): Double
     {
         return sqrt(DistanceSquared(other))
+    }
+
+    fun Normalized(): Vector
+    {
+        val s = 1.0 / magnitude
+        return Map { d -> d * s}
+    }
+
+    fun Normalize()
+    {
+        val s = 1.0 / magnitude
+        MapInplace { d -> d * s}
     }
 
     fun Set(other: Vector)
