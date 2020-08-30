@@ -119,6 +119,11 @@ class Matrix(val rows: Int, val cols: Int, val m: DoubleArray) {
         return Matrix(rows, other.cols, mr)
     }
 
+    operator fun times(v: Vector): Vector
+    {
+        return (this * v.ToMatrix()).ToVector()
+    }
+
     fun T(): Matrix
     {
         val tm = DoubleArray(rows * cols) {

@@ -7,6 +7,7 @@
 package io.github.vagran.adk.math
 
 import java.lang.StringBuilder
+import kotlin.math.acos
 import kotlin.math.sqrt
 
 /** Arbitrary sized vector. */
@@ -150,6 +151,11 @@ class Vector(val v: DoubleArray) {
     fun ToMatrix(): Matrix
     {
         return Matrix(this)
+    }
+
+    fun Angle(other: Vector): Double
+    {
+        return acos((this dot other) / (magnitude * other.magnitude))
     }
 
     override fun toString(): String
