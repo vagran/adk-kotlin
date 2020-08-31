@@ -65,6 +65,16 @@ class Random(seed: Int = System.nanoTime().toInt()) {
         return abs(l).toDouble() / java.lang.Long.MAX_VALUE
     }
 
+    fun GetFloat(min: Float, max: Float): Float
+    {
+        return min + (max - min) * GetFloat()
+    }
+
+    fun GetDouble(min: Double, max: Double): Double
+    {
+        return min + (max - min) * GetDouble()
+    }
+
     /** Get random number from Gaussian distribution. Median is zero.
      *
      * @param variance Desired variance value of the distribution.

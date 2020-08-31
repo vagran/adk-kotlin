@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
-fun CheckEquals(expected: Vector, actual: Vector, delta: Double = 0.001)
+const val TOLERANCE = 0.00001
+
+fun CheckEquals(expected: Vector, actual: Vector, delta: Double = TOLERANCE)
 {
     assertEquals(expected.size, actual.size)
     for (i in 0 until expected.size) {
@@ -44,9 +46,9 @@ class MatrixTest {
         val y2 = R * x2
         val a2 = x1.Angle(y1)
 
-        assertEquals(a, a2, 0.00001)
+        assertEquals(a, a2, TOLERANCE)
 
-        assertEquals(x2.magnitude, y2.magnitude, 0.00001)
+        assertEquals(x2.magnitude, y2.magnitude, TOLERANCE)
     }
 
     @Test
@@ -61,11 +63,12 @@ class MatrixTest {
         }
         val b2 = KdOrhtonormalizeBasis(b1)
         for (i in 0 until k) {
+            assertEquals(1.0, b2[i].magnitude, TOLERANCE)
             for (j in 0 until k) {
                 if (i == j) {
                     continue
                 }
-                assertEquals(0.0, b2[i] dot b2[j], 0.00001)
+                assertEquals(0.0, b2[i] dot b2[j], TOLERANCE)
             }
         }
     }

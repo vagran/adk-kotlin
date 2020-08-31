@@ -18,13 +18,13 @@ fun KdOrhtonormalizeBasis(v: Array<Vector>): Array<Vector>
     }
     val result = Array(k) { Vector.Zero(k) }
     val uPrev = Vector.Zero(k)
-    for (iVtx in 0 until k) {
-        uPrev.Set(v[iVtx])
-        for (i in 0 until iVtx) {
+    for (iVtr in v.indices) {
+        uPrev.Set(v[iVtr])
+        for (i in 0 until iVtr) {
             uPrev -= result[i] * (result[i] dot uPrev)
         }
         uPrev.Normalize()
-        result[iVtx].Set(uPrev)
+        result[iVtr].Set(uPrev)
     }
     return result
 }
