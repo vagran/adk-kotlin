@@ -4,7 +4,7 @@
  * See LICENSE file for full license details.
  */
 
-import io.github.vagran.adk.async.Lock
+import io.github.vagran.adk.async.AsyncLock
 import io.github.vagran.adk.async.ReadWriteLock
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -12,12 +12,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-private class LockTest {
+private class AsyncLockTest {
 
     @Test
     fun LockTest()
     {
-        val lock = Lock()
+        val lock = AsyncLock()
         assertEquals(42, lock.Synchronized {42}.Get())
         assertThrows(Exception::class.java) {
             lock.Synchronized<Int> { throw Error("test") }.Get()

@@ -8,6 +8,7 @@ package io.github.vagran.adk
 
 import java.io.PrintWriter
 import java.io.StringWriter
+import kotlin.reflect.KClass
 
 fun Throwable.GetStackTrace(): String
 {
@@ -38,6 +39,16 @@ fun String.SplitByWhitespace(): List<String>
         return (result ?: ArrayList(1)).also {  it.add(substring(lastStart)) }
     }
     return result ?: emptyList()
+}
+
+/** Used for string to enum conversion below. */
+private enum class DummyEnum
+
+@Suppress("UNCHECKED_CAST")
+fun <T: Any> EnumFromString(enumCls: KClass<T>, value: String): T
+{
+    /* Cast to any enum class to succeed the cast. */
+    return java.lang.Enum.valueOf(enumCls.java as Class<DummyEnum>, value) as T
 }
 
 /** Separate function to make it easily removable by ProGuard. */

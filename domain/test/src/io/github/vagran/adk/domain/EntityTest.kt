@@ -9,6 +9,7 @@ package io.github.vagran.adk.domain
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import kotlin.reflect.KProperty
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class EntityTest {

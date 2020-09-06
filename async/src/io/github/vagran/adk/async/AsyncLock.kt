@@ -9,7 +9,7 @@ package io.github.vagran.adk.async
 import java.util.*
 
 /** Asynchronous lock. */
-class Lock {
+class AsyncLock {
 
     fun Acquire(): Deferred<Unit>
     {
