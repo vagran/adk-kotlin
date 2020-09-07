@@ -16,7 +16,7 @@ import org.junit.jupiter.api.assertThrows
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ManagedStateTest {
 
-    class A(id: String, loadFrom: Map<String, Any?>? = null) {
+    class A(id: String = "someId", loadFrom: Map<String, Any?>? = null) {
         val state = ManagedState(loadFrom)
 
         enum class Type {
@@ -77,7 +77,7 @@ private class ManagedStateTest {
     @Test
     fun LoadEnumStringTest()
     {
-        val a = A("", mapOf("type" to "T2"))
+        val a = A(loadFrom = mapOf("type" to "T2"))
         assertEquals(A.Type.T2, a.type)
     }
 
@@ -91,21 +91,21 @@ private class ManagedStateTest {
     @Test
     fun LoadIntFromDoubleTest()
     {
-        val a = A("", mapOf("i" to 41.0))
+        val a = A(loadFrom = mapOf("i" to 41.0))
         assertEquals(41, a.i)
     }
 
     @Test
     fun LoadDoubleFromIntTest()
     {
-        val a = A("", mapOf("d" to 41))
+        val a = A(loadFrom = mapOf("d" to 41))
         assertEquals(41.0, a.d)
     }
 
     @Test
     fun LoadBadTypeTest()
     {
-        val e = assertThrows<Error> { A("", mapOf("i" to "string")) }
+        val e = assertThrows<Error> { A(loadFrom = mapOf("i" to "string")) }
         assertEquals("Wrong type returned for property 'i': kotlin.String is not subclass of kotlin.Int",
                      e.message)
     }
@@ -135,4 +135,22 @@ private class ManagedStateTest {
         val e = assertThrows<Error> { C(mapOf("s" to null)) }
         assertEquals("Null value loaded for non-nullable property 's'", e.message)
     }
+
+    @Test
+    fun ModifyOutsideTransaction()
+    {
+        val a = A()
+        val e = assertThrows<IllegalStateException> { a.name = "someName" }
+        assertEquals("Attempt to modify property outside of transaction", e.message)
+    }
+
+    @Test
+    fun ChangeImmutableProperty()
+    {
+        val a = A()
+        val e = assertThrows<IllegalStateException> { a.state.Mutate(mapOf("s" to "someString")) }
+        assertEquals("Attempting to change immutable property: 's'", e.message)
+    }
+
+    //XXX get changed value in transaction
 }

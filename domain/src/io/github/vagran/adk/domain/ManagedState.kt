@@ -7,8 +7,11 @@
 package io.github.vagran.adk.domain
 
 import io.github.vagran.adk.EnumFromString
+import java.util.*
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.collections.HashMap
+import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
@@ -29,10 +32,15 @@ import kotlin.reflect.jvm.jvmErasure
  * itself.
  */
 class ManagedState(private var loadFrom: Map<String, Any?>? = null,
-                   val lock: ReadWriteLock? = ReentrantReadWriteLock()) {
+                   val lock: ReadWriteLock? = ReentrantReadWriteLock(),
+                   private val commitHandler: ((state: Map<String, Any?>) -> Unit)? = null,
+                   private val asyncCommitHandler: (suspend (state: Map<String, Any?>) -> Unit)? = null) {
 
     fun interface ValueValidator<T> {
-        /** Throw exception if validation failed. */
+        /** Throw exception if validation failed.
+         * During state construction initial validation is invoked with the same value for previous
+         * and new value arguments.
+         */
         fun Validate(prevValue: T, newValue: T)
     }
 
@@ -47,8 +55,9 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         operator fun provideDelegate(thisRef: Any,
                                      prop: KProperty<*>): IDelegate<T>
         {
-
-            return DelegateImpl(isId, isParam, GetDefaultValue(prop, defValue),
+            val value = GetDefaultValue(prop, defValue)
+            validator?.Validate(value, value)
+            return DelegateImpl(prop, isId, isParam, value,
                                 validator, infoLevel, infoGroup).also {
                 values[prop.name] = it
             }
@@ -124,13 +133,66 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
 
     fun Mutate(params: Map<String, Any?>)
     {
-        //XXX
+        val t = OpenTransaction()
+        var commit = false
+        try {
+            t.Mutate(params)
+            commit = true
+        } finally {
+            CloseTransaction(commit)
+        }
+    }
+
+    suspend fun MutateAsync(params: Map<String, Any?>)
+    {
+        val t = OpenTransaction()
+        var commit = false
+        try {
+            t.Mutate(params)
+            commit = true
+        } finally {
+            CloseTransactionAsync(commit)
+        }
     }
 
     /** Mutate in one transaction. Change properties as needed in the block. */
     fun <T> Mutate(block: () -> T): T
     {
-        return block()
+        OpenTransaction()
+        var commit = false
+        try {
+            val ret = block()
+            commit = true
+            return ret
+        } finally {
+            CloseTransaction(commit)
+        }
+    }
+
+    suspend fun <T> MutateAsync(block: () -> T): T
+    {
+        OpenTransaction()
+        var commit = false
+        try {
+            val ret = block()
+            commit = true
+            return ret
+        } finally {
+            CloseTransactionAsync(commit)
+        }
+    }
+
+    suspend fun <T> MutateAsync(block: suspend () -> T): T
+    {
+        OpenTransaction()
+        var commit = false
+        try {
+            val ret = block()
+            commit = true
+            return ret
+        } finally {
+            CloseTransactionAsync(commit)
+        }
     }
 
     fun ViewMap(): Map<String, Any?>
@@ -146,26 +208,77 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private var numLoaded = 0
-    private val values = HashMap<String, DelegateImpl<*>>()
+    private val values = TreeMap<String, DelegateImpl<*>>()
+    private val transaction = ThreadLocal<Transaction?>()
 
     private inner class DelegateImpl<T>(
-        private val isId: Boolean,
-        private val isParam: Boolean,
+        prop: KProperty<*>,
+        val isId: Boolean,
+        val isParam: Boolean,
         private var value: T,
         private val validator: ValueValidator<T>?,
-        private val infoLevel: Int,
-        private val infoGroup: Any?): IDelegate<T> {
+        val infoLevel: Int,
+        val infoGroup: Any?): IDelegate<T> {
 
+        val name = prop.name
+        val isNullable = prop.returnType.isMarkedNullable
+        val isMutable = !isId && prop is KMutableProperty
+
+        @Suppress("UNCHECKED_CAST")
         override operator fun getValue(thisRef: Any, prop: KProperty<*>): T
         {
-            //XXX transactions
+            val t = transaction.get()
+            if (t != null && name in t.newValues) {
+                return t.newValues[name] as T
+            }
             return value
         }
 
         override operator fun setValue(thisRef: Any, prop: KProperty<*>, value: T)
         {
+            val t = transaction.get() ?: throw IllegalStateException(
+                "Attempt to modify property outside of transaction")
+            t.Mutate(name, value)
+        }
+    }
+
+    private inner class Transaction: AutoCloseable {
+        val newValues = TreeMap<String, Any?>()
+        var nestCount = 1
+        /** Commit handler invocation is in progress. */
+        var isCommitting = false
+
+        override fun close()
+        {
             //XXX
-            TODO()
+        }
+
+        fun Mutate(params: Map<String, Any?>)
+        {
+            for ((name, value) in params) {
+                Mutate(name, value)
+            }
+        }
+
+        fun Mutate(name: String, value: Any?)
+        {
+            if (isCommitting) {
+                throw IllegalStateException("Transaction is being committed now")
+            }
+            val d = values[name] ?: throw IllegalArgumentException("No such property: '$name'")
+            if (!d.isMutable) {
+                throw IllegalStateException("Attempting to change immutable property: '$name'")
+            }
+            if (value == null && !d.isNullable) {
+                throw IllegalArgumentException("Null value assigned to non-nullable property '$name'")
+            }
+            newValues[name] = value
+        }
+    }
+
+    init {
+        if (commitHandler != null && asyncCommitHandler != null) {
+            throw IllegalArgumentException("Only one commit handler should be specified")
         }
     }
 
@@ -221,5 +334,31 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
             throw Error("No value provided for non-nullable property '$name'")
         }
         return null as T
+    }
+
+    private fun OpenTransaction(): Transaction
+    {
+        transaction.get()?.also {
+            it.nestCount++
+            return it
+        }
+        val t = Transaction()
+        transaction.set(t)
+        return t
+    }
+
+    private fun CloseTransaction(commit: Boolean)
+    {
+        val t = transaction.get() ?: throw IllegalStateException("No transaction in progress")
+        t.nestCount--
+        if (t.nestCount > 0) {
+            return
+        }
+        //XXX
+    }
+
+    private suspend fun CloseTransactionAsync(commit: Boolean)
+    {
+        //XXX
     }
 }
