@@ -22,18 +22,20 @@ private class ManagedStateTest {
 
         enum class Type {
             T1,
-            T2
+            T2,
+            T3,
+            T4
         }
 
         val id: String by state.Id(id)
         val s: String by state("string")
         var name by state.Param("aaa")
         val desc by state.Param<String?>()
-        val type by state.Param(Type.T1)
+        var type by state.Param(Type.T1)
         val i by state.Param<Int>()
         val d by state.Param<Double>()
-        val i2 by state.Param(42)
-        val d2 by state.Param(43.0)
+        var i2 by state.Param(42)
+        var d2 by state.Param(43.0)
         private var internalCounter by state(0).InfoLevel(1)
         var even by state(0).Validator {
             v ->
@@ -91,8 +93,8 @@ private class ManagedStateTest {
     @Test
     fun LoadBadEnumStringTest()
     {
-        val e = assertThrows<Error> { A("", mapOf("type" to "NON_VALUE")) }
-        assertEquals("Failed to convert enum value from loaded string for property 'type'", e.message)
+        val e = assertThrows<IllegalArgumentException> { A("", mapOf("type" to "NON_VALUE")) }
+        assertEquals("Failed to convert enum value from string for property 'type'", e.message)
     }
 
     @Test
@@ -112,7 +114,7 @@ private class ManagedStateTest {
     @Test
     fun LoadBadTypeTest()
     {
-        val e = assertThrows<Error> { A(loadFrom = mapOf("i" to "string")) }
+        val e = assertThrows<IllegalArgumentException> { A(loadFrom = mapOf("i" to "string")) }
         assertEquals("Wrong type returned for property 'i': kotlin.String is not subclass of kotlin.Int",
                      e.message)
     }
@@ -231,5 +233,47 @@ private class ManagedStateTest {
         }
         assertEquals("Property 'even' validation error: Should be even", e.message)
         assertEquals(42, a.even)
+    }
+
+    @Test
+    fun MutateEnumByString()
+    {
+        val a = A()
+
+        assertEquals(A.Type.T1, a.type)
+        a.state.Mutate {
+            a.type = A.Type.T2
+            assertEquals(A.Type.T2, a.type)
+        }
+        assertEquals(A.Type.T2, a.type)
+
+        a.state.Mutate(mapOf("type" to A.Type.T3))
+        assertEquals(A.Type.T3, a.type)
+
+        a.state.Mutate(mapOf("type" to "T4"))
+        assertEquals(A.Type.T4, a.type)
+
+        val e = assertThrows<IllegalArgumentException> {
+            a.state.Mutate(mapOf("type" to "INVALID"))
+        }
+        assertEquals("Failed to convert enum value from string for property 'type'", e.message)
+    }
+
+    @Test
+    fun MutateIntByDouble()
+    {
+        val a = A()
+
+        a.state.Mutate(mapOf("i2" to 45.0))
+        assertEquals(45, a.i2)
+    }
+
+    @Test
+    fun MutateDoubleByInt()
+    {
+        val a = A()
+
+        a.state.Mutate(mapOf("d2" to 45))
+        assertEquals(45.0, a.d2)
     }
 }

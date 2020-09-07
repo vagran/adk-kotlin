@@ -11,6 +11,7 @@ import java.util.*
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.collections.HashMap
+import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.isSubclassOf
@@ -262,6 +263,7 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         val isNullable = prop.returnType.isMarkedNullable
         val isMutable = !isId && prop is KMutableProperty
         val curValue get() = value
+        val cls = prop.returnType.jvmErasure
 
         @Suppress("UNCHECKED_CAST")
         override operator fun getValue(thisRef: Any, prop: KProperty<*>): T
@@ -297,6 +299,11 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         {
             value = newValue as T
         }
+
+        fun TransformValue(value: Any?): T
+        {
+            return TransformValue(name, cls, value)
+        }
     }
 
     private inner class Transaction: AutoCloseable {
@@ -322,7 +329,7 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
             if (value == null && !d.isNullable) {
                 throw IllegalArgumentException("Null value assigned to non-nullable property '$name'")
             }
-            newValues[name] = value
+            newValues[name] = d.TransformValue(value)
         }
 
         fun GetCommitData(): Map<String, Any?>
@@ -350,6 +357,30 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         }
     }
 
+    private companion object {
+        @Suppress("UNCHECKED_CAST")
+        fun <T> TransformValue(name: String, cls: KClass<*>, value: Any?): T
+        {
+            if (cls.isSubclassOf(Enum::class) && value is String) {
+                try {
+                    return EnumFromString(cls, value) as T
+                } catch (e: Throwable) {
+                    throw IllegalArgumentException(
+                        "Failed to convert enum value from string for property '$name'", e)
+                }
+            }
+            if (cls.isSubclassOf(Number::class) && value is Number) {
+                return value as T
+            }
+            if (value != null && !value::class.isSubclassOf(cls)) {
+                throw IllegalArgumentException(
+                    "Wrong type returned for property '$name': " +
+                    "${value::class.qualifiedName} is not subclass of ${cls.qualifiedName}")
+            }
+            return value as T
+        }
+    }
+
     init {
         if (commitHandler != null && asyncCommitHandler != null) {
             throw IllegalArgumentException("Only one commit handler should be specified")
@@ -374,21 +405,7 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
                 if (v == null && !isNullable) {
                     throw Error("Null value loaded for non-nullable property '$name'")
                 }
-                if (cls.isSubclassOf(Enum::class) && v is String) {
-                    try {
-                        return EnumFromString(cls, v) as T
-                    } catch (e: Throwable) {
-                        throw Error("Failed to convert enum value from loaded string for property '$name'", e)
-                    }
-                }
-                if (cls.isSubclassOf(Number::class) && v is Number) {
-                    return v as T
-                }
-                if (v != null && !v::class.isSubclassOf(cls)) {
-                    throw Error("Wrong type returned for property '$name': " +
-                        "${v::class.qualifiedName} is not subclass of ${cls.qualifiedName}")
-                }
-                return v as T
+                return TransformValue(name, cls, v)
             }
         }
         if (defValue != null) {
