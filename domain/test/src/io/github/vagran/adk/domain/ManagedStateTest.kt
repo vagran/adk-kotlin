@@ -6,6 +6,7 @@
 
 package io.github.vagran.adk.domain
 
+import io.github.vagran.adk.async.Deferred
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -34,6 +35,12 @@ private class ManagedStateTest {
         val i2 by state.Param(42)
         val d2 by state.Param(43.0)
         private var internalCounter by state(0).InfoLevel(1)
+        var even by state(0).Validator {
+            v ->
+            if (v % 2 != 0) {
+                throw Error("Should be even")
+            }
+        }
     }
 
     @Test
@@ -152,5 +159,77 @@ private class ManagedStateTest {
         assertEquals("Attempting to change immutable property: 's'", e.message)
     }
 
-    //XXX get changed value in transaction
+    @Test
+    fun IdRedefinition()
+    {
+        class C {
+            val state = ManagedState()
+            val id by state.Id(0)
+            val id2 by state.Id(42)
+        }
+
+        val e = assertThrows<IllegalStateException> { C() }
+        assertEquals("ID already specified by property 'id', redefining by 'id2'", e.message)
+    }
+
+    @Test
+    fun TransactionTest()
+    {
+        val a = A()
+
+        a.state.Mutate {
+            a.name = "myName"
+            assertEquals("myName", a.name)
+        }
+        assertEquals("myName", a.name)
+    }
+
+    @Test
+    fun TransactionTestAsyncWithSyncHandler()
+    {
+        val a = A()
+
+        Deferred.ForFunc {
+            a.state.MutateAsync {
+                a.name = "myName"
+                assertEquals("myName", a.name)
+            }
+        }.Get()
+        assertEquals("myName", a.name)
+    }
+
+    @Test
+    fun TransactionFail()
+    {
+        val a = A(loadFrom = mapOf("name" to "aaa"))
+
+        assertThrows<Error> {
+            a.state.Mutate {
+                a.name = "myName"
+                assertEquals("myName", a.name)
+                throw Error("in mutation")
+            }
+        }
+        assertEquals("aaa", a.name)
+    }
+
+    @Test
+    fun TransactionFailOnValidation()
+    {
+        val a = A(loadFrom = mapOf("name" to "aaa"))
+
+        a.state.Mutate {
+            a.even = 42
+        }
+        assertEquals(42, a.even)
+
+        val e = assertThrows<ManagedState.ValidationError> {
+            a.state.Mutate {
+                a.even = 3
+                assertEquals(3, a.even)
+            }
+        }
+        assertEquals("Property 'even' validation error: Should be even", e.message)
+        assertEquals(42, a.even)
+    }
 }
