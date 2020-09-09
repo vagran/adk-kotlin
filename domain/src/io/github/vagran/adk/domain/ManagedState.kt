@@ -101,6 +101,9 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
             return this
         }
 
+        /**
+         * @param infoLevel Desired info level, -1 to not include on any level.
+         */
         fun InfoLevel(infoLevel: Int): DelegateProvider<T>
         {
             this.infoLevel = infoLevel
@@ -114,7 +117,7 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         }
 
         private var validator: ValueValidator<T>? = null
-        private var infoLevel = 0
+        private var infoLevel = if (isParam || isId) 0 else -1
         private var infoGroup: Any? = null
     }
 
@@ -233,15 +236,17 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         }
     }
 
-    fun ViewMap(): Map<String, Any?>
+    fun GetInfo(level: Int = 0, group: Any? = null): Map<String, Any?>
     {
-        //XXX
-        return HashMap()
+        if (level < 0) {
+            throw IllegalArgumentException("Bad info level value")
+        }
+        return GetMap(level, group)
     }
 
-    fun MutableMap(): MutableMap<String, Any?>
+    fun ViewMap(): Map<String, Any?>
     {
-        return HashMap()
+        return GetMap(-1, null)
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -497,5 +502,29 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
             lock?.unlock()
             t.close()
         }
+    }
+
+    private fun GetMap(infoLevel: Int, infoGroup: Any?): TreeMap<String, Any?>
+    {
+        val result = TreeMap<String, Any?>()
+        val lock = this.lock?.readLock()
+        lock?.lock()
+        for ((name, value) in values) {
+            if (infoLevel == -1 ||
+                (value.infoLevel != -1 && value.infoLevel <= infoLevel &&
+                 infoGroup === value.infoGroup)) {
+                result[name] = value.curValue
+            }
+        }
+        if (infoLevel != -1) {
+            idValue?.also {
+                idValue ->
+                if (idValue.infoLevel != -1 && idValue.name !in result) {
+                    result[idValue.name] = idValue.curValue
+                }
+            }
+        }
+        lock?.unlock()
+        return result
     }
 }

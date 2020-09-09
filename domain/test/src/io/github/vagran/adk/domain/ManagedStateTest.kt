@@ -27,6 +27,11 @@ private class ManagedStateTest {
             T4
         }
 
+        enum class InfoGroup {
+            G1,
+            G2
+        }
+
         val id: String by state.Id(id)
         val s: String by state("string")
         var name by state.Param("aaa")
@@ -34,9 +39,9 @@ private class ManagedStateTest {
         var type by state.Param(Type.T1)
         val i by state.Param<Int>()
         val d by state.Param<Double>()
-        var i2 by state.Param(42)
-        var d2 by state.Param(43.0)
-        private var internalCounter by state(0).InfoLevel(1)
+        var i2 by state.Param(42).InfoLevel(1)
+        var d2 by state.Param(43.0).InfoLevel(2)
+        private var internalCounter by state(0).InfoLevel(1).InfoGroup(InfoGroup.G1)
         var even by state(0).Validator {
             v ->
             if (v % 2 != 0) {
@@ -60,6 +65,59 @@ private class ManagedStateTest {
         assertEquals(0.0, a.d)
         assertEquals(42, a.i2)
         assertEquals(43.0, a.d2)
+
+        val checkInfo0 = {
+            info: Map<String, Any?> ->
+            assertEquals("a", info["id"])
+            assertEquals("aaa", info["name"])
+            assertNull(info["desc"])
+            assertEquals(A.Type.T1, info["type"])
+            assertEquals(0, info["i"])
+            assertEquals(0.0, info["d"])
+        }
+
+        val checkInfo1 = {
+            info: Map<String, Any?> ->
+            checkInfo0(info)
+            assertEquals(42, info["i2"])
+        }
+
+        val checkInfo2 = {
+            info: Map<String, Any?> ->
+            checkInfo1(info)
+            assertEquals(43.0, info["d2"])
+        }
+
+        run {
+            val info = a.state.GetInfo()
+            assertEquals(6, info.size)
+            checkInfo0(info)
+        }
+
+        run {
+            val info = a.state.GetInfo(1)
+            assertEquals(7, info.size)
+            checkInfo1(info)
+        }
+
+        run {
+            val info = a.state.GetInfo(2)
+            assertEquals(8, info.size)
+            checkInfo2(info)
+        }
+
+        run {
+            val info = a.state.GetInfo(1, A.InfoGroup.G1)
+            assertEquals(2, info.size)
+            assertEquals("a", info["id"])
+            assertEquals(0, info["internalCounter"])
+        }
+
+        run {
+            val info = a.state.GetInfo(1, A.InfoGroup.G2)
+            assertEquals(1, info.size)
+            assertEquals("a", info["id"])
+        }
     }
 
     @Test
