@@ -17,7 +17,7 @@ import org.junit.jupiter.api.assertThrows
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ManagedStateTest {
 
-    class A(id: String = "someId", loadFrom: Map<String, Any?>? = null) {
+    class A(id: String = "someId", loadFrom: EntityInfo? = null) {
         val state = ManagedState(loadFrom)
 
         enum class Type {
@@ -69,7 +69,7 @@ private class ManagedStateTest {
         assertEquals(43.0, a.d2)
 
         val checkInfo0 = {
-            info: Map<String, Any?> ->
+            info: EntityInfo ->
             assertEquals("a", info["id"])
             assertEquals("aaa", info["name"])
             assertNull(info["desc"])
@@ -79,13 +79,13 @@ private class ManagedStateTest {
         }
 
         val checkInfo1 = {
-            info: Map<String, Any?> ->
+            info: EntityInfo ->
             checkInfo0(info)
             assertEquals(42, info["i2"])
         }
 
         val checkInfo2 = {
-            info: Map<String, Any?> ->
+            info: EntityInfo ->
             checkInfo1(info)
             assertEquals(43.0, info["d2"])
         }
@@ -195,7 +195,7 @@ private class ManagedStateTest {
     @Test
     fun NullLoadToNonNullable()
     {
-        class C(loadFrom: Map<String, Any?>) {
+        class C(loadFrom: EntityInfo) {
             val state = ManagedState(loadFrom)
 
             val s by state.Param<String>()

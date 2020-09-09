@@ -20,7 +20,7 @@ class MongoDoc(builderFunc: MongoDocBuilderFunc): Document() {
         /** Create update documents based on map which has fields to set new values for. ID field
          * also should be present.
          */
-        fun SetUpdate(data: Map<String, Any?>, idFieldName: String = "id",
+        fun SetUpdate(data: Map<String, Any?>, idFieldName: String = "_id",
                       idIsObjectId: Boolean = true): UpdateDocs
         {
             val id = data[idFieldName] ?: throw Error("ID field missing: $idFieldName")

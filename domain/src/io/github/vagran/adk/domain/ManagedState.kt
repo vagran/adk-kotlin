@@ -17,6 +17,7 @@ import kotlin.reflect.KProperty
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
+typealias EntityInfo = Map<String, Any?>
 
 /** Encapsulates entity state. Typical use cases:
  * * Create new state with some default values and some specified values.
@@ -35,10 +36,10 @@ import kotlin.reflect.jvm.jvmErasure
  * @param fullCommit Commit handler accepts full state if true, and only changed values (with ID) if
  * false.
  */
-class ManagedState(private var loadFrom: Map<String, Any?>? = null,
+class ManagedState(private var loadFrom: EntityInfo? = null,
                    val lock: ReadWriteLock? = ReentrantReadWriteLock(),
-                   private val commitHandler: ((state: Map<String, Any?>) -> Unit)? = null,
-                   private val asyncCommitHandler: (suspend (state: Map<String, Any?>) -> Unit)? = null,
+                   private val commitHandler: ((state: EntityInfo) -> Unit)? = null,
+                   private val asyncCommitHandler: (suspend (state: EntityInfo) -> Unit)? = null,
                    private val fullCommit: Boolean = false) {
 
     fun interface ValueValidator<T> {
@@ -166,7 +167,7 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         return Param { defValue }
     }
 
-    fun Mutate(params: Map<String, Any?>)
+    fun Mutate(params: EntityInfo)
     {
         val t = OpenTransaction()
         var commit = false
@@ -178,7 +179,7 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         }
     }
 
-    suspend fun MutateAsync(params: Map<String, Any?>)
+    suspend fun MutateAsync(params: EntityInfo)
     {
         val t = OpenTransaction()
         var commit = false
@@ -236,7 +237,7 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         }
     }
 
-    fun GetInfo(level: Int = 0, group: Any? = null): Map<String, Any?>
+    fun GetInfo(level: Int = 0, group: Any? = null): EntityInfo
     {
         if (level < 0) {
             throw IllegalArgumentException("Bad info level value")
@@ -244,7 +245,7 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         return GetMap(level, group)
     }
 
-    fun ViewMap(): Map<String, Any?>
+    fun ViewMap(): EntityInfo
     {
         return GetMap(-1, null)
     }
@@ -259,6 +260,8 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
     private val values = TreeMap<String, DelegateImpl<*>>()
     private var idValue: DelegateImpl<*>? = null
     private val transaction = ThreadLocal<Transaction?>()
+    /** Asynchronous commit in progress, concurrent commit is not allowed. */
+    private var isCommitting = false
 
     private inner class DelegateImpl<T>(
         prop: KProperty<*>,
@@ -316,14 +319,11 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         }
     }
 
-    private inner class Transaction: AutoCloseable {
+    private inner class Transaction {
         val newValues = TreeMap<String, Any?>()
         var nestCount = 1
 
-        override fun close()
-        {}
-
-        fun Mutate(params: Map<String, Any?>)
+        fun Mutate(params: EntityInfo)
         {
             for ((name, value) in params) {
                 Mutate(name, value)
@@ -342,7 +342,7 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
             newValues[name] = d.TransformValue(value)
         }
 
-        fun GetCommitData(): Map<String, Any?>
+        fun GetCommitData(): EntityInfo
         {
             val data = TreeMap<String, Any?>(newValues)
             if (fullCommit) {
@@ -457,7 +457,6 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         }
         if (!commit) {
             transaction.set(null)
-            t.close()
             return null
         }
         return t
@@ -483,29 +482,44 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
             t.Apply()
         } finally {
             lock?.unlock()
-            t.close()
         }
     }
 
     private suspend fun CloseTransactionAsync(commit: Boolean)
     {
         val t = BeginCloseTransaction(commit) ?: return
-        val lock = this.lock?.writeLock()
+        var lock = this.lock?.writeLock()
         lock?.lock()
         transaction.set(null)
+
         try {
+            if (isCommitting) {
+                throw IllegalStateException("Concurrent commit not allowed")
+            }
             for ((name, value) in t.newValues) {
                 values[name]!!.Validate(value)
             }
             if (asyncCommitHandler != null) {
-                asyncCommitHandler.invoke(t.GetCommitData())
+                isCommitting = true
             } else {
                 commitHandler?.invoke(t.GetCommitData())
+                t.Apply()
             }
-            t.Apply()
         } finally {
             lock?.unlock()
-            t.close()
+        }
+
+        if (asyncCommitHandler != null) {
+            lock = null
+            try {
+                asyncCommitHandler.invoke(t.GetCommitData())
+                lock = this.lock?.writeLock()
+                lock?.lock()
+                t.Apply()
+            } finally {
+                isCommitting = false
+                lock?.unlock()
+            }
         }
     }
 
