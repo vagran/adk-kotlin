@@ -56,6 +56,8 @@ private class ManagedStateTest {
 
         val a = A("a")
 
+        println(a.state)
+
         assertEquals("a", a.id)
         assertEquals("string", a.s)
         assertEquals("aaa", a.name)

@@ -249,6 +249,11 @@ class ManagedState(private var loadFrom: Map<String, Any?>? = null,
         return GetMap(-1, null)
     }
 
+    override fun toString(): String
+    {
+        return GetInfo().toString()
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private var numLoaded = 0
     private val values = TreeMap<String, DelegateImpl<*>>()
