@@ -133,3 +133,5 @@ fabric.properties
 .nfs*
 
 !wdk/tools/*
+node_modules/
+

@@ -38,6 +38,7 @@
       <module fileurl="file://$PROJECT_DIR$/symcalc/symcalc.iml" filepath="$PROJECT_DIR$/symcalc/symcalc.iml" />
       <module fileurl="file://$PROJECT_DIR$/symcalc/test/symcalc.test.iml" filepath="$PROJECT_DIR$/symcalc/test/symcalc.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/wdk/wdk.iml" filepath="$PROJECT_DIR$/wdk/wdk.iml" />
+      <module fileurl="file://$PROJECT_DIR$/wdk/example/wdk.example.iml" filepath="$PROJECT_DIR$/wdk/example/wdk.example.iml" />
     </modules>
   </component>
 </project>

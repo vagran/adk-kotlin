@@ -1,0 +1,17 @@
+{
+    "name": "wdk-example",
+    "version": "1.0.0",
+    "dependencies": {
+        "vue": "^2.6.12"
+    },
+    "scripts": {
+        "serve": "vue-cli-service serve --port 9001 --https",
+        "build": "vue-cli-service build  --modern"
+    },
+    "devDependencies": {
+        "@vue/cli-service": "^4.5.4",
+        "vue-template-compiler": "^2.6.12",
+        "less-loader": "^7.0.1",
+        "less": "^3.12.2"
+    }
+}
