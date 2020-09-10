@@ -17,6 +17,7 @@
                 <span aria-hidden="true">&times;</span>
             </button>
         </div>
+        <p>Count: {{$store.state.count}}</p>
         <router-link to="/page1/42?param=aaa">Page1</router-link>
         <router-link to="/page2/43?param=bbb">Page2</router-link>
         <router-view />
@@ -24,7 +25,7 @@
 </template>
 
 <script>
-import sampleImage from "../assets/images/sample.svg";
+import sampleImage from "../assets/images/sample.svg"
 
 export default {
     data() {
