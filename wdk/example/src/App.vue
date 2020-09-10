@@ -8,6 +8,8 @@
         WDK example application
         <div class="number">{{i}}</div>
         <fa-icon class="icon" icon="cat" />
+        <fa-icon class="icon" :icon="['far', 'lemon']" />
+        <img :src="sampleImage" style="width: 64px;"/>
 
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             With Bootstrap!
@@ -19,11 +21,13 @@
 </template>
 
 <script>
+import sampleImage from "../assets/images/sample.svg";
 
 export default {
     data() {
         return {
-            i: 42
+            i: 42,
+            sampleImage
         }
     }
 }

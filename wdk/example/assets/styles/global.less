@@ -1,0 +1,23 @@
+/*
+ * This file is part of ADK project.
+ * Copyright (c) 2020 Artyom Lebedev <artyom.lebedev@gmail.com>. All rights reserved.
+ * See LICENSE file for full license details.
+ */
+
+/* Move down content because we have a fixed navbar that is 3.5rem tall */
+body {
+    padding-top: 3.5rem;
+}
+
+[v-cloak] > * {
+    display:none;
+}
+
+[v-cloak].hasLoadingPlaceholder::before {
+    content: " ";
+    display: block;
+    width: 500px;
+    height: 150px;
+    background-image: url("../images/loading-placeholder.svg");
+    background-size: cover;
+}
