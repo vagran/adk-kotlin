@@ -2,7 +2,14 @@
     "name": "wdk-example",
     "version": "1.0.0",
     "dependencies": {
-        "vue": "^2.6.12"
+        "vue": "^2.6.12",
+        "bootstrap": "^4.5.2",
+        "jquery": "^3.5.1",
+        "popper.js": "^1.16.1",
+        "@fortawesome/fontawesome-svg-core": "^1.2.30",
+        "@fortawesome/free-regular-svg-icons": "^5.14.0",
+        "@fortawesome/free-solid-svg-icons": "^5.14.0",
+        "@fortawesome/vue-fontawesome": "^2.0.0"
     },
     "scripts": {
         "serve": "vue-cli-service serve --port 9001 --https",

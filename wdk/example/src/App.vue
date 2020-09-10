@@ -7,6 +7,14 @@
     <div class="root">
         WDK example application
         <div class="number">{{i}}</div>
+        <fa-icon class="icon" icon="cat" />
+
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            With Bootstrap!
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
     </div>
 </template>
 
@@ -27,6 +35,11 @@ export default {
     color: brown;
     .number {
         color: darkblue;
+    }
+
+    .icon {
+        width: 64px;
+        height: 64px;
     }
 }
 
