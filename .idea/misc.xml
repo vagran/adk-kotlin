@@ -7,6 +7,9 @@
       <item index="2" class="java.lang.String" itemvalue="io.github.vagran.adk.injector.Provides" />
     </list>
   </component>
+  <component name="FrameworkDetectionExcludesConfiguration">
+    <file type="web" url="file://$PROJECT_DIR$/wdk-legacy" />
+  </component>
   <component name="JavaScriptSettings">
     <option name="languageLevel" value="ES6" />
   </component>
