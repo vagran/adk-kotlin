@@ -5,7 +5,7 @@
   -->
 
 <template>
-    <div>
+    <q-page padding>
         This is page 1! ID: {{ $route.params.id }}, param: {{$route.query.param}}
-    </div>
+    </q-page>
 </template>

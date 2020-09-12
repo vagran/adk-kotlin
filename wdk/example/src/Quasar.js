@@ -38,7 +38,7 @@ import Quasar, {
 } from "quasar"
 
 
-const config = [Quasar, {
+export default [Quasar, {
     config: {
         notify: { /* Notify defaults */}
     },
@@ -75,5 +75,3 @@ const config = [Quasar, {
         Notify
     }
 }]
-
-export default config

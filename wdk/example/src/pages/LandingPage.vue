@@ -5,13 +5,13 @@
   -->
 
 <template>
-    <div class="root">
+    <q-page padding class="root">
         WDK example application
         <div class="number">{{i}}</div>
         <q-icon class="icon" name="alarm"/>
         <q-icon class="icon" name="alarm_off"/>
         <img :src="sampleImage" class="icon" />
-        <p>Count: {{$store.state.count}}</p>
+        <p>Count: {{counter}}</p>
         <q-btn color="primary" label="Pages">
             <q-menu auto-close>
                 <q-list style="min-width: 100px">
@@ -25,25 +25,34 @@
                 </q-list>
             </q-menu>
         </q-btn>
-        <q-btn>Increment</q-btn>
+        <q-btn @click="increment">Increment</q-btn>
         <p>
             <router-link to="/page1/42?param=aaa">Page1</router-link><br/>
             <router-link to="/page2/43?param=bbb">Page2</router-link>
         </p>
         <router-view />
-    </div>
+    </q-page>
 </template>
 
 <script>
 import sampleImage from "@/assets/images/sample.svg"
+import {mapMutations, mapState} from "vuex"
 
 export default {
     name: "LandingPage",
+
+    computed: {
+        ...mapState("someModule", ["counter"])
+    },
 
     data() {
         return {
             i: 42
         }
+    },
+
+    methods: {
+        ...mapMutations("someModule", ["increment"])
     },
 
     created()
