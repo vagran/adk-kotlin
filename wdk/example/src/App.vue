@@ -4,51 +4,27 @@
   - See LICENSE file for full license details.
   -->
 <template>
-    <div class="root">
-        WDK example application
-        <div class="number">{{i}}</div>
-        <fa-icon class="icon" icon="cat" />
-        <fa-icon class="icon" :icon="['far', 'lemon']" />
-        <img :src="sampleImage" style="width: 64px;"/>
-
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            With Bootstrap!
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-        <p>Count: {{$store.state.count}}</p>
-        <router-link to="/page1/42?param=aaa">Page1</router-link>
-        <router-link to="/page2/43?param=bbb">Page2</router-link>
-        <router-view />
-    </div>
+    <q-layout view="hHh lpr fff">
+        <q-header>
+            <q-toolbar>
+                <q-toolbar-title :shrink="true" >WDK example</q-toolbar-title>
+                <q-btn flat label="Home" to="/" />
+                <q-btn flat label="Page 1" to="/page1/52" />
+                <q-space />
+                <q-btn-dropdown flat label="Dropdown">
+                    <q-list>
+                        <q-item-label header>Header</q-item-label>
+                        <q-item clickable v-close-popup to="/page2/53">
+                            <q-item-section>
+                                Page 2
+                            </q-item-section>
+                        </q-item>
+                    </q-list>
+                </q-btn-dropdown>
+            </q-toolbar>
+        </q-header>
+        <q-page-container>
+            <router-view />
+        </q-page-container>
+    </q-layout>
 </template>
-
-<script>
-import sampleImage from "../assets/images/sample.svg"
-
-export default {
-    data() {
-        return {
-            i: 42,
-            sampleImage
-        }
-    }
-}
-</script>
-
-<style scoped lang="less">
-
-.root {
-    color: brown;
-    .number {
-        color: darkblue;
-    }
-
-    .icon {
-        width: 64px;
-        height: 64px;
-    }
-}
-
-</style>
