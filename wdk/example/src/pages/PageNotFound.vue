@@ -5,5 +5,5 @@
   -->
 
 <template>
-    <q-page padding>Page not found</q-page>
+<q-page padding>Page not found</q-page>
 </template>

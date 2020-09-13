@@ -5,14 +5,16 @@
  */
 
 import PageNotFound from "@/pages/PageNotFound"
-import Page1 from "@/pages/Page1.vue"
-import Page2 from "@/pages/Page2.vue"
+import Page1 from "@/pages/Page1"
+import Page2 from "@/pages/Page2"
 import LandingPage from "@/pages/LandingPage"
+import StatusViewTest from "@/pages/StatusViewTest"
 
 export default [
     { path: "/", redirect: "/home" },
     { path: "/home", component: LandingPage },
     { path: "/page1/:id", component: Page1 },
     { path: "/page2/:id", component: Page2 },
+    { path: "/StatusViewTest", component: StatusViewTest },
     { path: "*", component: PageNotFound }
 ]

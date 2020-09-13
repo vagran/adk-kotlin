@@ -11,6 +11,8 @@ import Quasar, {
 
     Notify,
 
+    QBadge,
+    QBanner,
     QBtn,
     QBtnDropdown,
     QCard,
@@ -43,6 +45,9 @@ export default [Quasar, {
         notify: { /* Notify defaults */}
     },
     components: {
+
+        QBadge,
+        QBanner,
         QBtn,
         QBtnDropdown,
         QCard,

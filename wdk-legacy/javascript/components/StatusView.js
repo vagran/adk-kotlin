@@ -419,8 +419,8 @@ goog.provide("wdk.components.StatusView");
                 if (status instanceof Error) {
                     result.level = "error";
                     result.text = status.toString();
-                    if (result.stack !== undefined) {
-                        result.details = result.stack.toString();
+                    if (status.stack !== undefined) {
+                        result.details = status.stack.toString();
                     }
 
                 } else if ($.type(status) === "string") {
@@ -482,6 +482,9 @@ goog.provide("wdk.components.StatusView");
                         result.level = status.level;
                     } else {
                         result.alertClass = "alert-secondary";
+                    }
+                    if (status.hasOwnProperty("title")) {
+                        result.title = status.title;
                     }
 
                 } else {

@@ -5,8 +5,21 @@
  */
 
 module.exports = {
-    configureWebpack: {},
+    // configureWebpack: {
+    //     module: {
+    //         rules: [{
+    //             test: /\.js$/,
+    //             loader: 'babel-loader',
+    //             exclude: file => (/node_modules/.test(file) && !/\.vue\.js/.test(file))
+    //         }
+    //         ]
+    //     }
+    // },
     chainWebpack: config => {
         config.plugins.delete("preload")
-    }
+    },
+    // transpileDependencies: [
+    //     "wdk"
+    // ],
+
 }

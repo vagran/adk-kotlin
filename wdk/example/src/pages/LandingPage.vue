@@ -30,6 +30,7 @@
             <router-link to="/page1/42?param=aaa">Page1</router-link><br/>
             <router-link to="/page2/43?param=bbb">Page2</router-link>
         </p>
+        <p><SampleComponent /></p>
         <router-view />
     </q-page>
 </template>
@@ -37,10 +38,11 @@
 <script>
 import sampleImage from "@/assets/images/sample.svg"
 import {mapMutations, mapState} from "vuex"
+import SampleComponent from "@/components/SampleComponent";
 
 export default {
     name: "LandingPage",
-
+    components: {SampleComponent},
     computed: {
         ...mapState("someModule", ["counter"])
     },
