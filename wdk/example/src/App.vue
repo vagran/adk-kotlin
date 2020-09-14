@@ -30,6 +30,9 @@
                     <q-item clickable v-close-popup to="/MessageBoxTest">
                         <q-item-section>MessageBox</q-item-section>
                     </q-item>
+                    <q-item clickable v-close-popup to="/ObjectViewTest">
+                        <q-item-section>ObjectView</q-item-section>
+                    </q-item>
                 </q-list>
             </q-btn-dropdown>
         </q-toolbar>

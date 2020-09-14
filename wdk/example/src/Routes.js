@@ -11,6 +11,7 @@ import LandingPage from "@/pages/LandingPage"
 import StatusViewTest from "@/pages/StatusViewTest"
 import EditableFieldTest from "@/pages/EditableFieldTest";
 import MessageBoxTest from "@/pages/MessageBoxTest";
+import ObjectViewTest from "@/pages/ObjectViewTest";
 
 export default [
     { path: "/", redirect: "/home" },
@@ -20,5 +21,6 @@ export default [
     { path: "/StatusViewTest", component: StatusViewTest },
     { path: "/EditableFieldTest", component: EditableFieldTest },
     { path: "/MessageBoxTest", component: MessageBoxTest },
+    { path: "/ObjectViewTest", component: ObjectViewTest },
     { path: "*", component: PageNotFound }
 ]

@@ -8,11 +8,13 @@ import Vue from "vue"
 import WdkStatusView from "./components/StatusView"
 import WdkEditableField from "./components/EditableField"
 import WdkMessageBox from "./components/MessageBox"
+import WDkObjectView from "./components/ObjectView"
 
 const components = [
     WdkStatusView,
     WdkEditableField,
-    WdkMessageBox
+    WdkMessageBox,
+    WDkObjectView
 ]
 
 function RegisterComponents(components) {
