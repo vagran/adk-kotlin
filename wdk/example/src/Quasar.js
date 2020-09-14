@@ -13,6 +13,7 @@ import Quasar, {
 
     QBadge,
     QBanner,
+    QBar,
     QBtn,
     QBtnDropdown,
     QCard,
@@ -22,6 +23,7 @@ import Quasar, {
     QFooter,
     QHeader,
     QIcon,
+    QInput,
     QItem,
     QItemLabel,
     QItemSection,
@@ -37,6 +39,7 @@ import Quasar, {
     QSpinner,
     QToolbar,
     QToolbarTitle,
+    QTooltip,
 } from "quasar"
 
 
@@ -45,9 +48,9 @@ export default [Quasar, {
         notify: { /* Notify defaults */}
     },
     components: {
-
         QBadge,
         QBanner,
+        QBar,
         QBtn,
         QBtnDropdown,
         QCard,
@@ -57,6 +60,7 @@ export default [Quasar, {
         QFooter,
         QHeader,
         QIcon,
+        QInput,
         QItem,
         QItemLabel,
         QItemSection,
@@ -72,6 +76,7 @@ export default [Quasar, {
         QSpinner,
         QToolbar,
         QToolbarTitle,
+        QTooltip,
     },
     directives: {
         ClosePopup

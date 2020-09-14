@@ -24,6 +24,12 @@
                     <q-item clickable v-close-popup to="/StatusViewTest">
                         <q-item-section>StatusView</q-item-section>
                     </q-item>
+                    <q-item clickable v-close-popup to="/EditableFieldTest">
+                        <q-item-section>EditableField</q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup to="/MessageBoxTest">
+                        <q-item-section>MessageBox</q-item-section>
+                    </q-item>
                 </q-list>
             </q-btn-dropdown>
         </q-toolbar>

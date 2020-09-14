@@ -9,6 +9,8 @@ import Page1 from "@/pages/Page1"
 import Page2 from "@/pages/Page2"
 import LandingPage from "@/pages/LandingPage"
 import StatusViewTest from "@/pages/StatusViewTest"
+import EditableFieldTest from "@/pages/EditableFieldTest";
+import MessageBoxTest from "@/pages/MessageBoxTest";
 
 export default [
     { path: "/", redirect: "/home" },
@@ -16,5 +18,7 @@ export default [
     { path: "/page1/:id", component: Page1 },
     { path: "/page2/:id", component: Page2 },
     { path: "/StatusViewTest", component: StatusViewTest },
+    { path: "/EditableFieldTest", component: EditableFieldTest },
+    { path: "/MessageBoxTest", component: MessageBoxTest },
     { path: "*", component: PageNotFound }
 ]

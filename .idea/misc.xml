@@ -8,6 +8,7 @@
     </list>
   </component>
   <component name="FrameworkDetectionExcludesConfiguration">
+    <file type="web" url="file://$PROJECT_DIR$/wdk" />
     <file type="web" url="file://$PROJECT_DIR$/wdk-legacy" />
   </component>
   <component name="JavaScriptSettings">
