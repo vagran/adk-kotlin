@@ -80,6 +80,10 @@ export default {
         },
         data: {
             required: true
+        },
+        /** Do not display fields which are not described in fields object. */
+        matchedOnly: {
+            default: false
         }
     },
 
@@ -99,19 +103,21 @@ export default {
                     fields.push(field)
                     fieldsSeen.add(field.name)
                 }
-                let unlabeledFields = []
-                for (let fieldName in this.data) {
-                    if (!this.data.hasOwnProperty(fieldName)) {
-                        continue
+                if (!this.matchedOnly) {
+                    let unlabeledFields = []
+                    for (let fieldName in this.data) {
+                        if (!this.data.hasOwnProperty(fieldName)) {
+                            continue
+                        }
+                        if (!fieldsSeen.has(fieldName)) {
+                            unlabeledFields.push({label: fieldName, name: fieldName})
+                        }
                     }
-                    if (!fieldsSeen.has(fieldName)) {
-                        unlabeledFields.push({label: fieldName, name: fieldName})
-                    }
+                    unlabeledFields.sort((f1, f2) => {
+                        return f1.name.localeCompare(f2.name)
+                    })
+                    fields.push(...unlabeledFields)
                 }
-                unlabeledFields.sort((f1, f2) => {
-                    return f1.name.localeCompare(f2.name)
-                })
-                fields.push(...unlabeledFields)
 
             } else {
                 for (let fieldName in this.data) {
@@ -119,7 +125,9 @@ export default {
                         continue
                     }
                     if (this.fields === null || !this.fields.hasOwnProperty(fieldName)) {
-                        fields.push({label: fieldName, name: fieldName})
+                        if (!this.matchedOnly) {
+                            fields.push({label: fieldName, name: fieldName})
+                        }
                         continue
                     }
                     let field = this.fields[fieldName]

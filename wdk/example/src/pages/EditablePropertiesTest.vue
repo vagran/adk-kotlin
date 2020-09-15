@@ -7,10 +7,13 @@
 <q-page padding>
     <q-card>
         <q-card-section>
-            <WdkEditableProperties :fields="fields" :data="data" @updated="OnUpdated"/>
+            <q-toggle v-model="matchedOnly" label="Matched only"/>
+            <WdkEditableProperties :fields="fields" :data="data" :matchedOnly="matchedOnly"
+                                   @updated="OnUpdated"/>
             <WdkObjectView :object="data" class="q-ma-md"/>
             <h5>Array fields</h5>
-            <WdkEditableProperties :fields="arrayFields" :data="data" @updated="OnUpdated"/>
+            <WdkEditableProperties :fields="arrayFields" :data="data" :matchedOnly="matchedOnly"
+                                   @updated="OnUpdated"/>
         </q-card-section>
     </q-card>
 </q-page>
@@ -22,6 +25,7 @@ export default {
 
     data() {
         return {
+            matchedOnly: false,
             fields: {
                 number: {
                     label: "Number",
