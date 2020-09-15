@@ -63,6 +63,7 @@
  *          optionValues: ["value1", "value2"]
  *      }
  * }
+ * May be array as well, elements should have "name" element, "order" field is not used.
  * Events:
  *  - updated(fieldName, newValue) - emitted when some property updated.
  */
@@ -85,36 +86,66 @@ export default {
     computed: {
         sortedFields() {
             let fields = []
-            for (let fieldName in this.data) {
-                if (!this.data.hasOwnProperty(fieldName)) {
-                    continue
-                }
-                if (this.fields === null || !this.fields.hasOwnProperty(fieldName)) {
-                    fields.push({label: fieldName, name: fieldName})
-                    continue
-                }
-                let field = this.fields[fieldName]
-                if (!field.hasOwnProperty("name")) {
-                    field.name = fieldName
-                }
-                fields.push(field)
-            }
-            fields.sort((f1, f2) => {
-                if (f1.hasOwnProperty("order")) {
-                    if (f2.hasOwnProperty("order")) {
-                        let diff = f1.order - f2.order
-                        if (diff === 0) {
-                            return f1.name.localeCompare(f2.name)
-                        }
-                        return diff
+
+            if (Array.isArray(this.fields)) {
+                let fieldsSeen = new Set()
+                for (let field of this.fields) {
+                    if (!this.data.hasOwnProperty(field.name)) {
+                        continue
                     }
-                    return -1
+                    if (!field.hasOwnProperty("label")) {
+                        field.label = field.name
+                    }
+                    fields.push(field)
+                    fieldsSeen.add(field.name)
                 }
-                if (f2.hasOwnProperty("order")) {
-                    return 1
+                let unlabeledFields = []
+                for (let fieldName in this.data) {
+                    if (!this.data.hasOwnProperty(fieldName)) {
+                        continue
+                    }
+                    if (!fieldsSeen.has(fieldName)) {
+                        unlabeledFields.push({label: fieldName, name: fieldName})
+                    }
                 }
-                return f1.name.localeCompare(f2.name)
-            })
+                unlabeledFields.sort((f1, f2) => {
+                    return f1.name.localeCompare(f2.name)
+                })
+                fields.push(...unlabeledFields)
+
+            } else {
+                for (let fieldName in this.data) {
+                    if (!this.data.hasOwnProperty(fieldName)) {
+                        continue
+                    }
+                    if (this.fields === null || !this.fields.hasOwnProperty(fieldName)) {
+                        fields.push({label: fieldName, name: fieldName})
+                        continue
+                    }
+                    let field = this.fields[fieldName]
+                    if (!field.hasOwnProperty("name")) {
+                        field.name = fieldName
+                    }
+                    fields.push(field)
+                }
+                fields.sort((f1, f2) => {
+                    if (f1.hasOwnProperty("order")) {
+                        if (f2.hasOwnProperty("order")) {
+                            let diff = f1.order - f2.order
+                            if (diff === 0) {
+                                return f1.name.localeCompare(f2.name)
+                            }
+                            return diff
+                        }
+                        return -1
+                    }
+                    if (f2.hasOwnProperty("order")) {
+                        return 1
+                    }
+                    return f1.name.localeCompare(f2.name)
+                })
+            }
+
             return fields
         }
     },

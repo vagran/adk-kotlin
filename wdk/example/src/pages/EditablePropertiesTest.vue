@@ -9,6 +9,8 @@
         <q-card-section>
             <WdkEditableProperties :fields="fields" :data="data" @updated="OnUpdated"/>
             <WdkObjectView :object="data" class="q-ma-md"/>
+            <h5>Array fields</h5>
+            <WdkEditableProperties :fields="arrayFields" :data="data" @updated="OnUpdated"/>
         </q-card-section>
     </q-card>
 </q-page>
@@ -116,6 +118,28 @@ export default {
                     order: 13
                 },
             },
+
+            arrayFields: [{
+                name: "number",
+                label: "Number",
+                type: "number"
+            }, {
+                name: "integer",
+                label: "Integer",
+                type: "integer"
+            }, {
+                name: "float",
+                label: "Float",
+                type: "float"
+            }, {
+                name: "check",
+                label: "Check",
+                type: "check"
+            }, {
+                name: "string",
+                label: "String",
+                type: "string"
+            }],
 
             data: {
                 number: 42,
