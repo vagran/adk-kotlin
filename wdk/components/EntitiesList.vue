@@ -17,7 +17,7 @@
 
     <div v-if="entities !== null && entities.length === 0">{{emptyMessage}}</div>
 
-    <table v-else-if="entities !== null" class="table table-sm">
+    <table v-else-if="entities !== null">
         <tbody>
         <template v-for="info in entities">
             <tr :key="info[idField]">
@@ -68,7 +68,7 @@
                 <a class="closeLink" href="#" @click="newItemData = null">Close</a>
             </div>
         </div>
-        <div>
+        <div class="newItemFooter">
             <div v-if="newNameRequired">
                 <input type="text" v-model="newName" :placeholder="newNamePlaceholder" />
             </div>
@@ -445,6 +445,7 @@ export default {
 
     .newItemContainer {
         border: solid 1px #dddddd;
+        float: left;
 
         h1 {
             font-size: 0.9rem;
@@ -459,6 +460,10 @@ export default {
             margin-right: 10px;
             font-size: 0.9rem;
         }
+    }
+
+    .newItemFooter {
+        clear: left;
     }
 }
 </style>
