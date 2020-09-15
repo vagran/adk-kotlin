@@ -25,10 +25,11 @@
                     <slot name="prefixInfo" :info="info"/>
                 </td>
                 <td :class="{monospaceFont: monospaceFont}">
-                    <span v-if="itemLink === null" class="item"
+                    <span v-if="itemLink === null && itemLinkTo === null" class="item"
                           :class="{editable: editable || editFields !== null}"
                           @click="_EditItem(info)">{{itemDisplayName(info)}}</span>
-                    <a v-else class="item" rel="noreferrer" :href="itemLink(info)">{{itemDisplayName(info)}}</a>
+                    <a v-else-if="itemLink !== null" class="item" rel="noreferrer" :href="itemLink(info)">{{itemDisplayName(info)}}</a>
+                    <router-link :to="itemLinkTo(info)">{{itemDisplayName(info)}}</router-link>
                     <span v-if="editable || editFields !== null" class="button text-primary"
                           @click="_EditItem(info)"><q-icon name="edit"/></span>
                     <span v-if="deleteReq !== null"
@@ -72,7 +73,7 @@
                        :placeholder="newNamePlaceholder" />
             </div>
             <div class="col-auto">
-                <q-btn type="submit" padding="sm">Add</q-btn>
+                <q-btn outline type="submit" padding="sm">Add</q-btn>
             </div>
         </div>
     </form>
@@ -128,6 +129,13 @@ export default {
         },
         /** Function which maps item to link URL. Null if no link needed. */
         itemLink: {
+            type: Function,
+            default: null
+        },
+        /** Function which maps item to link URL. Null if no link needed. Uses router-link tag
+         * instead of regular link.
+         */
+        itemLinkTo: {
             type: Function,
             default: null
         },

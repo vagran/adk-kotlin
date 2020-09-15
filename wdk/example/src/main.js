@@ -16,7 +16,10 @@ const store = new Vuex.Store(storeConfig)
 
 Vue.use(VueRouter)
 import routes from "@/Routes"
-const router = new VueRouter({ routes })
+const router = new VueRouter({
+    mode: "history",
+    routes
+})
 
 import quasarConfig from "@/Quasar"
 Vue.use(...quasarConfig)
