@@ -1,7 +1,7 @@
 <component name="CopyrightManager">
-  <settings default="ADK">
+  <settings>
     <module2copyright>
-      <element module="All" copyright="ADK" />
+      <element module="Project Files" copyright="ADK" />
     </module2copyright>
   </settings>
 </component>

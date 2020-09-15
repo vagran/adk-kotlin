@@ -4,6 +4,18 @@
  * See LICENSE file for full license details.
  */
 
+/* Default refresh interval in ms for polled views. */
+export const REFRESH_INTERVAL = 1000
+
+export class PostRequestError extends Error {
+    constructor(message, json) {
+        super(message)
+        if (json !== null) {
+            this.responseJSON = json
+        }
+    }
+}
+
 export async function PostRequest(url, data) {
     let params = {
         method: data !== undefined ? "POST" : "GET"
@@ -15,10 +27,19 @@ export async function PostRequest(url, data) {
         }
     }
     let response = await fetch(url, params)
-    if (response.ok) {
-        throw new Error(`Bad response: ${response.status} ${response.statusText}`)
+
+    if (!response.ok) {
+        let json = null
+        let type = response.headers.get("Content-Type")
+        if (type !== null && type.startsWith("application/json")) {
+            try {
+                json = await response.json()
+            } catch {}
+        }
+        throw new PostRequestError(`Bad response: ${response.status} ${response.statusText}`, json)
     }
-    return response.json()
+
+    return await response.json()
 }
 
 export class PollTimer {

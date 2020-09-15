@@ -5,21 +5,15 @@
  */
 
 module.exports = {
-    // configureWebpack: {
-    //     module: {
-    //         rules: [{
-    //             test: /\.js$/,
-    //             loader: 'babel-loader',
-    //             exclude: file => (/node_modules/.test(file) && !/\.vue\.js/.test(file))
-    //         }
-    //         ]
-    //     }
-    // },
     chainWebpack: config => {
         config.plugins.delete("preload")
     },
-    // transpileDependencies: [
-    //     "wdk"
-    // ],
-
+    devServer: {
+        proxy: {
+            "/api/**": {
+                target: "http://127.0.0.1:9090",
+                changeOrigin: true
+            }
+        }
+    }
 }

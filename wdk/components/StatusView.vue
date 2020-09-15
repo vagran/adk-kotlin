@@ -422,10 +422,20 @@ export default {
                 expires: ctx.expires !== 0 ? ctx.timestamp + ctx.expires * 1000 : 0
             }
 
-            if (status instanceof Error) {
+            if (status.hasOwnProperty("responseJSON") && status.responseJSON !== null &&
+                status.responseJSON.hasOwnProperty("message")) {
+
+                /* JSON error from backend. */
+                result.level = "error"
+                result.text = status.responseJSON.message
+                if (status.responseJSON.hasOwnProperty("fullText")) {
+                    result.details = status.responseJSON.fullText
+                }
+
+            } else if (status instanceof Error) {
                 result.level = "error"
                 result.text = status.toString()
-                if (status.stack !== undefined) {
+                if (status.stack !== undefined && status.stack !== "") {
                     result.details = status.stack.toString()
                 }
 
@@ -457,16 +467,6 @@ export default {
                 } else {
                     result.level = "secondary"
                     result.text = status
-                }
-
-            } else if (status.hasOwnProperty("responseJSON") && status.responseJSON !== null &&
-                status.responseJSON.hasOwnProperty("message")) {
-
-                /* JSON error from backend. */
-                result.level = "error"
-                result.text = status.responseJSON.message
-                if (status.responseJSON.hasOwnProperty("fullText")) {
-                    result.details = status.responseJSON.fullText
                 }
 
             } else if (status.hasOwnProperty("status")) {
