@@ -15,7 +15,8 @@ goog.require("wdk.components.MessageBox");
  *          label: "Some field",
  *          type: "number", // "integer", "float", "string", "check", "radio", "option"
  *          disabled: true,
- *          order: 1
+ *          order: 1,
+ *          validator: (value) => { if (value >= 10) throw new Error("Must be less than 10")
  *      },
  *      linkField: {
  *          isLink: true
@@ -34,13 +35,13 @@ goog.require("wdk.components.MessageBox");
 
     // language=HTML
     let tpl = `
-        <div class="EditableProperties">
+        <div class="wdkEditableProperties">
             <table>
                 <tbody>
                 <tr v-for="field in sortedFields">
                     <td class="label">{{field.label}}:</td>
                     <td>
-                        <template v-if="field.hasOwnProperty('disabled') && field.disabled">
+                        <template v-if="field.type !== 'check' && field.hasOwnProperty('disabled') && field.disabled">
                             {{data[field.name]}}
                         </template>
                         <editable-field v-else-if="IsTextField(field)"

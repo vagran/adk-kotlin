@@ -58,16 +58,16 @@ export default {
          */
         hasSingleValue() {
             if (this.object === undefined) {
-                return true;
+                return true
             }
-            let type = this.GetType(this.object);
+            let type = this.GetType(this.object)
             return type === "null" || type === "number" || type === "boolean" ||
-                type === "string" || type === "function";
+                type === "string" || type === "function"
         },
 
         valueTagClass() {
-            let classes = {value: true};
-            classes["value_" + this.GetType(this.object)] = true;
+            let classes = {value: true}
+            classes["value_" + this.GetType(this.object)] = true
             return classes
         },
 
@@ -76,33 +76,33 @@ export default {
          */
         typeLabel() {
             if (this.object === undefined) {
-                return "U";
+                return "U"
             }
-            let type = this.GetType(this.object);
+            let type = this.GetType(this.object)
             switch (type) {
                 case "null":
                     /* Non-breaking space. */
-                    return "\u00a0\u00a0\u00a0";
+                    return "\u00a0\u00a0\u00a0"
                 case "number":
-                    return "123";
+                    return "123"
                 case "string":
-                    return "ABC";
+                    return "ABC"
                 case "boolean":
                     /* Checkbox symbol. */
-                    return this.object ? "\u2611" : "\u2610";
+                    return this.object ? "\u2611" : "\u2610"
                 case "array":
-                    return "[]";
+                    return "[]"
                 case "object":
-                    return "{}";
+                    return "{}"
                 case "function":
-                    return "F";
+                    return "F"
             }
-            return "?";
+            return "?"
         },
 
         typeLabelClass() {
-            let classes = {"typeLabel": true};
-            classes["typeLabel_" + this.GetType(this.object)] = true;
+            let classes = {"typeLabel": true}
+            classes["typeLabel_" + this.GetType(this.object)] = true
             return classes
         },
 
@@ -110,7 +110,7 @@ export default {
          * @return {number} Number of child elements for collection type.
          */
         elementsCount() {
-            return Object.keys(this.object).length;
+            return Object.keys(this.object).length
         },
 
         /**
@@ -118,17 +118,17 @@ export default {
          */
         singleValue() {
             if (this.object === undefined) {
-                return "undefined";
+                return "undefined"
             }
-            let type = this.GetType(this.object);
+            let type = this.GetType(this.object)
             if (type === "string") {
-                return '"' + this.object + '"';
+                return '"' + this.object + '"'
             } else if (type === "function") {
-                return this.object.name;
+                return this.object.name
             } else if (type === "null") {
-                return "null";
+                return "null"
             }
-            return this.object;
+            return this.object
         },
     },
 
@@ -138,26 +138,26 @@ export default {
          */
         GetType(obj) {
             if (obj === undefined) {
-                return "undefined";
+                return "undefined"
             }
-            let typeStr = typeof obj;
+            let typeStr = typeof obj
             if (this.object === null) {
-                return "null";
+                return "null"
             } else if (typeStr === "number" || typeStr === "boolean" || typeStr === "string" ||
                 typeStr === "function") {
-                return typeStr;
+                return typeStr
             } else if (typeStr === "object") {
                 if (Array.isArray(this.object)) {
-                    return "array";
+                    return "array"
                 } else {
-                    return "object";
+                    return "object"
                 }
             }
-            return "unknown";
+            return "unknown"
         },
 
         OnExpandToggle() {
-            this.isExpandedCur = !this.isExpandedCur;
+            this.isExpandedCur = !this.isExpandedCur
         },
     }
 }

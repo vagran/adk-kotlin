@@ -5,7 +5,7 @@
   -->
 
 <template>
-<div class="root" @click="_OnClick">
+<div class="wdkEditableField" @click="_OnClick">
     <template v-if="!editing">
         <span v-if="!isLink" class="label">{{value}}
             <q-icon class="text-blue-grey editButton" name="edit" size="xs"/></span>
@@ -58,30 +58,30 @@ export default {
     methods: {
         _OnClick() {
             if (this.editing) {
-                return;
+                return
             }
-            this.editedValue = this.value;
-            this.editing = true;
-            this.$nextTick(() => this.$refs.input.focus());
+            this.editedValue = this.value
+            this.editing = true
+            this.$nextTick(() => this.$refs.input.focus())
         },
 
         _OnCancel() {
-            this.editing = false;
+            this.editing = false
         },
 
         _OnEdited() {
             if (this.validator !== null) {
                 try {
-                    this.validator(this.editedValue);
+                    this.validator(this.editedValue)
                 } catch (e) {
-                    this.$refs.msgBox.Show("error", e.message, "Validation error");
-                    return;
+                    this.$refs.msgBox.Show("error", e.message, "Validation error")
+                    return
                 }
             }
-            this.editing = false;
+            this.editing = false
             // noinspection EqualityComparisonWithCoercionJS
             if (this.value != this.editedValue) {
-                this.$emit("input", this.editedValue);
+                this.$emit("input", this.editedValue)
             }
         }
     }
@@ -91,7 +91,7 @@ export default {
 
 <style scoped lang="less">
 
-.root {
+.wdkEditableField {
     display: inline-block;
     cursor: pointer;
 

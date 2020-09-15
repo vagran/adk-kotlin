@@ -12,6 +12,7 @@ import StatusViewTest from "@/pages/StatusViewTest"
 import EditableFieldTest from "@/pages/EditableFieldTest";
 import MessageBoxTest from "@/pages/MessageBoxTest";
 import ObjectViewTest from "@/pages/ObjectViewTest";
+import EditablePropertiesTest from "@/pages/EditablePropertiesTest";
 
 export default [
     { path: "/", redirect: "/home" },
@@ -22,5 +23,6 @@ export default [
     { path: "/EditableFieldTest", component: EditableFieldTest },
     { path: "/MessageBoxTest", component: MessageBoxTest },
     { path: "/ObjectViewTest", component: ObjectViewTest },
+    { path: "/EditablePropertiesTest", component: EditablePropertiesTest },
     { path: "*", component: PageNotFound }
 ]

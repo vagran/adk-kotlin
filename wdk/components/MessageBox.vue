@@ -103,9 +103,9 @@ export default {
          * @param title Optional title
          */
         Show(type, message, title) {
-            this.type = type;
-            this.message = message;
-            this.title = title !== undefined ? title : null;
+            this.type = type
+            this.message = message
+            this.title = title !== undefined ? title : null
             this.isShown = true
             this.$emit("input", true)
         }

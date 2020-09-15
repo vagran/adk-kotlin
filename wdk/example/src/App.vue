@@ -33,6 +33,9 @@
                     <q-item clickable v-close-popup to="/ObjectViewTest">
                         <q-item-section>ObjectView</q-item-section>
                     </q-item>
+                    <q-item clickable v-close-popup to="/EditablePropertiesTest">
+                        <q-item-section>EditableProperties</q-item-section>
+                    </q-item>
                 </q-list>
             </q-btn-dropdown>
         </q-toolbar>
