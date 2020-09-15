@@ -39,6 +39,10 @@ export async function PostRequest(url, data) {
         throw new PostRequestError(`Bad response: ${response.status} ${response.statusText}`, json)
     }
 
+    if (response.status === 204) {
+        return null
+    }
+
     return await response.json()
 }
 

@@ -44,7 +44,7 @@
                 <tr v-if="editItem !== null && info[idField] === editItem[idField]" class="editItem">
                     <td colspan="3">
                         <div class="editItemContainer">
-                            <wdk-tatus-view :status="editStatus" class="my-2" :isToast="true" />
+                            <wdk-status-view :status="editStatus" class="my-2" :isToast="true" />
                             <h1>Edit entity</h1>
                             <wdk-editable-properties :data="editItem" :fields="editFields"
                                                      @updated="_UpdateItem"/>
@@ -59,20 +59,20 @@
         </tbody>
     </table>
 
-    <form v-if="newUrl !== null" class="my-2" @submit.prevent="_NewEntity()">
-        <div v-if="newItemData !== null" class="newItemContainer my-2">
+    <form v-if="newUrl !== null" class="q-my-sm" @submit.prevent="_NewEntity()">
+        <div v-if="newItemData !== null" class="newItemContainer q-my-sm">
             <h1>Create new entity</h1>
-            <editable-properties :data="newItemData" :fields="editFields" @updated="_UpdateNewItem"/>
+            <wdk-editable-properties :data="newItemData" :fields="editFields"
+                                     @updated="_UpdateNewItem"/>
             <div class="closeLink">
                 <a class="closeLink" href="#" @click="newItemData = null">Close</a>
             </div>
         </div>
-        <div class="form-row">
-            <div v-if="newNameRequired" class="col-auto">
-                <input type="text" class="form-control" v-model="newName"
-                       :placeholder="newNamePlaceholder" />
+        <div>
+            <div v-if="newNameRequired">
+                <input type="text" v-model="newName" :placeholder="newNamePlaceholder" />
             </div>
-            <div class="col-auto">
+            <div>
                 <q-btn outline type="submit" padding="sm">Add</q-btn>
             </div>
         </div>
@@ -257,13 +257,13 @@ export default {
                 }
                 this.opStatus = "%>Processing..."
                 PostRequest(this.newUrl, this.newItemData)
-                    .done(result => {
+                    .then(result => {
                         this.status.op = null
                         this.$emit("onAdded", this.newItemData)
                         this.newItemData = null
                         this._Fetch()
                     })
-                    .fail(error => {
+                    .catch(error => {
                         console.error(error)
                         this.status.op = error
                     })
@@ -283,12 +283,12 @@ export default {
 
             this.opStatus = "%>Processing..."
             PostRequest(this.newUrl, name)
-                .done(result => {
+                .then(result => {
                     this.status.op = null
                     this.$emit("onAdded", name)
                     this._Fetch()
                 })
-                .fail(error => {
+                .catch(error => {
                     console.error(error)
                     this.status.op = error
                 })
@@ -304,12 +304,12 @@ export default {
             let req = this.deleteReq(info)
             this.status.op = "%>Processing..."
             PostRequest(req.url, req.params)
-                .done(result => {
+                .then(result => {
                     this.status.op = null
                     this.$emit("onDeleted", info)
                     this._Fetch()
                 })
-                .fail(error => {
+                .catch(error => {
                     console.error(error)
                     this.status.op = error
                 })
@@ -337,11 +337,11 @@ export default {
             if (this.modifyReq !== null) {
                 let req = this.modifyReq(this.editItem, field, value)
                 PostRequest(req.url, req.params)
-                    .done(result => {
+                    .then(result => {
                         this.editStatus = null
                         this._Fetch()
                     })
-                    .fail(error => {
+                    .catch(error => {
                         console.error(error)
                         this.editStatus = error
                     })
@@ -409,6 +409,7 @@ export default {
 
             h1 {
                 font-size: 0.9rem;
+                line-height: 1rem;
                 font-style: italic;
                 opacity: 0.8;
                 margin: 2px 5px 4px;
@@ -417,7 +418,7 @@ export default {
             div.closeLink {
                 text-align: right;
                 margin-right: 10px;
-                font-size: 0.9rem;
+                font-size: 0.9em;
             }
         }
 
@@ -447,6 +448,7 @@ export default {
 
         h1 {
             font-size: 0.9rem;
+            line-height: 1rem;
             font-style: italic;
             opacity: 0.8;
             margin: 2px 5px 4px;
