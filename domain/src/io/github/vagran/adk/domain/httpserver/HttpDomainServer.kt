@@ -28,8 +28,10 @@ import kotlin.reflect.jvm.jvmErasure
  */
 typealias HttpRequestHandler<T> = (request: HttpRequestContext) -> Deferred<T>?
 typealias HttpRequestHandlerAsync<T> = suspend (request: HttpRequestContext) -> T
-/** May throw exception (presumably HttpError) to prevent from further processing. */
-typealias HttpRequestHook = suspend (request: HttpRequestContext) -> Unit
+/** May throw exception (presumably HttpError) to prevent from further processing. May return object
+ * which is registered in the request context.
+ */
+typealias HttpRequestHook = suspend (request: HttpRequestContext) -> Any?
 
 /** Method node references to. */
 private typealias NodeMethod = suspend (Array<Any?>) -> Any?
@@ -98,7 +100,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
                        private val defaultErrorCode: Int = 500,
                        defEntityIdConverters: Map<KClass<*>, EntityIdConverterFunc<*>> = emptyMap()) {
 
-    var requestValidationHook: HttpRequestHook? = null
+    var globalHook: HttpRequestHook? = null
     var log: Logger? = null
     var accessLog: Logger? = null
     var authLog: Logger? = null
@@ -120,7 +122,10 @@ class HttpDomainServer(private val httpServer: HttpServer,
             accessLog?.Info("Request from %s - %s %s", request.remoteAddress, method, uri)
             try {
                 Deferred.ForFunc {
-                    requestValidationHook?.invoke(ctx)
+                    val hookResult = globalHook?.invoke(ctx)
+                    if (hookResult != null && hookResult !== Unit) {
+                        ctx.RegisterNode(hookResult)
+                    }
                     val def = handler(ctx)
                     return@ForFunc def?.Await()
                 }
@@ -229,6 +234,8 @@ class HttpDomainServer(private val httpServer: HttpServer,
          * node.
          */
         val entityIdConverter: EntityIdConverter?
+        /** Hooks in the controller if any. Empty for non-controller nodes. */
+        val hooks = ArrayList<HttpRequestHook>()
 
         init {
             if (func == null) {
@@ -376,6 +383,16 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     throw cause
                 } else {
                     throw e
+                }
+            }
+        }
+
+        suspend fun InvokeHooks(ctx: RequestContext)
+        {
+            hooks.forEach {
+                val result = it(ctx)
+                if (result != null && result !== Unit) {
+                    ctx.RegisterNode(result)
                 }
             }
         }
@@ -548,6 +565,7 @@ class HttpDomainServer(private val httpServer: HttpServer,
                     ?: throw HttpError(404, "Path not found", ctx)
                 if (node.controller != null) {
                     controller = node.controller
+                    node.InvokeHooks(reqCtx)
                 }
                 if (node.method != null) {
                     if (controller == null) {
@@ -632,6 +650,15 @@ class HttpDomainServer(private val httpServer: HttpServer,
         }
 
         for (func in ctrlClass.declaredMemberFunctions) {
+            if (func.findAnnotation<Hook>() != null) {
+                val hook: HttpRequestHook = if (func.isSuspend) {
+                    { ctx: HttpRequestContext -> func.callSuspend(ctrlNode.controller, ctx) }
+                } else {
+                    { ctx: HttpRequestContext -> func.call(ctrlNode.controller, ctx) }
+                }
+                ctrlNode.hooks.add(hook)
+                continue
+            }
             val ann = func.findAnnotation<Endpoint>() ?: continue
             val name =
                 if (ann.name.isEmpty()) {

@@ -12,7 +12,6 @@ import io.github.vagran.adk.LocalId
 import io.github.vagran.adk.async.CurrentThreadContext
 import io.github.vagran.adk.async.Task
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.params.ParameterizedTest

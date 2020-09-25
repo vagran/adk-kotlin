@@ -46,3 +46,9 @@ annotation class Endpoint(val name: String = "",
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class RepositoryIdConverter(val entityClass: KClass<*>)
+
+
+/** The method is a request hook which should conform to HttpRequestHook contract. */
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class Hook

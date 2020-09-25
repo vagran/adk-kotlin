@@ -14,6 +14,7 @@ import io.github.vagran.adk.omm.TypeToken
 import io.github.vagran.adk.log.LogConfiguration
 import io.github.vagran.adk.log.LogManager
 import com.sun.net.httpserver.HttpServer
+import io.github.vagran.adk.log.Logger
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
@@ -41,7 +42,7 @@ class WebServer {
         httpServer.executor = ctx.GetExecutor()
         httpServer.start()
 
-        domainServer.MountController("/Test", TestController())
+        domainServer.MountController("/Test", TestController(logManager.GetLogger("TestController")))
     }
 
     fun Stop()
@@ -83,7 +84,7 @@ class WebServer {
     }
 }
 
-class TestController {
+class TestController(val log: Logger) {
 
     class Request {
         lateinit var s: String
@@ -122,7 +123,7 @@ class TestController {
     @Endpoint
     fun Test5()
     {
-        println("test5")
+        log.Info("test5")
     }
 
     @Endpoint
@@ -197,7 +198,32 @@ class TestController {
             it.sum = id
         }
     }
+
+    @Hook
+    fun SessionHook(ctx: HttpRequestContext): TestSession
+    {
+        return TestSession(ctx.request.requestURI.toString())
+    }
+
+    @Endpoint
+    fun CheckSession(ctx: HttpRequestContext): String
+    {
+        return ctx.GetNode(TestSession::class).s
+    }
+
+    @Hook
+    fun UnitHook(ctx: HttpRequestContext)
+    {
+        log.Info(ctx.request.requestURI.toString())
+    }
+
+    @Hook
+    suspend fun SuspendHook(ctx: HttpRequestContext)
+    {}
 }
+
+
+class TestSession(val s: String)
 
 
 class TestEntity {
@@ -226,6 +252,23 @@ class TestEntity {
     suspend fun MethodWithArgs(x: Int, y: Int, z: Double): Int
     {
         return ((id + x + y) * z).roundToInt()
+    }
+
+    data class Point(
+        val x: Int,
+        val y: Int,
+        val z: Double)
+
+    @Endpoint(unpackArguments = false)
+    fun MethodWithArgsNoUnpack(pt: Point): Int
+    {
+        return ((id + pt.x + pt.y) * pt.z).roundToInt()
+    }
+
+    @Endpoint
+    fun CheckSession(ctx: HttpRequestContext): String
+    {
+        return ctx.GetNode(TestSession::class).s
     }
 }
 
@@ -489,6 +532,15 @@ private class ServerTest {
     }
 
     @Test
+    fun EntityTest7b()
+    {
+        assertEquals(30, SendRequest<Int>("/domain/Test/Entity/12/MethodWithArgsNoUnpack",
+                                          mapOf("x" to 20,
+                                                "y" to 28,
+                                                "z" to 0.5)))
+    }
+
+    @Test
     fun EntityTest8()
     {
         assertThrows(ResponseError::class.java) {
@@ -564,5 +616,17 @@ private class ServerTest {
         }
     }
 
-    //unpack args
+    @Test
+    fun SessionTest()
+    {
+        val s = SendRequest<String>("/domain/Test/CheckSession", null)
+        assertEquals("/domain/Test/CheckSession", s)
+    }
+
+    @Test
+    fun SessionTest2()
+    {
+        val s = SendRequest<String>("/domain/Test/Entity/42/CheckSession", null)
+        assertEquals("/domain/Test/Entity/42/CheckSession", s)
+    }
 }
