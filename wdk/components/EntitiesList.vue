@@ -73,7 +73,7 @@
                 <input type="text" v-model="newName" :placeholder="newNamePlaceholder" />
             </div>
             <div>
-                <q-btn outline type="submit" padding="sm">Add</q-btn>
+                <q-btn type="submit" color="primary" dense>Add</q-btn>
             </div>
         </div>
     </form>
