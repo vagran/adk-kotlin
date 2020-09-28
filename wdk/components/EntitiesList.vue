@@ -69,8 +69,8 @@
             </div>
         </div>
         <div class="newItemFooter">
-            <div v-if="newNameRequired">
-                <input type="text" v-model="newName" :placeholder="newNamePlaceholder" />
+            <div v-if="newNameRequired" class="q-my-sm">
+                <q-input dense v-model="newName" :label="newNamePlaceholder" />
             </div>
             <div>
                 <q-btn type="submit" color="primary" dense>Add</q-btn>
@@ -354,12 +354,19 @@ export default {
     },
 
     mounted() {
-        this.pollTimer = new PollTimer(this.refreshInterval)
-        this.pollTimer.Poll("fetch", () => this._Fetch())
+        if (this.fetchUrl != null) {
+            this.pollTimer = new PollTimer(this.refreshInterval)
+            this.pollTimer.Poll("fetch", () => this._Fetch())
+        } else {
+            this.pollTimer = null
+            this._Fetch()
+        }
     },
 
     beforeDestroy() {
-        this.pollTimer.Stop()
+        if (this.pollTimer != null) {
+            this.pollTimer.Stop()
+        }
     }
 }
 
