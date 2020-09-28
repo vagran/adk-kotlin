@@ -37,6 +37,9 @@
 
             Fetch result:
             <WdkStatusView :status="fetchResult" />
+
+            Aggregated:
+            <WdkStatusView :status="aggregated" />
         </q-card-section>
     </q-card>
 </q-page>
@@ -54,7 +57,12 @@ export default {
                 level: "info",
                 details: "Sample details\nLine 2\nLine3\n    Indented line"
             },
-            fetchResult: "%>Fetching..."
+            fetchResult: "%>Fetching...",
+            aggregated: {
+                svAggregated: true,
+                s1: "S>Success 1",
+                s2: "W>Warning 2"
+            }
         }
     },
 

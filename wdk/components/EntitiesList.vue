@@ -4,6 +4,15 @@
   - See LICENSE file for full license details.
   -->
 
+<!--
+Events:
+ * onFetched(fetchedObject)
+ * onAdded(name | newItemData) - argument depends on add mode.
+ * onDeleted(info)
+ * onEdit(info) - edit triggered without built-in editor enabled.
+ * onModify(info, fieldName, newValue) - field value modified in built-in editor.
+-->
+
 <template>
 
 <q-card class="WdkEntitiesList">
@@ -199,7 +208,7 @@ export default {
                 fetch: "%>Loading",
                 op: null
             },
-            entities: null,
+            fetchedEntities: null,
             newName: null,
             editItem: null,
             editStatus: null,
@@ -208,6 +217,17 @@ export default {
     },
 
     computed: {
+        entities() {
+            let result = this.providedEntities != null ?
+                this.providedEntities : this.fetchedEntities
+            if (result == null || this.sortFunc == null) {
+                return result
+            }
+            result = [...result]
+            result.sort(this.sortFunc)
+            return result
+        },
+
         prefixInfoSpecified() {
             return !!this.$scopedSlots["prefixInfo"]
         },
@@ -223,20 +243,13 @@ export default {
                 return PostRequest(this.fetchUrl)
                     .then(result => {
                         this.status.fetch = null
-                        if (this.sortFunc !== null) {
-                            result.sort(this.sortFunc)
-                        }
-                        this.entities = result
+                        this.fetchedEntities = result
                         this.$emit("fetched", result)
                     })
                     .catch(error => {
                         console.error(error)
                         this.status.fetch = error
                     })
-            } else {
-                this.status.fetch = null
-                this.entities = this.providedEntities
-                return new Promise(resolve => resolve())
             }
         },
 
@@ -255,7 +268,7 @@ export default {
                     }
                     return
                 }
-                this.opStatus = "%>Processing..."
+                this.status.op = "%>Processing..."
                 PostRequest(this.newUrl, this.newItemData)
                     .then(result => {
                         this.status.op = null
@@ -281,7 +294,7 @@ export default {
                 this.newName = null
             }
 
-            this.opStatus = "%>Processing..."
+            this.status.op = "%>Processing..."
             PostRequest(this.newUrl, name)
                 .then(result => {
                     this.status.op = null
@@ -358,8 +371,8 @@ export default {
             this.pollTimer = new PollTimer(this.refreshInterval)
             this.pollTimer.Poll("fetch", () => this._Fetch())
         } else {
+            this.status.fetch = null
             this.pollTimer = null
-            this._Fetch()
         }
     },
 
