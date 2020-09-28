@@ -121,6 +121,10 @@ export default {
                     ],
                     order: 13
                 },
+
+                hiddenField: {
+                    hidden: true
+                }
             },
 
             arrayFields: [{
@@ -143,6 +147,9 @@ export default {
                 name: "string",
                 label: "String",
                 type: "string"
+            }, {
+                name: "hiddenField",
+                hidden: true
             }],
 
             data: {
@@ -159,7 +166,8 @@ export default {
                 option: "OPTION_1",
                 disabledOption: "OPTION_2",
                 complexOption: "OPTION_3",
-                noFieldValue: 100
+                noFieldValue: 100,
+                hiddenField: "this is hidden"
             }
         }
     },

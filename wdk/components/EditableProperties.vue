@@ -53,6 +53,9 @@
  *          disabled: true,
  *          order: 1
  *      },
+ *      hiddenField: {
+ *          hidden: true
+ *      },
  *      linkField: {
  *          isLink: true
  *      },
@@ -100,7 +103,9 @@ export default {
                     if (!field.hasOwnProperty("label")) {
                         field.label = field.name
                     }
-                    fields.push(field)
+                    if (!field.hasOwnProperty("hidden") || !field.hidden) {
+                        fields.push(field)
+                    }
                     fieldsSeen.add(field.name)
                 }
                 if (!this.matchedOnly) {
@@ -134,7 +139,12 @@ export default {
                     if (!field.hasOwnProperty("name")) {
                         field.name = fieldName
                     }
-                    fields.push(field)
+                    if (!field.hasOwnProperty("label")) {
+                        field.label = fieldName
+                    }
+                    if (!field.hasOwnProperty("hidden") || !field.hidden) {
+                        fields.push(field)
+                    }
                 }
                 fields.sort((f1, f2) => {
                     if (f1.hasOwnProperty("order")) {
