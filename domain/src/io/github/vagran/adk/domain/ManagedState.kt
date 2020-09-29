@@ -7,6 +7,7 @@
 package io.github.vagran.adk.domain
 
 import io.github.vagran.adk.EnumFromString
+import io.github.vagran.adk.domain.ManagedState.ValueValidator
 import java.util.*
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -17,7 +18,28 @@ import kotlin.reflect.KProperty
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
+/** Intermediate entity representation. Value can be either raw value of entity field, EntityInfo
+ * of nested entity (if it implements IEntity interface) and collection (list or map) of any type
+ * above.
+ */
 typealias EntityInfo = Map<String, Any?>
+
+interface IEntity {
+    /** Get entity info of the specified info level and group.
+     * @param level Info level, -1 to all fields.
+     */
+    fun GetInfo(level: Int = 0, group: Any? = null): EntityInfo
+    /** Entity with all fields included. */
+    fun ViewMap(): EntityInfo
+}
+
+/** Helper class for implementing IEntity interface by aggregated state object. */
+open class EntityBase(protected open val state: ManagedState): IEntity by state {
+    override fun toString(): String
+    {
+        return state.toString()
+    }
+}
 
 /** Encapsulates entity state. Typical use cases:
  * * Create new state with some default values and some specified values.
@@ -40,7 +62,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                    val lock: ReadWriteLock? = ReentrantReadWriteLock(),
                    private val commitHandler: ((state: EntityInfo) -> Unit)? = null,
                    private val asyncCommitHandler: (suspend (state: EntityInfo) -> Unit)? = null,
-                   private val fullCommit: Boolean = false) {
+                   private val fullCommit: Boolean = false): IEntity {
 
     fun interface ValueValidator<T> {
         /** Throw exception if validation failed.
@@ -64,6 +86,10 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         fun Provide(): T
     }
 
+    fun interface Factory<T> {
+        fun Create(loadFrom: EntityInfo): T
+    }
+
     class ValidationError(msg: String, cause: Throwable): Exception(msg, cause)
 
     inner class DelegateProvider<T>(private val isId: Boolean,
@@ -73,10 +99,10 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         operator fun provideDelegate(thisRef: Any,
                                      prop: KProperty<*>): IDelegate<T>
         {
-            val value = GetDefaultValue(prop, defValue)
+            val value = GetDefaultValue(prop, defValue, factory, elementFactory)
             validator?.Validate(value, value)
             return DelegateImpl(prop, isId, isParam, value,
-                                validator, infoLevel, infoGroup).also {
+                                validator, infoLevel, infoGroup, factory, elementFactory).also {
                 values[prop.name] = it
                 if (isId) {
                     idValue?.also {
@@ -117,9 +143,25 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             return this
         }
 
+        /** Factory for nested type. */
+        fun Factory(factory: Factory<T>): DelegateProvider<T>
+        {
+            this.factory = factory
+            return this
+        }
+
+        /** Factory for element of a collection of nested type. */
+        fun ElementFactory(elementFactory: Factory<*>): DelegateProvider<T>
+        {
+            this.elementFactory = elementFactory
+            return this
+        }
+
         private var validator: ValueValidator<T>? = null
         private var infoLevel = if (isParam || isId) 0 else -1
         private var infoGroup: Any? = null
+        private var factory: Factory<T>? = null
+        private var elementFactory: Factory<*>? = null
     }
 
     interface IDelegate<T> {
@@ -237,15 +279,12 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         }
     }
 
-    fun GetInfo(level: Int = 0, group: Any? = null): EntityInfo
+    override fun GetInfo(level: Int, group: Any?): EntityInfo
     {
-        if (level < 0) {
-            throw IllegalArgumentException("Bad info level value")
-        }
         return GetMap(level, group)
     }
 
-    fun ViewMap(): EntityInfo
+    override fun ViewMap(): EntityInfo
     {
         return GetMap(-1, null)
     }
@@ -270,13 +309,16 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         private var value: T,
         private val validator: ValueValidator<T>?,
         val infoLevel: Int,
-        val infoGroup: Any?): IDelegate<T> {
+        val infoGroup: Any?,
+        val factory: Factory<T>?,
+        val elementFactory: Factory<*>?): IDelegate<T> {
 
         val name = prop.name
         val isNullable = prop.returnType.isMarkedNullable
         val isMutable = !isId && prop is KMutableProperty
         val curValue get() = value
         val cls = prop.returnType.jvmErasure
+        val elementCls = GetElementClass(prop)
 
         @Suppress("UNCHECKED_CAST")
         override operator fun getValue(thisRef: Any, prop: KProperty<*>): T
@@ -315,7 +357,48 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
 
         fun TransformValue(value: Any?): T
         {
-            return TransformValue(name, cls, value)
+            return TransformValue(name, cls, value, factory, elementFactory, elementCls)
+        }
+
+        /** @return True if should be included into the specified info level and group. */
+        fun CheckInfoLevel(infoLevel: Int, infoGroup: Any?): Boolean
+        {
+            return infoLevel == -1 ||
+                    (this.infoLevel != -1 && this.infoLevel <= infoLevel &&
+                     infoGroup === this.infoGroup)
+        }
+
+        fun GetInfoValue(infoLevel: Int, infoGroup: Any?): Any?
+        {
+            val value = value ?: return null
+            if (value is IEntity) {
+                return value.GetInfo(infoLevel, infoGroup)
+            }
+            if (elementCls != null && elementCls.isSubclassOf(IEntity::class)) {
+                if (value is List<*>) {
+                    if (value.size == 0) {
+                        return emptyList<Any?>()
+                    }
+                    val result = ArrayList<Any?>()
+                    for (element in value) {
+                        val entity = element as? IEntity
+                        result.add(entity?.GetInfo(infoLevel, infoGroup) ?: element)
+                    }
+                    return result
+
+                } else if (value is Map<*, *>) {
+                    if (value.size == 0) {
+                        return emptyMap<Any?, Any?>()
+                    }
+                    val result = TreeMap<Any?, Any?>()
+                    for ((key, element) in value.entries) {
+                        val entity = element as? IEntity
+                        result[key] = (entity?.GetInfo(infoLevel, infoGroup) ?: element)
+                    }
+                    return result
+                }
+            }
+            return value
         }
     }
 
@@ -369,8 +452,36 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
 
     private companion object {
         @Suppress("UNCHECKED_CAST")
-        fun <T> TransformValue(name: String, cls: KClass<*>, value: Any?): T
+        fun <T> TransformValue(name: String, cls: KClass<*>, value: Any?, factory: Factory<T>?,
+                               elementFactory: Factory<*>?, elementCls: KClass<*>?): T
         {
+            if (factory != null && value is Map<*, *>) {
+                return factory.Create(value as EntityInfo) as T
+            }
+            if (elementFactory != null) {
+                if (value is List<*>) {
+                    if (value.size == 0) {
+                        return value as T
+                    }
+                    val result = ArrayList<Any?>()
+                    for ((idx, element) in value.withIndex()) {
+                        result.add(TransformValue("$name[$idx]", elementCls!!, element,
+                                                  elementFactory, null, null))
+                    }
+                    return result as T
+                }
+                if (value is Map<*, *>) {
+                    if (value.size == 0) {
+                        return value as T
+                    }
+                    val result = HashMap<Any?, Any?>()
+                    for ((key, element) in value.entries) {
+                        result[key] = TransformValue("$name[$key]", elementCls!!, element,
+                                                     elementFactory, null, null)
+                    }
+                    return result as T
+                }
+            }
             if (cls.isSubclassOf(Enum::class) && value is String) {
                 try {
                     return EnumFromString(cls, value) as T
@@ -389,6 +500,33 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             }
             return value as T
         }
+
+        /** Get element type of collection type property. */
+        fun GetElementClass(prop: KProperty<*>): KClass<*>?
+        {
+            val cls = prop.returnType.jvmErasure
+            return when {
+                cls.isSubclassOf(List::class) -> {
+                    if (prop.returnType.arguments.size != 1) {
+                        throw Error("One type argument expected for type of property $prop")
+                    }
+                    val type = prop.returnType.arguments[0].type ?:
+                        throw Error("No element type found for list")
+                    type.jvmErasure
+                }
+
+                cls.isSubclassOf(Map::class) -> {
+                    if (prop.returnType.arguments.size != 2) {
+                        throw Error("Two type arguments expected for type of property $prop")
+                    }
+                    val type = prop.returnType.arguments[1].type ?:
+                        throw Error("No element type found for map")
+                    type.jvmErasure
+                }
+
+                else -> null
+            }
+        }
     }
 
     init {
@@ -398,7 +536,8 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T> GetDefaultValue(prop: KProperty<*>, defValue: DefaultValueProvider<T>?): T
+    private fun <T> GetDefaultValue(prop: KProperty<*>, defValue: DefaultValueProvider<T>?,
+                                    factory: Factory<T>?, elementFactory: Factory<*>?): T
     {
         val name = prop.name
         val isNullable = prop.returnType.isMarkedNullable
@@ -415,7 +554,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                 if (v == null && !isNullable) {
                     throw Error("Null value loaded for non-nullable property '$name'")
                 }
-                return TransformValue(name, cls, v)
+                return TransformValue(name, cls, v, factory, elementFactory, GetElementClass(prop))
             }
         }
         if (defValue != null) {
@@ -529,10 +668,8 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         val lock = this.lock?.readLock()
         lock?.lock()
         for ((name, value) in values) {
-            if (infoLevel == -1 ||
-                (value.infoLevel != -1 && value.infoLevel <= infoLevel &&
-                 infoGroup === value.infoGroup)) {
-                result[name] = value.curValue
+            if (value.CheckInfoLevel(infoLevel, infoGroup)) {
+                result[name] = value.GetInfoValue(infoLevel, infoGroup)
             }
         }
         if (infoLevel != -1) {

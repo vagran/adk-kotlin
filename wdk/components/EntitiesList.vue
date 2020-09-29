@@ -79,7 +79,7 @@ Events:
         </div>
         <div class="newItemFooter">
             <div v-if="newNameRequired" class="q-my-sm">
-                <q-input dense v-model="newName" :label="newNamePlaceholder" />
+                <q-input dense v-model="newName" class="newName" :label="newNamePlaceholder" />
             </div>
             <div>
                 <q-btn type="submit" color="primary" dense>Add</q-btn>
@@ -231,7 +231,6 @@ export default {
         prefixInfoSpecified() {
             return !!this.$scopedSlots["prefixInfo"]
         },
-
         suffixInfoSpecified() {
             return !!this.$scopedSlots["suffixInfo"]
         }
@@ -484,6 +483,10 @@ export default {
 
     .newItemFooter {
         clear: left;
+
+        .newName {
+            max-width: 400px;
+        }
     }
 }
 </style>

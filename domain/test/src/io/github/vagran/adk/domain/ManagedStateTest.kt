@@ -12,13 +12,16 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
+import java.util.concurrent.locks.ReadWriteLock
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ManagedStateTest {
 
-    class A(id: String = "someId", loadFrom: EntityInfo? = null) {
-        val state = ManagedState(loadFrom)
+    class A(id: String = "someId", loadFrom: EntityInfo? = null):
+        EntityBase(ManagedState(loadFrom)) {
+
+        public override val state get() = super.state
 
         enum class Type {
             T1,
@@ -48,8 +51,26 @@ private class ManagedStateTest {
                 throw Error("Should be even")
             }
         }
+
+        inner class B(loadFrom: EntityInfo? = null, lock: ReadWriteLock? = null,
+                      s: String = "nested-string"):
+            EntityBase(ManagedState(loadFrom, lock = lock)) {
+
+            val s by state.Param(s)
+        }
+
+        val b by state.Param{ CreateB() }.Factory(this::CreateB)
+
+        fun CreateB(loadFrom: EntityInfo? = null): B
+        {
+            return B(loadFrom, state.lock)
+        }
+
+        val bList by state.Param{ listOf(B(s = "list")) }.ElementFactory(this::CreateB)
+        val bMap by state.Param{ mapOf("z" to B(s = "map")) }.ElementFactory(this::CreateB)
     }
 
+    @Suppress("UNCHECKED_CAST")
     @Test
     fun Basic()
     {
@@ -67,6 +88,9 @@ private class ManagedStateTest {
         assertEquals(0.0, a.d)
         assertEquals(42, a.i2)
         assertEquals(43.0, a.d2)
+        assertEquals("nested-string", a.b.s)
+        assertEquals("list", a.bList[0].s)
+        assertEquals("map", a.bMap.getValue("z").s)
 
         val checkInfo0 = {
             info: EntityInfo ->
@@ -76,6 +100,9 @@ private class ManagedStateTest {
             assertEquals(A.Type.T1, info["type"])
             assertEquals(0, info["i"])
             assertEquals(0.0, info["d"])
+            assertEquals("nested-string", (info["b"] as EntityInfo)["s"])
+            assertEquals("list", (info["bList"] as List<EntityInfo>)[0]["s"])
+            assertEquals("map", (info["bMap"] as Map<String, EntityInfo>).getValue("z")["s"])
         }
 
         val checkInfo1 = {
@@ -92,19 +119,19 @@ private class ManagedStateTest {
 
         run {
             val info = a.state.GetInfo()
-            assertEquals(6, info.size)
+            assertEquals(9, info.size)
             checkInfo0(info)
         }
 
         run {
             val info = a.state.GetInfo(1)
-            assertEquals(7, info.size)
+            assertEquals(10, info.size)
             checkInfo1(info)
         }
 
         run {
             val info = a.state.GetInfo(2)
-            assertEquals(8, info.size)
+            assertEquals(11, info.size)
             checkInfo2(info)
         }
 
@@ -130,7 +157,16 @@ private class ManagedStateTest {
                             "desc" to "myDesc",
                             "type" to A.Type.T2,
                             "i" to 41,
-                            "d" to 11.0))
+                            "d" to 11.0,
+                            "b" to mapOf("s" to "loaded"),
+                            "bList" to listOf(
+                                mapOf("s" to "item1"),
+                                mapOf("s" to "item2")
+                            ),
+                            "bMap" to mapOf(
+                                "a" to mapOf("s" to "itemA"),
+                                "b" to mapOf("s" to "itemB")
+                            )))
 
         assertEquals("myId", a.id)
         assertEquals("string", a.s)
@@ -141,6 +177,13 @@ private class ManagedStateTest {
         assertEquals(11.0, a.d)
         assertEquals(42, a.i2)
         assertEquals(43.0, a.d2)
+        assertEquals("loaded", a.b.s)
+        assertEquals(2, a.bList.size)
+        assertEquals("item1", a.bList[0].s)
+        assertEquals("item2", a.bList[1].s)
+        assertEquals(2, a.bMap.size)
+        assertEquals("itemA", a.bMap.getValue("a").s)
+        assertEquals("itemB", a.bMap.getValue("b").s)
     }
 
     @Test
