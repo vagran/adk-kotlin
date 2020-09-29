@@ -122,7 +122,7 @@ class ListCodec(private val type: KType, private val mapper: MongoMapper): Mongo
     private companion object {
         fun GetElementClass(type: KType): KClass<*>?
         {
-            return type.arguments[0].type?.jvmErasure
+            return type.arguments.firstOrNull()?.type?.jvmErasure
         }
     }
 }
