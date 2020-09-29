@@ -24,6 +24,10 @@ import kotlin.reflect.jvm.jvmErasure
  */
 typealias EntityInfo = Map<String, Any?>
 
+typealias EntityCommitHandler = (state: EntityInfo) -> Unit
+
+typealias EntityAsyncCommitHandler = suspend (state: EntityInfo) -> Unit
+
 interface IEntity {
     /** Get entity info of the specified info level and group.
      * @param level Info level, -1 to all fields.
@@ -60,8 +64,8 @@ open class EntityBase(protected open val state: ManagedState): IEntity by state 
  */
 class ManagedState(private var loadFrom: EntityInfo? = null,
                    val lock: ReadWriteLock? = ReentrantReadWriteLock(),
-                   private val commitHandler: ((state: EntityInfo) -> Unit)? = null,
-                   private val asyncCommitHandler: (suspend (state: EntityInfo) -> Unit)? = null,
+                   private val commitHandler: EntityCommitHandler? = null,
+                   private val asyncCommitHandler: EntityAsyncCommitHandler? = null,
                    private val fullCommit: Boolean = false): IEntity {
 
     fun interface ValueValidator<T> {
@@ -289,6 +293,22 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         return GetMap(-1, null)
     }
 
+    /** Get field representation in info structure. Useful for nested entities. */
+    fun GetFieldInfoValue(fieldName: String, level: Int = 0, group: Any? = null): Any?
+    {
+        val lock = this.lock?.readLock()
+        lock?.lock()
+        val value = values[fieldName] ?: throw Error("Field not found: $fieldName")
+        val result = value.GetInfoValue(level, group)
+        lock?.unlock()
+        return result
+    }
+
+    fun GetFieldInfoValue(field: KProperty<*>, level: Int = 0, group: Any? = null): Any?
+    {
+        return GetFieldInfoValue(field.name, level, group)
+    }
+
     override fun toString(): String
     {
         return GetInfo().toString()
@@ -431,7 +451,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             if (fullCommit) {
                 for ((name, value) in values) {
                     if (name !in data) {
-                        data[name] = value.curValue
+                        data[name] = value.GetInfoValue(-1, null)
                     }
                 }
             } else {
@@ -456,7 +476,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                                elementFactory: Factory<*>?, elementCls: KClass<*>?): T
         {
             if (factory != null && value is Map<*, *>) {
-                return factory.Create(value as EntityInfo) as T
+                return factory.Create(value as EntityInfo)
             }
             if (elementFactory != null) {
                 if (value is List<*>) {

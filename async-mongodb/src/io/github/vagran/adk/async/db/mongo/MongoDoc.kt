@@ -14,7 +14,8 @@ typealias MongoDocBuilderFunc = MongoDoc.() -> Unit
 /** BSON document builder with more convenient syntax. */
 class MongoDoc(builderFunc: MongoDocBuilderFunc): Document() {
 
-    class UpdateDocs(val filter: Document, val update: Document)
+    class UpdateDocs(val filter: Document, val update: Document,
+                     val arrayFilters: List<Document>? = null)
 
     companion object {
         /** Create update documents based on map which has fields to set new values for. ID field
@@ -23,13 +24,8 @@ class MongoDoc(builderFunc: MongoDocBuilderFunc): Document() {
         fun SetUpdate(data: Map<String, Any?>, idFieldName: String = "_id",
                       idIsObjectId: Boolean = true): UpdateDocs
         {
-            val id = data[idFieldName] ?: throw Error("ID field missing: $idFieldName")
-            val _id = if (idIsObjectId && id !is ObjectId) {
-                ObjectId(id as String)
-            } else {
-                id
-            }
-            val filter = MongoDoc("_id", _id)
+            val id = GetId(data, idFieldName, idIsObjectId)
+            val filter = MongoDoc("_id", id)
             val update = Document()
             for ((key, value) in data) {
                 if (key != idFieldName) {
@@ -37,6 +33,35 @@ class MongoDoc(builderFunc: MongoDocBuilderFunc): Document() {
                 }
             }
             return UpdateDocs(filter, Document("\$set", update))
+        }
+
+        /** Create update documents for array element update. It assumes that the element has
+         * ID field (with name `idFieldName`) which is matched with one in the update data. Then
+         * specified fields in the array element are set.
+         */
+        fun SetArrayUpdate(docId: Any, arrayFieldName: String, data: Map<String, Any?>,
+                           idFieldName: String = "_id", idIsObjectId: Boolean = true): UpdateDocs
+        {
+            val id = GetId(data, idFieldName, idIsObjectId)
+            val filter = MongoDoc("_id", docId)
+            val update = Document()
+            for ((key, value) in data) {
+                if (key != idFieldName) {
+                    update.append("$arrayFieldName.\$[element].$key", value)
+                }
+            }
+            val arrayFilters = listOf(Document("element.$idFieldName", id))
+            return UpdateDocs(filter, Document("\$set", update), arrayFilters)
+        }
+
+        private fun GetId(data: Map<String, Any?>, idFieldName: String, idIsObjectId: Boolean): Any
+        {
+            val id = data[idFieldName] ?: throw Error("ID field missing: $idFieldName")
+            return if (idIsObjectId && id !is ObjectId) {
+                ObjectId(id as String)
+            } else {
+                id
+            }
         }
     }
 
