@@ -20,6 +20,7 @@
       <module fileurl="file://$PROJECT_DIR$/gui-utils/gui-utils.iml" filepath="$PROJECT_DIR$/gui-utils/gui-utils.iml" />
       <module fileurl="file://$PROJECT_DIR$/gui-utils/test/gui-utils.test.iml" filepath="$PROJECT_DIR$/gui-utils/test/gui-utils.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/html/html.iml" filepath="$PROJECT_DIR$/html/html.iml" />
+      <module fileurl="file://$PROJECT_DIR$/html/html_domain/html.html_domain.iml" filepath="$PROJECT_DIR$/html/html_domain/html.html_domain.iml" />
       <module fileurl="file://$PROJECT_DIR$/html/html_json/html.html_json.iml" filepath="$PROJECT_DIR$/html/html_json/html.html_json.iml" />
       <module fileurl="file://$PROJECT_DIR$/html/html_mongo/html.html_mongo.iml" filepath="$PROJECT_DIR$/html/html_mongo/html.html_mongo.iml" />
       <module fileurl="file://$PROJECT_DIR$/html/test/html.test.iml" filepath="$PROJECT_DIR$/html/test/html.test.iml" />
