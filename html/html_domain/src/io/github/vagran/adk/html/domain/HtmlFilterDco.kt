@@ -12,9 +12,8 @@ import io.github.vagran.adk.omm.OmmField
  * HtmlFilterEditor component.
  */
 class HtmlFilterDco(@OmmField(delegatedRepresentation = true) val filter: HtmlFilter,
-                    private val modifyLockFunc: ((req: HttpRequestContext,
-                                                  block: () -> Unit) -> Unit)? = null,
-                    private val modifyListener: (suspend (req: HttpRequestContext) -> Unit)? = null) {
+                    private val modifyWrapperFunc: (suspend (req: HttpRequestContext,
+                                                             block: () -> Unit) -> Unit)? = null) {
 
     /**
      * Get list of selectors string representation for the specified filter node. Selectors are all
@@ -105,11 +104,10 @@ class HtmlFilterDco(@OmmField(delegatedRepresentation = true) val filter: HtmlFi
 
     private suspend fun Modify(req: HttpRequestContext, op: () -> Unit)
     {
-        if (modifyLockFunc != null) {
-            modifyLockFunc.invoke(req, op)
+        if (modifyWrapperFunc != null) {
+            modifyWrapperFunc.invoke(req, op)
         } else {
             op()
         }
-        modifyListener?.invoke(req)
     }
 }

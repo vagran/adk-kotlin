@@ -283,6 +283,18 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         }
     }
 
+    /** Mark field dirty so that it is included into commit data. */
+    fun MarkDirty(fieldName: String)
+    {
+        val t = transaction.get() ?: throw IllegalStateException("No active transaction")
+        t.SetDirty(fieldName)
+    }
+
+    fun MarkDirty(field: KProperty<*>)
+    {
+        MarkDirty(field.name)
+    }
+
     override fun GetInfo(level: Int, group: Any?): EntityInfo
     {
         return GetMap(level, group)
@@ -424,6 +436,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
 
     private inner class Transaction {
         val newValues = TreeMap<String, Any?>()
+        val dirtyValues = TreeSet<String>()
         var nestCount = 1
 
         fun Mutate(params: EntityInfo)
@@ -445,6 +458,11 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             newValues[name] = d.TransformValue(value)
         }
 
+        fun SetDirty(name: String)
+        {
+            dirtyValues.add(name)
+        }
+
         fun GetCommitData(): EntityInfo
         {
             val data = TreeMap<String, Any?>(newValues)
@@ -455,6 +473,13 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                     }
                 }
             } else {
+                for (name in dirtyValues) {
+                    if (name in newValues) {
+                        continue
+                    }
+                    val v = values[name] ?: throw Error("Field not found: $name")
+                    data[name] = v.GetInfoValue(-1, null)
+                }
                 idValue?.also {
                     data[it.name] = it.curValue
                 }
