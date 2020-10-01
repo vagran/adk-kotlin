@@ -94,7 +94,7 @@ open class TypeToken<T> {
         if (javaType !is WildcardType) {
             return KTypeProjection.invariant(CreateType(javaType))
         }
-        if (!javaType.lowerBounds.isEmpty()) {
+        if (javaType.lowerBounds.isNotEmpty()) {
             return KTypeProjection.contravariant(CreateType(javaType.lowerBounds[0]))
         }
         if (javaType.upperBounds[0] == java.lang.Object::class.java) {

@@ -600,6 +600,7 @@ class HtmlFilter {
     }
 
     /** Restore parent links, e.g. after de-serialization. */
+    @OmmFinalizer
     fun SetParents()
     {
         IterateNodes(root, null) {

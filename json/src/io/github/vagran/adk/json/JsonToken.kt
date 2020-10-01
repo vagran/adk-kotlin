@@ -41,7 +41,7 @@ class JsonToken(val type: Type, val value: String) {
 
     fun Name(): String
     {
-        if (type != JsonToken.Type.NAME) {
+        if (type != Type.NAME) {
             throw JsonReadError("Expected name, have $this")
         }
         return value
@@ -49,28 +49,28 @@ class JsonToken(val type: Type, val value: String) {
 
     fun AssertBeginObject()
     {
-        if (type != JsonToken.Type.BEGIN_OBJECT) {
+        if (type != Type.BEGIN_OBJECT) {
             throw JsonReadError("Expected object begin, have $this")
         }
     }
 
     fun AssertEndObject()
     {
-        if (type != JsonToken.Type.END_OBJECT) {
+        if (type != Type.END_OBJECT) {
             throw JsonReadError("Expected object end, have $this")
         }
     }
 
     fun AssertBeginArray()
     {
-        if (type != JsonToken.Type.BEGIN_ARRAY) {
+        if (type != Type.BEGIN_ARRAY) {
             throw JsonReadError("Expected array begin, have $this")
         }
     }
 
     fun AssertEndArray()
     {
-        if (type != JsonToken.Type.END_ARRAY) {
+        if (type != Type.END_ARRAY) {
             throw JsonReadError("Expected array end, have $this")
         }
     }
@@ -90,7 +90,7 @@ class JsonToken(val type: Type, val value: String) {
 
     fun StringValue(): String
     {
-        if (type != JsonToken.Type.STRING) {
+        if (type != Type.STRING) {
             throw JsonReadError("Expected string value, have $this")
         }
         return value
@@ -98,7 +98,7 @@ class JsonToken(val type: Type, val value: String) {
 
     fun IntValue(): Int
     {
-        if (type != JsonToken.Type.NUMBER) {
+        if (type != Type.NUMBER) {
             throw JsonReadError("Expected integer value, have $this")
         }
         return try {
@@ -110,7 +110,7 @@ class JsonToken(val type: Type, val value: String) {
 
     fun LongValue(): Long
     {
-        if (type != JsonToken.Type.NUMBER) {
+        if (type != Type.NUMBER) {
             throw JsonReadError("Expected long integer value, have $this")
         }
         return try {
@@ -122,7 +122,7 @@ class JsonToken(val type: Type, val value: String) {
 
     fun DoubleValue(): Double
     {
-        if (type != JsonToken.Type.NUMBER) {
+        if (type != Type.NUMBER) {
             throw JsonReadError("Expected double value, have $this")
         }
         return try {
@@ -134,7 +134,7 @@ class JsonToken(val type: Type, val value: String) {
 
     fun BooleanValue(): Boolean
     {
-        if (type != JsonToken.Type.BOOLEAN) {
+        if (type != Type.BOOLEAN) {
             throw JsonReadError("Expected boolean value, have $this")
         }
         return when {
@@ -142,5 +142,18 @@ class JsonToken(val type: Type, val value: String) {
             this === FALSE -> false
             else -> throw JsonReadError("Bad boolean value: $value")
         }
+    }
+
+    override fun equals(other: Any?): Boolean
+    {
+        other as JsonToken
+        if (type != other.type) {
+            return false
+        }
+        if (type != Type.NAME && type != Type.STRING && type != Type.BOOLEAN &&
+            type != Type.NUMBER) {
+            return true
+        }
+        return value == other.value
     }
 }

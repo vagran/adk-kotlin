@@ -8,7 +8,9 @@ import io.github.vagran.adk.html.HtmlFilterParser
 import io.github.vagran.adk.omm.OmmField
 
 
-/** Domain controller object for HtmlFilter instance. */
+/** Domain controller object for HtmlFilter instance. Can work in conjunction with WDK
+ * HtmlFilterEditor component.
+ */
 class HtmlFilterDco(@OmmField(delegatedRepresentation = true) val filter: HtmlFilter,
                     private val modifyLockFunc: ((req: HttpRequestContext,
                                                   block: () -> Unit) -> Unit)? = null,
