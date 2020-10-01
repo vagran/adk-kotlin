@@ -7,6 +7,8 @@
 /* Default refresh interval in ms for polled views. */
 export const REFRESH_INTERVAL = 1000
 
+export const MIN_INT = -2147483648
+
 export class PostRequestError extends Error {
     constructor(message, json) {
         super(message)

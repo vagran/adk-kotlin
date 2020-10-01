@@ -11,6 +11,8 @@ import WdkEntitiesList from "./components/EntitiesList"
 import WdkMessageBox from "./components/MessageBox"
 import WdkObjectView from "./components/ObjectView"
 import WdkStatusView from "./components/StatusView"
+import WdkHtmlFilter from "./components/html/HtmlFilter"
+import WdkHtmlFilterEditor from "./components/html/HtmlFilterEditor"
 
 const components = [
     WdkEditableField,
@@ -19,6 +21,8 @@ const components = [
     WdkMessageBox,
     WdkObjectView,
     WdkStatusView,
+    WdkHtmlFilter,
+    WdkHtmlFilterEditor
 ]
 
 function RegisterComponents(components) {

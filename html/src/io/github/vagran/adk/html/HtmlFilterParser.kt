@@ -12,6 +12,7 @@ import io.github.vagran.adk.CodeUnitsParser
 /**
  * Parses filter expression. The expression can be in form:
  * selector[; auxSelector][, selector[; auxSelector]]...
+ * @tag @~textTag
  * Auxiliary selector used for main selector adjusting (typically in alternative form, e.g. XPath).
  * XPath selector should be enclosed in curved braces. Otherwise it is treated as CSS selector.
  * Multiple selectors are merged into one filter instance.

@@ -38,7 +38,7 @@ Events:
                           :class="{editable: editable || editFields !== null}"
                           @click="_EditItem(info)">{{itemDisplayName(info)}}</span>
                     <a v-else-if="itemLink !== null" class="item" rel="noreferrer" :href="itemLink(info)">{{itemDisplayName(info)}}</a>
-                    <router-link :to="itemLinkTo(info)">{{itemDisplayName(info)}}</router-link>
+                    <router-link v-else :to="itemLinkTo(info)">{{itemDisplayName(info)}}</router-link>
                     <span v-if="editable || editFields !== null" class="button text-primary"
                           @click="_EditItem(info)"><q-icon name="edit"/></span>
                     <span v-if="deleteReq !== null"
@@ -103,7 +103,9 @@ import { REFRESH_INTERVAL, PollTimer, PostRequest } from "../common/utils"
 
 export default {
     name: "WdkEntitiesList",
-    components: {WdkStatusView, WdkMessageBox, WdkEditableProperties},
+
+    components: { WdkStatusView, WdkMessageBox, WdkEditableProperties },
+
     props: {
         title: {
             default: null
@@ -419,7 +421,7 @@ export default {
     }
 
     td.monospaceFont .item {
-        font-family: var(--font-family-monospace);
+        font-family: "Roboto Mono", monospace;
     }
 
     tr.editItem {
