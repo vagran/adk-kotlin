@@ -68,7 +68,7 @@ Events:
         </tbody>
     </table>
 
-    <form v-if="newUrl !== null" class="q-my-sm" @submit.prevent="_NewEntity()">
+    <form v-if="newUrl !== null" class="q-my-sm column items-start" @submit.prevent="_NewEntity()">
         <div v-if="newItemData !== null" class="newItemContainer q-my-sm">
             <h1>Create new entity</h1>
             <wdk-editable-properties :data="newItemData" :fields="editFields"
@@ -77,11 +77,11 @@ Events:
                 <a class="closeLink" href="#" @click="newItemData = null">Close</a>
             </div>
         </div>
-        <div class="newItemFooter">
-            <div v-if="newNameRequired" class="q-my-sm">
+        <div class="row items-baseline">
+            <div v-if="newNameRequired" class="q-my-sm col-auto">
                 <q-input dense v-model="newName" class="newName" :label="newNamePlaceholder" />
             </div>
-            <div>
+            <div class="col-auto q-mx-sm">
                 <q-btn type="submit" color="primary" dense>Add</q-btn>
             </div>
         </div>
@@ -466,7 +466,6 @@ export default {
 
     .newItemContainer {
         border: solid 1px #dddddd;
-        float: left;
 
         h1 {
             font-size: 0.9rem;
@@ -480,14 +479,6 @@ export default {
             text-align: right;
             margin-right: 10px;
             font-size: 0.9rem;
-        }
-    }
-
-    .newItemFooter {
-        clear: left;
-
-        .newName {
-            max-width: 400px;
         }
     }
 }

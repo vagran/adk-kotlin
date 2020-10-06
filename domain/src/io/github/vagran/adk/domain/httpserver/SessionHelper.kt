@@ -17,7 +17,8 @@ import java.net.HttpCookie
  */
 class SessionHelper<TSession>(private val cookieName: String,
                               private val timeout: Int,
-                              private val sessionFactory: (id: String) -> TSession) {
+                              private val sessionFactory: (id: String) -> TSession,
+                              private val closeHandler: ((session: TSession) -> Unit)? = null) {
 
     /** Get existing or create a new session object. */
     fun GetSession(reqCtx: HttpRequestContext): TSession
@@ -56,7 +57,10 @@ class SessionHelper<TSession>(private val cookieName: String,
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
-    private val sessions = LruCache<SessionWrapper<TSession>>(timeout * 1000L)
+    private val sessions = LruCache<SessionWrapper<TSession>>(
+        timeout * 1000L,
+        if (closeHandler != null) { { closeHandler.invoke(it.session) } } else null
+    )
 
     private class SessionWrapper<TSession>(val id: String, val session: TSession)
 }

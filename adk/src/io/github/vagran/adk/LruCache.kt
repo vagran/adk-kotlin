@@ -6,15 +6,16 @@
 
 package io.github.vagran.adk
 
-import java.lang.Math.abs
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.abs
 
 /**
  * @param timeout Entry expiration timeout in ms.
  */
-class LruCache<T>(val timeout: Long) {
+class LruCache<T>(val timeout: Long,
+                  private val closeHandler: ((data: T) -> Unit)? = null) {
 
     /** Remove entry from the cache.
      * @return true if entry removed, false if the specified entry not found.
@@ -49,7 +50,13 @@ class LruCache<T>(val timeout: Long) {
      */
     fun Get(id: String): T?
     {
-        return entries[id]?.also { it.Refresh() }?.data
+        while (true) {
+            val e = entries[id] ?: return null
+            if (!e.Refresh()) {
+                continue
+            }
+            return e.data
+        }
     }
 
     /** Try to get entry with the specified ID, create and insert new one if not found.
@@ -58,9 +65,13 @@ class LruCache<T>(val timeout: Long) {
      */
     fun ComputeIfAbsent(id: String, fabric: () -> T): T
     {
-        val e = entries.computeIfAbsent(id) { Entry(fabric(), id) }
-        e.Refresh()
-        return e.data
+        while (true) {
+            val e = entries.computeIfAbsent(id) { Entry(fabric(), id) }
+            if (!e.Refresh()) {
+                continue
+            }
+            return e.data
+        }
     }
 
     /** Cleanup expired entries. */
@@ -73,12 +84,13 @@ class LruCache<T>(val timeout: Long) {
             if (time > now) {
                 return
             }
-            val contexts = e.value
-            if (!contexts.expires.compareAndSet(time, -1)) {
+            val entry = e.value
+            if (!entry.expires.compareAndSet(time, -1)) {
                 continue
             }
             sessionLruList.remove(time)
-            entries.remove(contexts.id)
+            entries.remove(entry.id)
+            closeHandler?.invoke(entry.data)
         }
     }
 
