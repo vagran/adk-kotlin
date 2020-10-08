@@ -19,6 +19,7 @@ import kotlin.reflect.full.memberProperties
  * @param qualifiedOnly Do not process annotations without the specified qualifier.
  * @param enumByName Encode enums by name string instead of ordinal value.
  * @param serializeNulls Serialize null fields in mapped classes by default.
+ * @param setAccessible Override permissions check for accessed members.
  */
 data class OmmParams(
     val requireAllFields: Boolean = false,
@@ -30,7 +31,8 @@ data class OmmParams(
     val qualifier: String? = null,
     val qualifiedOnly: Boolean = false,
     val enumByName: Boolean = false,
-    val serializeNulls: Boolean = true
+    val serializeNulls: Boolean = true,
+    val setAccessible: Boolean = false
 ) {
 
     init {

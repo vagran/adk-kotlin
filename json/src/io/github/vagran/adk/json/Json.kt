@@ -62,6 +62,7 @@ class Json(
     allowInnerClasses: Boolean = true,
     qualifier: String? = "json",
     qualifiedOnly: Boolean = false,
+    setAccessible: Boolean = false,
     typeCodecs: Map<KType, JsonCodec<*>> = emptyMap(),
     classCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
     subclassCodecs: Map<KClass<*>, JsonCodecProvider> = emptyMap(),
@@ -260,7 +261,8 @@ class Json(
                                        allowInnerClasses = allowInnerClasses,
                                        requireLateinitVars = requireLateinitVars,
                                        qualifier = qualifier,
-                                       qualifiedOnly = qualifiedOnly)
+                                       qualifiedOnly = qualifiedOnly,
+                                       setAccessible = setAccessible)
     private val codecs = ConcurrentHashMap<KType, JsonCodec<*>>()
     private val registry = JsonCodecRegistry()
 

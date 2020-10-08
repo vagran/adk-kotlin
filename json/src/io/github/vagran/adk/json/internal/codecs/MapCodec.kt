@@ -66,6 +66,7 @@ class MapCodec(private val type: KType): JsonCodec<Map<*, *>> {
         } else {
             readElementCodec = json.GetCodec()
         }
+        setAccessible = json.ommParams.setAccessible
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,9 +74,10 @@ class MapCodec(private val type: KType): JsonCodec<Map<*, *>> {
     private lateinit var elementCodec: JsonCodec<Any>
     private lateinit var readElementCodec: JsonCodec<Any>
     private val constructor: ConstructorFunc?
+    private var setAccessible = false
 
     init {
-        val defCtr = GetDefaultConstructor(type.jvmErasure)
+        val defCtr = GetDefaultConstructor(type.jvmErasure, setAccessible)
         constructor = when {
             defCtr != null -> defCtr
             type.jvmErasure == Map::class || type.jvmErasure == MutableMap::class -> {

@@ -62,6 +62,7 @@ class ListCodec(private val type: KType): JsonCodec<Collection<*>> {
         } else {
             readElementCodec = json.GetCodec()
         }
+        setAccessible = json.ommParams.setAccessible
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,9 +70,10 @@ class ListCodec(private val type: KType): JsonCodec<Collection<*>> {
     private lateinit var elementCodec: JsonCodec<Any>
     private lateinit var readElementCodec: JsonCodec<Any>
     private val constructor: ConstructorFunc?
+    private var setAccessible = false
 
     init {
-        val defCtr = GetDefaultConstructor(type.jvmErasure)
+        val defCtr = GetDefaultConstructor(type.jvmErasure, setAccessible)
         constructor = when {
             defCtr != null -> defCtr
             type.jvmErasure == List::class || type.jvmErasure == MutableList::class ||

@@ -42,7 +42,8 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val index: Int,
         val dataCtrParam: KParameter?,
         val enumByName: Boolean,
-        val serializeNull: Boolean
+        val serializeNull: Boolean,
+        val setAccessible: Boolean
     )
 
     interface DefConstructor {
@@ -77,6 +78,10 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val setMap: Boolean
 
         init {
+            if (params.setAccessible) {
+                property.isAccessible = true
+            }
+
             enumMode = if (property.returnType.jvmErasure.isSubclassOf(Enum::class)) {
                 if (params.enumByName) {
                     EnumMode.NAME
@@ -189,10 +194,9 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
                                           fields.size,
                                           dataCtr?.findParameterByName(prop.name),
                                           fieldAnn?.enumByName?.booleanValue ?: enumByName,
-                                          fieldAnn?.serializeNull?.booleanValue ?: serializeNulls)
+                                          fieldAnn?.serializeNull?.booleanValue ?: serializeNulls,
+                                          params.setAccessible)
             val fieldNode = fieldNodeFabric(fieldParams)
-
-
 
             return@IterateFields if (drFieldPresent) {
                 delegatedRepresentationField = fieldNode
@@ -260,7 +264,7 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         } else {
             var defCtrMissingReason: String? = null
             defCtr = try {
-                GetDefaultConstructor(cls, params.acceptedVisibility)
+                GetDefaultConstructor(cls, params.acceptedVisibility, params.setAccessible)
             } catch (e: IllegalArgumentException) {
                 defCtrMissingReason = e.message
                 null
@@ -430,7 +434,8 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
     }
 }
 
-fun GetDefaultConstructor(cls: KClass<*>, visibility: KVisibility): OmmClassNode.DefConstructor
+fun GetDefaultConstructor(cls: KClass<*>, visibility: KVisibility,
+                          setAccessible: Boolean = false): OmmClassNode.DefConstructor
 {
     if (cls.isAbstract) {
         throw IllegalArgumentException("No constructor for abstract class")
@@ -448,7 +453,7 @@ fun GetDefaultConstructor(cls: KClass<*>, visibility: KVisibility): OmmClassNode
         if (ctrVisibility == null || ctrVisibility > visibility) {
             throw IllegalArgumentException("Unaccepted constructor visibility: $ctrVisibility")
         }
-        if (ctrVisibility > KVisibility.PUBLIC) {
+        if (ctrVisibility > KVisibility.PUBLIC || setAccessible) {
             ctr.isAccessible = true
         }
         return defCtr
@@ -459,7 +464,7 @@ fun GetDefaultConstructor(cls: KClass<*>, visibility: KVisibility): OmmClassNode
 private fun CheckConstructor(cls: KClass<*>, ctr: KFunction<*>): OmmClassNode.DefConstructor?
 {
     val isInner = cls.isInner
-    for (paramIdx in 0 until ctr.parameters.size) {
+    for (paramIdx in ctr.parameters.indices) {
         if (isInner && paramIdx == 0) {
             continue
         }

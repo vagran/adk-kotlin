@@ -41,6 +41,7 @@ class MongoMapper(
     allowInnerClasses: Boolean = true,
     qualifier: String? = "mongo",
     qualifiedOnly: Boolean = false,
+    setAccessible: Boolean = false,
     typeCodecs: Map<KType, Codec<*>> = emptyMap(),
     classCodecs: Map<KClass<*>, MongoCodecProvider> = emptyMap(),
     subclassCodecs: Map<KClass<*>, MongoCodecProvider> = emptyMap()
@@ -92,7 +93,8 @@ class MongoMapper(
                                        allowInnerClasses = allowInnerClasses,
                                        requireLateinitVars = requireLateinitVars,
                                        qualifier = qualifier,
-                                       qualifiedOnly = qualifiedOnly)
+                                       qualifiedOnly = qualifiedOnly,
+                                       setAccessible = setAccessible)
     private val codecs = ConcurrentHashMap<KType, Codec<*>>()
     private val builtinCodecProviders = listOf(BsonValueCodecProvider(),
                                                ValueCodecProvider(),
