@@ -6,6 +6,7 @@
 
 package io.github.vagran.adk.async
 
+import java.util.concurrent.CompletionStage
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.*
 
@@ -236,4 +237,18 @@ class Deferred<T> private constructor(): Awaitable<T> {
             subscribers = null
         }
     }
+}
+
+fun <T> CompletionStage<T>.ToDeferred(): Deferred<T>
+{
+    val def = Deferred.Create<T>()
+    whenComplete {
+        result, error ->
+        if (error != null) {
+            def.SetError(error)
+        } else {
+            def.SetResult(result)
+        }
+    }
+    return def
 }
