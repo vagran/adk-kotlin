@@ -38,7 +38,7 @@
 <script>
 import sampleImage from "@/assets/images/sample.svg"
 import {mapMutations, mapState} from "vuex"
-import SampleComponent from "@/components/SampleComponent";
+import SampleComponent from "@/components/SampleComponent"
 
 export default {
     name: "LandingPage",

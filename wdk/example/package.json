@@ -11,7 +11,7 @@
     },
     "scripts": {
         "serve": "vue-cli-service serve --port 9001 --https",
-        "build": "vue-cli-service build  --modern"
+        "build": "vue-cli-service build --modern"
     },
     "devDependencies": {
         "@vue/cli-service": "^4.5.4",

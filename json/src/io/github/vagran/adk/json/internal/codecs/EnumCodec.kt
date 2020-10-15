@@ -7,19 +7,20 @@
 package io.github.vagran.adk.json.internal.codecs
 
 import io.github.vagran.adk.json.*
+import io.github.vagran.adk.omm.OmmClass
 import java.util.*
 import kotlin.reflect.KType
 import kotlin.reflect.jvm.jvmErasure
 
-class EnumCodec(private val type: KType): JsonCodec<Enum<*>> {
+class EnumCodec(private val type: KType, json: Json): JsonCodec<Enum<*>> {
     override fun WriteNonNull(obj: Enum<*>, writer: JsonWriter, json: Json)
     {
-        WriteEnumNonNull(obj, writer, json.ommParams.enumByName)
+        WriteEnumNonNull(obj, writer, enumByName ?: json.ommParams.enumByName)
     }
 
     override fun ReadNonNull(reader: JsonReader, json: Json): Enum<*>
     {
-        return ReadEnumNonNull(reader, json.ommParams.enumByName)
+        return ReadEnumNonNull(reader, enumByName ?: json.ommParams.enumByName)
     }
 
     fun WriteEnumNonNull(obj: Enum<*>, writer: JsonWriter, enumByName: Boolean)
@@ -57,6 +58,7 @@ class EnumCodec(private val type: KType): JsonCodec<Enum<*>> {
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val values: Array<Enum<*>>
     private val names: Map<String, Enum<*>>
+    private val enumByName: Boolean?
 
     init {
         val _values = type.jvmErasure.java.enumConstants
@@ -67,5 +69,7 @@ class EnumCodec(private val type: KType): JsonCodec<Enum<*>> {
             names[value.name] = value
             value
         }
+        enumByName = json.ommParams.FindAnnotation<OmmClass>(type.jvmErasure)
+            ?.enumByName?.booleanValue
     }
 }

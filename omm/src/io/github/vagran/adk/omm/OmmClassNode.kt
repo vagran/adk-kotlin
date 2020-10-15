@@ -147,7 +147,6 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
         val annotatedOnlyFields = clsAnn?.annotatedOnlyFields?.booleanValue ?: params.annotatedOnlyFields
         val walkBaseClasses = clsAnn?.walkBaseClasses?.booleanValue ?: params.walkBaseClasses
         val requireLateinitVars = clsAnn?.requireLateinitVars?.booleanValue ?: params.requireLateinitVars
-        val enumByName = clsAnn?.enumByName?.booleanValue ?: params.enumByName
         val serializeNulls = clsAnn?.serializeNulls?.booleanValue ?: params.serializeNulls
 
         val classes = if (walkBaseClasses) cls.allSuperclasses + cls else listOf(cls)
@@ -190,10 +189,19 @@ open class OmmClassNode<TFieldNode: OmmClassNode.OmmFieldNode>(val cls: KClass<*
                 throw IllegalArgumentException("Duplicated field name: $prop")
             }
 
+            val enumByName = if (prop.returnType.jvmErasure.isSubclassOf(Enum::class)) {
+                fieldAnn?.enumByName?.booleanValue ?:
+                clsAnn?.enumByName?.booleanValue ?:
+                params.FindAnnotation<OmmClass>(prop.returnType)?.enumByName?.booleanValue ?:
+                params.enumByName
+            } else {
+                false
+            }
+
             val fieldParams = FieldParams(prop, fieldAnn, requiredDefault, requireLateinitVars,
                                           fields.size,
                                           dataCtr?.findParameterByName(prop.name),
-                                          fieldAnn?.enumByName?.booleanValue ?: enumByName,
+                                          enumByName,
                                           fieldAnn?.serializeNull?.booleanValue ?: serializeNulls,
                                           params.setAccessible)
             val fieldNode = fieldNodeFabric(fieldParams)

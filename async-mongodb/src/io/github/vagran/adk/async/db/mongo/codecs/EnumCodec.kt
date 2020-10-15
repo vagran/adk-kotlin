@@ -7,6 +7,7 @@
 package io.github.vagran.adk.async.db.mongo.codecs
 
 import io.github.vagran.adk.async.db.mongo.MongoMapper
+import io.github.vagran.adk.omm.OmmClass
 import io.github.vagran.adk.omm.OmmError
 import org.bson.BsonReader
 import org.bson.BsonWriter
@@ -27,13 +28,13 @@ class EnumCodec(private val type: KType, private val mapper: MongoMapper): Codec
 
     override fun encode(writer: BsonWriter, obj: Enum<*>, encoderContext: EncoderContext)
     {
-        EncodeEnum(writer, obj, mapper.ommParams.enumByName)
+        EncodeEnum(writer, obj, enumByName ?: mapper.ommParams.enumByName)
     }
 
     @Suppress("UNCHECKED_CAST")
     override fun decode(reader: BsonReader, decoderContext: DecoderContext): Enum<*>
     {
-        return DecodeEnum(reader, mapper.ommParams.enumByName)
+        return DecodeEnum(reader, enumByName ?: mapper.ommParams.enumByName)
     }
 
     fun EncodeEnum(writer: BsonWriter, obj: Enum<*>, enumByName: Boolean)
@@ -63,6 +64,7 @@ class EnumCodec(private val type: KType, private val mapper: MongoMapper): Codec
     private val javaClass = type.jvmErasure.java
     private val values: Array<Enum<*>>
     private val names: Map<String, Enum<*>>
+    private val enumByName: Boolean?
 
     init {
         val _values = type.jvmErasure.java.enumConstants
@@ -73,5 +75,7 @@ class EnumCodec(private val type: KType, private val mapper: MongoMapper): Codec
             names[value.name] = value
             value
         }
+        enumByName = mapper.ommParams.FindAnnotation<OmmClass>(type.jvmErasure)
+            ?.enumByName?.booleanValue
     }
 }

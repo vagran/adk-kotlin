@@ -38,7 +38,7 @@ interface IEntity {
 }
 
 /** Helper class for implementing IEntity interface by aggregated state object. */
-open class EntityBase(protected open val state: ManagedState): IEntity by state {
+open class EntityBase(protected open val state: ManagedState = ManagedState()): IEntity by state {
     override fun toString(): String
     {
         return state.toString()

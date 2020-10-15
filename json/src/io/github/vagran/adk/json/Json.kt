@@ -347,7 +347,7 @@ class Json(
         }
 
         if (jvmErasure.isSubclassOf(Enum::class)) {
-            return EnumCodec(type)
+            return EnumCodec(type, this)
         }
 
         if (jvmErasure == Any::class) {
