@@ -56,6 +56,11 @@ class SessionHelper<TSession>(private val cookieName: String,
         }.Submit(ctx)
     }
 
+    fun Clear()
+    {
+        sessions.Clear()
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val sessions = LruCache<SessionWrapper<TSession>>(
         timeout * 1000L,

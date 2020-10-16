@@ -94,6 +94,16 @@ class LruCache<T>(val timeout: Long,
         }
     }
 
+    /** Remove all entries. */
+    fun Clear()
+    {
+        if (closeHandler != null) {
+            entries.values.forEach { closeHandler.invoke(it.data) }
+        }
+        entries.clear()
+        sessionLruList.clear()
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////////////////
     private val random = Random()
     private val entries = ConcurrentHashMap<String, Entry>()
