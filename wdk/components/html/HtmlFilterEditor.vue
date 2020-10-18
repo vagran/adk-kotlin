@@ -84,7 +84,10 @@
 </template>
 
 <script>
-
+/**
+ * Events:
+ *  modified - filter was modified.
+ */
 import { PostRequest } from "../../common/utils"
 import WdkStatusView from "../StatusView"
 import WdkEditableProperties from "../EditableProperties"
@@ -144,102 +147,92 @@ export default {
     },
 
     methods: {
-        Update() {
-            return PostRequest(this.dcoEndpoint)
-                .then(result => {
-                    this.status = null
-                    this.filterTree = result
-                })
-                .catch(error => {
-                    console.error(error)
-                    this.status = error
-                })
+        async Update() {
+            try {
+                this.filterTree = await PostRequest(this.dcoEndpoint)
+                this.status = null
+            } catch(error) {
+                console.error(error)
+                this.status = error
+            }
         },
 
-        _OnModified() {
+        async _OnModified() {
             this.$emit("modified")
-            this.Update()
+            await this.Update()
         },
 
-        _OnNodeClicked(node) {
+        async _OnNodeClicked(node) {
             if (node.id === 0 || !this.editable) {
                 return
             }
             this.editNodeId = node.id
             this.editStatus = "%>Fetching selectors..."
             this.editDialog = true
-            PostRequest(`${this.dcoEndpoint}/BeginEdit`, {nodeId: node.id})
-                .then(result => {
-                    this.editStatus = null
-                    this.editContent = result.join(",\n")
-                })
-                .catch(error => {
-                    console.error(error)
-                    this.editStatus = error
-                })
+            try {
+                const result = await PostRequest(`${this.dcoEndpoint}/BeginEdit`, {nodeId: node.id})
+                this.editStatus = null
+                this.editContent = result.join(",\n")
+            } catch(error) {
+                console.error(error)
+                this.editStatus = error
+            }
         },
 
-        _OnNodeSave() {
+        async _OnNodeSave() {
             this.editStatus = "%>Saving..."
-            let req
-            if (this.editNodeId === null) {
-                req = PostRequest(`${this.dcoEndpoint}/Add`, {
-                    selectors: this.editContent
-                })
-            } else {
-                req = PostRequest(`${this.dcoEndpoint}/Modify`, {
-                    nodeId: this.editNodeId,
-                    selectors: this.editContent
-                })
-            }
-            req.then(result => {
+            try {
+                if (this.editNodeId === null) {
+                    await PostRequest(`${this.dcoEndpoint}/Add`, {
+                        selectors: this.editContent
+                    })
+                } else {
+                    await PostRequest(`${this.dcoEndpoint}/Modify`, {
+                        nodeId: this.editNodeId,
+                        selectors: this.editContent
+                    })
+                }
                 this.editStatus = null
                 this.editDialog = false
-                this.Update()
-                this.$emit("modified")
-            })
-                .catch(error => {
-                    console.error(error)
-                    this.editStatus = error
-                })
+                await this._OnModified()
+            } catch (error) {
+                console.error(error)
+                this.editStatus = error
+            }
         },
 
-        _OnNodeDelete(deleteBranch) {
+        async _OnNodeDelete(deleteBranch) {
             if (!confirm("Are you sure you want to delete the node?")) {
                 return
             }
             this.editStatus = "%>Deleting..."
-            PostRequest(`${this.dcoEndpoint}/Delete`, {
-                nodeId: this.editNodeId,
-                deleteBranch: deleteBranch
-            })
-                .then(result => {
-                    this.editStatus = null
-                    this.editDialog = false
-                    this.Update()
-                    this.$emit("modified")
+            try {
+                await PostRequest(`${this.dcoEndpoint}/Delete`, {
+                    nodeId: this.editNodeId,
+                    deleteBranch: deleteBranch
                 })
-                .catch(error => {
-                    console.error(error)
-                    this.editStatus = error
-                })
+                this.editStatus = null
+                this.editDialog = false
+                await this._OnModified()
+            } catch(error) {
+                console.error(error)
+                this.editStatus = error
+            }
         },
 
-        _Clear() {
+        async _Clear() {
             if (!confirm("Are you sure you want to clear the filter?")) {
                 return
             }
             this.status = "%>Clearing..."
-            PostRequest(`${this.dcoEndpoint}/Clear`)
-                .then(result => {
-                    this.status = null
-                    this.Update()
-                    this.$emit("modified")
-                })
-                .catch(error => {
-                    console.error(error)
-                    this.status = error
-                })
+            try {
+                await PostRequest(`${this.dcoEndpoint}/Clear`)
+                this.status = null
+                await this._OnModified()
+            } catch(error) {
+                console.error(error)
+                this.status = error
+            }
         },
 
         _Add() {
@@ -269,23 +262,21 @@ export default {
             this.transformEditDialog = true
         },
 
-        _SaveTransform() {
+        async _SaveTransform() {
             this.transformEditStatus = "%>Applying..."
-            PostRequest(`${this.dcoEndpoint}/ModifyTransform`, {
-                tagName: this.transformEditItem.tagName,
-                matchPattern: this.transformEditItem.transform.matchPattern,
-                replacePattern: this.transformEditItem.transform.replacePattern
-            })
-                .then(result => {
-                    this.transformEditStatus = null
-                    this.transformEditDialog = false
-                    this.Update()
-                    this.$emit("modified")
+            try {
+                await PostRequest(`${this.dcoEndpoint}/ModifyTransform`, {
+                    tagName: this.transformEditItem.tagName,
+                    matchPattern: this.transformEditItem.transform.matchPattern,
+                    replacePattern: this.transformEditItem.transform.replacePattern
                 })
-                .catch(error => {
-                    console.error(error)
-                    this.transformEditStatus = error
-                })
+                this.transformEditStatus = null
+                this.transformEditDialog = false
+                await this._OnModified()
+            } catch(error) {
+                console.error(error)
+                this.transformEditStatus = error
+            }
         }
     },
 
