@@ -221,32 +221,35 @@ private class ObservableTest {
 
     fun <T> GetContextSource(src: Observable.Source<T>, ctx: Context): Observable.Source<T>
     {
-        return object: Observable.Source<T> {
-            override fun Get(): Deferred<Observable.Value<T>>
-            {
-                return Task.CreateDef({ src.Get().Await() }).Submit(ctx).result
-            }
-        }
+        return Observable.Source { Task.CreateDef { src.Get().Await() }.Submit(ctx).result }
     }
 
     fun GetTestSource(vararg values: Int?, needError: Boolean = false): Observable.Source<Int?>
     {
-        return object: Observable.Source<Int?> {
-            var curPos = 0
-
-            override fun Get(): Deferred<Observable.Value<Int?>>
-            {
-                if (curPos == values.size) {
-                    return if (needError) {
-                        Deferred.ForError(Error("test"))
-                    } else {
-                        Deferred.ForResult(Observable.Value.None())
-                    }
-                }
-                val def = Deferred.ForResult(Observable.Value.Of(values[curPos]))
-                curPos++
-                return def
+        val iterator = values.iterator()
+        return Observable.Source func@ {
+            if (iterator.hasNext()) {
+                return@func Deferred.ForResult(Observable.Value.Of(iterator.next()))
             }
+            if (needError) {
+                return@func Deferred.ForError(Error("test"))
+            }
+            return@func Deferred.ForResult(Observable.Value.None())
+        }
+    }
+
+    fun GetTestSuspendSource(vararg values: Int?, needError: Boolean = false):
+        ObservableSuspendSourceFunc<Int?>
+    {
+        val iterator = values.iterator()
+        return suspend func@ {
+            if (iterator.hasNext()) {
+                return@func Observable.Value.Of(iterator.next())
+            }
+            if (needError) {
+                throw Error("test")
+            }
+            return@func Observable.Value.None()
         }
     }
 
@@ -255,10 +258,10 @@ private class ObservableTest {
         return object: Observable.Subscriber<T> {
             override fun OnNext(value: Observable.Value<T>): Deferred<Boolean>?
             {
-                return Task.CreateDef({
+                return Task.CreateDef {
                     val def = subscriber.OnNext(value) ?: return@CreateDef true
                     def.Await(ctx)
-                }).Submit(ctx).result
+                }.Submit(ctx).result
             }
 
             override fun OnComplete()
@@ -301,6 +304,29 @@ private class ObservableTest {
     {
         val values = arrayOf(42, 45, null, 2, 3)
         val src = GetTestSource(*values, needError = true)
+        val observable = Observable.Create(src)
+        val sub = TestSubscriber(*values)
+        sub.SetExpectedError()
+        observable.Subscribe(sub)
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun BasicSuspendSource()
+    {
+        val values = arrayOf(42, 45, null, 2, 3)
+        val src = GetTestSuspendSource(*values)
+        val observable = Observable.Create(src)
+        val sub = TestSubscriber(*values)
+        observable.Subscribe(sub)
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun BasicSuspendSourceError()
+    {
+        val values = arrayOf(42, 45, null, 2, 3)
+        val src = GetTestSuspendSource(*values, needError = true)
         val observable = Observable.Create(src)
         val sub = TestSubscriber(*values)
         sub.SetExpectedError()

@@ -7,10 +7,12 @@
 package io.github.vagran.adk.async.observable
 
 import io.github.vagran.adk.async.Deferred
-import java.util.*
+import io.github.vagran.adk.async.observable.Observable.Source
 
 /** @see Observable.Source */
 typealias ObservableSourceFunc<T> = () -> Deferred<Observable.Value<T>>
+
+typealias ObservableSuspendSourceFunc<T> = suspend () -> Observable.Value<T>
 
 /** Subscription is cancelled if the handler throws exception or deferred error returned.
  * @param value Next value or empty value if is completed.
@@ -25,6 +27,11 @@ typealias ObservableSubscriberFunc<T> =
  */
 typealias ObservableSubscriberVoidFunc<T> =
     (value: Observable.Value<T>, error: Throwable?) -> Unit
+
+fun <T> ObservableSuspendSourceFunc<T>.ToSourceFunc(): ObservableSourceFunc<T>
+{
+    return { Deferred.ForFunc { this() } }
+}
 
 /** Propagates sequence of data items. Can be used to organize data streams, events, etc. */
 interface Observable<out T> {
@@ -47,7 +54,7 @@ interface Observable<out T> {
         val value: T
     }
 
-    interface Source<T> {
+    fun interface Source<T> {
         /**
          * Invoked in arbitrary thread to get next value. Next value is requested only after a
          * previous request has been completed.
@@ -60,12 +67,12 @@ interface Observable<out T> {
         companion object {
             fun <T> FromFunc(func: ObservableSourceFunc<T>): Source<T>
             {
-                return object: Source<T> {
-                    override fun Get(): Deferred<Value<T>>
-                    {
-                        return func()
-                    }
-                }
+                return Source { func() }
+            }
+
+            fun <T> FromFunc(func: ObservableSuspendSourceFunc<T>): Source<T>
+            {
+                return FromFunc(func.ToSourceFunc())
             }
         }
     }
@@ -80,10 +87,15 @@ interface Observable<out T> {
         {
             return ObservableImpl(Source.FromFunc(source), isConnected)
         }
+
+        fun <T> Create(source: ObservableSuspendSourceFunc<T>, isConnected: Boolean = true): Observable<T>
+        {
+            return ObservableImpl(Source.FromFunc(source), isConnected)
+        }
     }
 
     interface Subscriber<in T> {
-        fun OnNext(value: Observable.Value<T>): Deferred<Boolean>?
+        fun OnNext(value: Value<T>): Deferred<Boolean>?
 
         fun OnComplete()
 
@@ -106,7 +118,7 @@ interface Observable<out T> {
         }
     }
 
-    interface Subscription {
+    fun interface Subscription {
         fun Unsubscribe()
     }
 
