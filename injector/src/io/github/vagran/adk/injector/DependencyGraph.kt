@@ -397,13 +397,13 @@ internal class DependencyGraph(private val rootClass: KClass<*>,
                 } else {
                     /* Factory parameter placeholder. */
                     if (curFactoryParamIdx >= factoryParams!!.size) {
-                        throw DI.Exception("Insufficient number of factory arguments specified")
+                        throw DI.Exception("Insufficient number of factory arguments specified for $key")
                     }
                     return@Array factoryParams[curFactoryParamIdx++]
                 }
             }
             if (factoryParams != null && curFactoryParamIdx < factoryParams.size) {
-                throw DI.Exception("Too many factory arguments specified")
+                throw DI.Exception("Too many factory arguments specified for $key")
             }
             return result
         }
