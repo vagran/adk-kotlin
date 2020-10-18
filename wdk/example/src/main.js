@@ -21,11 +21,12 @@ const router = new VueRouter({
     routes
 })
 
-import quasarConfig from "@/Quasar"
-Vue.use(...quasarConfig)
-
+import "wdk/style/table.less"
 import wdk from "wdk/wdk"
 Vue.use(wdk)
+
+import quasarConfig from "@/Quasar"
+Vue.use(...quasarConfig)
 
 new Vue({
     el: "#app",

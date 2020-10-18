@@ -22,6 +22,9 @@ typealias ObservableSuspendSourceFunc<T> = suspend () -> Observable.Value<T>
 typealias ObservableSubscriberFunc<T> =
         (value: Observable.Value<T>, error: Throwable?) -> Deferred<Boolean>?
 
+typealias ObservableSubscriberSuspendFunc<T> =
+    suspend (value: Observable.Value<T>, error: Throwable?) -> Boolean
+
 /** The same as ObservableSubscriberFunc but without return value (assuming always continue
  * subscription).
  */
@@ -31,6 +34,14 @@ typealias ObservableSubscriberVoidFunc<T> =
 fun <T> ObservableSuspendSourceFunc<T>.ToSourceFunc(): ObservableSourceFunc<T>
 {
     return { Deferred.ForFunc { this() } }
+}
+
+fun <T> ObservableSubscriberSuspendFunc<T>.ToSubscriberFunc(): ObservableSubscriberFunc<T>
+{
+    return {
+        value, error ->
+        Deferred.ForFunc { this(value, error) }
+    }
 }
 
 /** Propagates sequence of data items. Can be used to organize data streams, events, etc. */
@@ -140,6 +151,11 @@ interface Observable<out T> {
             subscriber(value, error)
             null
         }
+    }
+
+    fun SubscribeSuspend(subscriber: ObservableSubscriberSuspendFunc<T>): Subscription
+    {
+        return Subscribe(subscriber.ToSubscriberFunc())
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////

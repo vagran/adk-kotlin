@@ -23,20 +23,18 @@ class PushSource<T>: Observable.Source<T> {
             if (isComplete) {
                 throw Error("Next value requested after completion")
             }
-            if (pendingValue != null) {
-                val value = pendingValue!!
+            pendingValue?.also {
                 pendingValue = null
-                if (!value.isSet) {
+                if (!it.isSet) {
                     isComplete = true
                 }
-                return@synchronized Deferred.ForResult(value)
+                return@synchronized Deferred.ForResult(it)
             }
-            if (pendingError != null) {
+            pendingError?.also {
                 isComplete = true
-                return@synchronized Deferred.ForError(pendingError!!)
+                return@synchronized Deferred.ForError(it)
             }
-            pendingRequest = Deferred.Create()
-            return@synchronized pendingRequest!!
+            return@synchronized Deferred.Create<Observable.Value<T>>().also { pendingRequest = it }
         }
     }
 
