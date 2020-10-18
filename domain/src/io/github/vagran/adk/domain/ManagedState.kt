@@ -185,17 +185,17 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
 
     operator fun <T> invoke(): DelegateProvider<T>
     {
-        return DelegateProvider(isId = false, isParam = false)
+        return Internal()
     }
 
     operator fun <T> invoke(defValue: DefaultValueProvider<T>): DelegateProvider<T>
     {
-        return DelegateProvider(isId = false, isParam = false, defValue)
+        return Internal(defValue)
     }
 
     operator fun <T> invoke(defValue: T): DelegateProvider<T>
     {
-        return invoke { defValue }
+        return Internal(defValue)
     }
 
     fun <T> Param(): DelegateProvider<T>
@@ -211,6 +211,21 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
     fun <T> Param(defValue: T): DelegateProvider<T>
     {
         return Param { defValue }
+    }
+
+    fun <T> Internal(): DelegateProvider<T>
+    {
+        return DelegateProvider(isId = false, isParam = false)
+    }
+
+    fun <T> Internal(defValue: DefaultValueProvider<T>): DelegateProvider<T>
+    {
+        return DelegateProvider(isId = false, isParam = false, defValue)
+    }
+
+    fun <T> Internal(defValue: T): DelegateProvider<T>
+    {
+        return Internal { defValue }
     }
 
     fun Mutate(params: EntityInfo)
