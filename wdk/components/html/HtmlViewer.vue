@@ -5,10 +5,8 @@
   -->
 
 <template>
-<div class="q-ma-md">
-    <wdk-html-element v-if="data !== null" :element="data" :uriResolver="uriResolver"
-                      :allowSel="allowSel" />
-</div>
+<wdk-html-element v-if="data !== null" :element="data" :uriResolver="uriResolver"
+                  :allowSel="allowSel" />
 </template>
 
 <script>

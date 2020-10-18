@@ -16,9 +16,10 @@
                     <tbody>
                     <tr v-for="node in nodes"><td class="q-pl-sm"
                                                   style="max-width: 1000px; word-wrap: break-word;">
-                        <span v-if="node.text !== null">{{node.text}}</span>
-                        <wdk-html-viewer v-else-if="node.docNode !== null" :data="node.docNode"
-                                         :uriResolver="uriResolver" />
+                        <span v-if="node.hasOwnProperty('text') && node.text !== null">{{node.text}}</span>
+                        <wdk-html-viewer v-else-if="node.hasOwnProperty('docNode') && node.docNode !== null"
+                                         :data="node.docNode" :uriResolver="uriResolver" />
+                        <span v-else class="text-negative">Bad node</span>
                     </td></tr>
                     </tbody>
                 </table>

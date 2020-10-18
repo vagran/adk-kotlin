@@ -38,7 +38,7 @@
         <td class="value">
             <template v-if="'value' in attr">
                 <a v-if="attr.name === 'href' || attr.name === 'src' || attr.name === 'data-src'"
-                   :href="uriResolver(attr.value, _GetMode(attr) === Mode.DELETED ? 0 : 1)"
+                   :href="_uriResolver(attr.value, _GetMode(attr) === Mode.DELETED ? 0 : 1)"
                    rel="noreferrer">{{attr.value}}</a>
                 <template v-else>{{attr.value}}</template>
             </template>
@@ -84,6 +84,13 @@ export default {
     },
 
     computed: {
+        _uriResolver() {
+            if (this.uriResolver === null) {
+                return (path, side) => path
+            }
+            return this.uriResolver()
+        },
+
         isExpandable() {
             return "children" in this.element || "attrs" in this.element
         },
