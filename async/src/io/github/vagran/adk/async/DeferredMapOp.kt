@@ -44,3 +44,9 @@ fun <T, U> Deferred<T>.Map(mapFunc: DeferredMapErrorFunc<T, U>): Deferred<U>
     }
     return mappedDef
 }
+
+/** Map successful result to a fixed value. */
+fun <T, U> Deferred<T>.MapValue(value: U): Deferred<U>
+{
+    return Map { _ -> value}
+}

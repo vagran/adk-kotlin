@@ -10,12 +10,13 @@
     <table v-else class="table table-sm q-mb-none">
         <tbody>
         <tr v-for="(nodes, tag) in data.nodes" :key="tag">
-            <td><span class="TagName">{{tag}}</span> [{{nodes.length}}]</td>
+            <td style="width: 200px;"><span class="TagName">{{tag}}</span> [{{nodes.length}}]</td>
             <td>
                 <table class="table table-sm table-bordered q-mb-none">
                     <tbody>
-                    <tr v-for="node in nodes"><td class="q-pl-sm"
-                                                  style="max-width: 1000px; word-wrap: break-word;">
+                    <tr v-for="node in nodes">
+                        <td class="q-pl-sm"
+                            style="max-width: 1000px; word-wrap: break-word;">
                         <span v-if="node.hasOwnProperty('text') && node.text !== null">{{node.text}}</span>
                         <wdk-html-viewer v-else-if="node.hasOwnProperty('docNode') && node.docNode !== null"
                                          :data="node.docNode" :uriResolver="uriResolver" />

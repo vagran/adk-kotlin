@@ -72,6 +72,7 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
         fun Invoke(value: Observable.Value<T>?, error: Throwable?)
         {
             val def = handler(value ?: Observable.Value.None(), error)
+            //XXX catch exceptions from handler?
             if (curRound == (-1).toByte()) {
                 return
             }
@@ -82,7 +83,7 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
             def.Subscribe {
                 result, _error ->
                 if (_error != null) {
-                    //XXX propagate somewhere
+                    //XXX propagate somewhere?
                     Unsubscribe()
                     return@Subscribe
                 }
