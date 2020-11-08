@@ -6,12 +6,13 @@
 
 package io.github.vagran.adk.domain
 
+import io.github.vagran.adk.async.Context
 import io.github.vagran.adk.async.Deferred
 import io.github.vagran.adk.async.WhenAny
 import io.github.vagran.adk.domain.httpserver.Endpoint
-import java.lang.Exception
+import java.time.Duration
+import java.time.Instant
 import java.util.*
-import kotlin.Comparator
 import kotlin.collections.ArrayList
 
 
@@ -21,8 +22,13 @@ import kotlin.collections.ArrayList
  * immutable DTO as event object.
  * The object is also DCO for long-poll-based events retrieval by front-end.
  * @param queueSize Number of last events queue to support zero-loss sequential retrieval.
+ * @param httpPollInterval Maximal time to wait for next events in PollEvents() method. Used only if
+ *      timerCtx provided.
+ * @param timerCtx Context to use for scheduling poll timeout. No timeout if null.
  */
-class EventBus(queueSize: Int = 1024) {
+class EventBus(queueSize: Int = 1024,
+               private val httpPollInterval: Duration = Duration.ofMinutes(1),
+               private val timerCtx: Context? = null) {
 
     class EventRecord(val topic: String, val seq: Long, val event: Any?)
 
@@ -58,8 +64,8 @@ class EventBus(queueSize: Int = 1024) {
      * @param seq Event sequence number to start listening from. If called sequentially this should
      *      one more than maximal sequence number in previously returned records list. -1 to wait
      *      for new events.
-     * @return List of available events. Method suspends until at least one event can be returned so
-     *      it never returns empty list.
+     * @return List of available events. Method suspends until at least one event can be returned or
+     *      httpPollInterval expired (empty list is returned in such case).
      * @throws ClosedException if the bus is closed.
      */
     @Endpoint
@@ -67,6 +73,7 @@ class EventBus(queueSize: Int = 1024) {
     {
         val result = ArrayList<EventRecord>()
         var _seq = seq
+        val timeLimit = Instant.now().plus(httpPollInterval)
 
         while (true) {
             val def = synchronized(queue) {
@@ -91,9 +98,17 @@ class EventBus(queueSize: Int = 1024) {
                 } else {
                     _seq = curSeq
                 }
+                val now = Instant.now()
+                if (now.isAfter(timeLimit)) {
+                    return emptyList()
+                }
+                val delay = Duration.between(now, timeLimit)
                 val defs = ArrayList<Deferred<Unit>>()
                 for (topic in topics) {
                     defs.add(waitEntries.computeIfAbsent(topic) { Deferred.Create() })
+                }
+                if (timerCtx != null) {
+                    defs.add(Deferred.ForFunc { timerCtx.Delay(delay.toMillis()) })
                 }
                 Deferred.WhenAny(defs)
             }
