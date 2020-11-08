@@ -275,7 +275,7 @@ private class TaskTest {
             7
         }.Submit(ctx).result
 
-        val def = Deferred.When(def1, def2, def3)
+        val def = Deferred.WhenAll(def1, def2, def3)
 
         var invoked = false
         def.Subscribe {
@@ -311,7 +311,7 @@ private class TaskTest {
             7
         }.Submit(ctx).result
 
-        val def = Deferred.When(def1, def2, def3)
+        val def = Deferred.WhenAll(def1, def2, def3)
 
         var invoked = false
         def.Subscribe {

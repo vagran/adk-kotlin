@@ -9,17 +9,30 @@ package io.github.vagran.adk.async
 /** Create deferred which completes when all the specified deferred results are completed.
  * If error occurs the first one is set to the resulted deferred.
  */
-fun Deferred.Companion.When(results: Collection<Deferred<*>>): Deferred<Unit>
+fun Deferred.Companion.WhenAll(results: Collection<Deferred<*>>): Deferred<Unit>
 {
-    return Deferred.When(results.iterator())
+    return Deferred.When(results.iterator(), true)
 }
 
-fun Deferred.Companion.When(vararg results: Deferred<*>): Deferred<Unit>
+fun Deferred.Companion.WhenAll(vararg results: Deferred<*>): Deferred<Unit>
 {
-    return Deferred.When(results.iterator())
+    return Deferred.When(results.iterator(), true)
 }
 
-fun Deferred.Companion.When(results: Iterator<Deferred<*>>): Deferred<Unit>
+/** Create deferred which completes when any of the specified deferred results is completed.
+ * Error is propagated only from the first completed result.
+ */
+fun Deferred.Companion.WhenAny(results: Collection<Deferred<*>>): Deferred<Unit>
+{
+    return Deferred.When(results.iterator(), false)
+}
+
+fun Deferred.Companion.WhenAny(vararg results: Deferred<*>): Deferred<Unit>
+{
+    return Deferred.When(results.iterator(), false)
+}
+
+fun Deferred.Companion.When(results: Iterator<Deferred<*>>, all: Boolean): Deferred<Unit>
 {
     class Aggregator {
 
@@ -37,16 +50,20 @@ fun Deferred.Companion.When(results: Iterator<Deferred<*>>): Deferred<Unit>
                 }
                 def.Subscribe(this::OnComplete)
             }
-            synchronized(this) {
+            val result = synchronized(this) {
                 iterDone = true
                 CheckComplete()
             }
+            result?.invoke()
         }
 
         @Suppress("UNUSED_PARAMETER")
         private fun OnComplete(value: Any?, error: Throwable?)
         {
-            synchronized(this) {
+            val result = synchronized(this) {
+                if (!all && numComplete > 0) {
+                    return
+                }
                 numComplete++
                 if (error != null) {
                     if (this.error == null) {
@@ -57,17 +74,21 @@ fun Deferred.Companion.When(results: Iterator<Deferred<*>>): Deferred<Unit>
                 }
                 CheckComplete()
             }
+            result?.invoke()
         }
 
-        private fun CheckComplete()
+        private fun CheckComplete(): (() -> Unit)?
         {
-            if (iterDone && numComplete == numResults) {
-                if (error == null) {
-                    result.SetResult(Unit)
-                } else {
-                    result.SetError(error as Throwable)
+            if ((iterDone && all && numComplete == numResults) || (!all && numComplete > 0)) {
+                return {
+                    if (error == null) {
+                        result.SetResult(Unit)
+                    } else {
+                        result.SetError(error as Throwable)
+                    }
                 }
             }
+            return null
         }
     }
 
