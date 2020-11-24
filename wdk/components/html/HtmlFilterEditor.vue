@@ -42,6 +42,21 @@
                 <q-space />
                 <q-btn icon="close" flat round dense v-close-popup />
             </q-card-section>
+            <q-card-section class="syntaxHelp q-py-none">
+                <q-list>
+                    <q-expansion-item popup dense icon="help" label="Syntax help">
+                        <p class="example">selector[; auxSelector][, selector[; auxSelector]]...</p>
+                        <p class="example">elA > * > elB#someId.someClass.anotherClass@elementTag elC@~textTag</p>
+                        <p class="example">[attrName="attrValue"] .someClass[@tagName:attrName]</p>
+                        <p class="example">a:nth-child(1) b:nth-of-type(2) c:nth-last-child(1) d:nth-last-of-type(2)</p>
+                        <p>Selector has limited CSS selector syntax. Auxiliary selector used for
+                            main selector adjusting (typically in alternative form, e.g. XPath).
+                            XPath selector should be enclosed in curved braces. Otherwise it is
+                            treated as CSS selector. Multiple selectors are merged into one filter
+                            instance.</p>
+                    </q-expansion-item>
+                </q-list>
+            </q-card-section>
             <q-card-section>
                 <wdk-status-view :status="editStatus" class="q-my-sm"/>
                 <q-input v-if="editContent !== null" type="textarea" filled style="width: 100%;"
@@ -293,6 +308,16 @@ export default {
     .TagName {
         font-weight: 600;
         color: #aa6739;
+    }
+
+    .syntaxHelp {
+        p {
+            margin: 0 8px;
+            &.example {
+                font-family: "Roboto Mono", monospace;
+                color: #005e5e;
+            }
+        }
     }
 }
 

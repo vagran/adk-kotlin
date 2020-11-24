@@ -66,6 +66,31 @@ class HtmlFilter {
                 it.extractText = extractText
             }
         }
+
+        fun ToString(sb: StringBuilder)
+        {
+            val attrName = attrName
+            if (attrName != null) {
+                sb.append("[@")
+                sb.append(tagName)
+                sb.append(':')
+                sb.append(attrName)
+                sb.append(']')
+            } else {
+                sb.append('@')
+                if (extractText) {
+                    sb.append('~')
+                }
+                sb.append(tagName)
+            }
+        }
+
+        override fun toString(): String
+        {
+            val sb = StringBuilder()
+            ToString(sb)
+            return sb.toString()
+        }
     }
 
     class Node {
@@ -395,20 +420,7 @@ class HtmlFilter {
                 extractInfo ->
                 written = true
                 for (ei in extractInfo) {
-                    val attrName = ei.attrName
-                    if (attrName != null) {
-                        sb.append("[@")
-                        sb.append(ei.tagName)
-                        sb.append(':')
-                        sb.append(attrName)
-                        sb.append(']')
-                    } else {
-                        sb.append('@')
-                        if (ei.extractText) {
-                            sb.append('~')
-                        }
-                        sb.append(ei.tagName)
-                    }
+                    ei.ToString(sb)
                 }
             }
             if (!written) {
