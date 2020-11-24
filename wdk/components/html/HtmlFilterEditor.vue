@@ -46,7 +46,7 @@
                 <q-list>
                     <q-expansion-item popup dense icon="help" label="Syntax help">
                         <p class="example">selector[; auxSelector][, selector[; auxSelector]]...</p>
-                        <p class="example">elA > * > elB#someId.someClass.anotherClass@elementTag elC@~textTag</p>
+                        <p class="example">elA > * > elB#someId.someClass.anotherClass@elementTag elC@~textTag elD@^markTag</p>
                         <p class="example">[attrName="attrValue"] .someClass[@tagName:attrName]</p>
                         <p class="example">a:nth-child(1) b:nth-of-type(2) c:nth-last-child(1) d:nth-last-of-type(2)</p>
                         <p>Selector has limited CSS selector syntax. Auxiliary selector used for

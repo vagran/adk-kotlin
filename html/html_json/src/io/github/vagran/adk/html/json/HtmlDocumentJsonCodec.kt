@@ -16,6 +16,15 @@ class HtmlDocumentNodeJsonCodec: JsonCodec<HtmlDocument.Node> {
         writer.BeginObject()
         writer.WriteName("id")
         writer.Write(obj.id)
+        obj.tags?.also {
+            tags ->
+            writer.WriteName("tags")
+            writer.BeginArray()
+            for (tag in tags) {
+                writer.Write(tag)
+            }
+            writer.EndArray()
+        }
 
         if (obj is HtmlDocument.TextNode) {
             writer.WriteName("text")

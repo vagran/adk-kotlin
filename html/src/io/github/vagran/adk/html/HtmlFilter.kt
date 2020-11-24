@@ -23,13 +23,19 @@ class HtmlFilter {
     data class TagTransform(
         val matchPattern: String,
         val replacePattern: String
-    )
+    ) {
+        /** Ensure regular expression is valid. */
+        fun Validate()
+        {
+            Pattern.compile(matchPattern)
+        }
+    }
 
     @OmmClass(serializeNulls = OmmOption.NO)
-    class ResultNode {
-        var docNode: HtmlDocument.ElementNode? = null
-        var text: String? = null
-    }
+    data class ResultNode(
+        val docNode: HtmlDocument.ElementNode?,
+        val text: String?
+    )
 
     class Result {
         /** Indexed by tag name. */
@@ -57,6 +63,8 @@ class HtmlFilter {
         var attrName: String? = null
         /** Extract element inner text instead of the whole HTML fragment. */
         var extractText: Boolean = false
+        /** Mark HTML document node in an extracted HTML fragment. */
+        var markNode: Boolean = false
 
         fun Clone(): ExtractInfo
         {
@@ -64,7 +72,17 @@ class HtmlFilter {
                 it.tagName = tagName
                 it.attrName = attrName
                 it.extractText = extractText
+                it.markNode = markNode
             }
+        }
+
+        override fun equals(other: Any?): Boolean
+        {
+            other as ExtractInfo
+            return tagName == other.tagName &&
+                   attrName == other.attrName &&
+                   extractText == other.extractText &&
+                   markNode == other.markNode
         }
 
         fun ToString(sb: StringBuilder)
@@ -72,6 +90,9 @@ class HtmlFilter {
             val attrName = attrName
             if (attrName != null) {
                 sb.append("[@")
+                if (markNode) {
+                    sb.append('^')
+                }
                 sb.append(tagName)
                 sb.append(':')
                 sb.append(attrName)
@@ -80,6 +101,9 @@ class HtmlFilter {
                 sb.append('@')
                 if (extractText) {
                     sb.append('~')
+                }
+                if (markNode) {
+                    sb.append('^')
                 }
                 sb.append(tagName)
             }
@@ -173,9 +197,7 @@ class HtmlFilter {
         {
             val extractInfo = (extractInfo ?: ArrayList<ExtractInfo>().also {extractInfo = it})
             for (existingInfo in extractInfo) {
-                if (existingInfo.tagName == info.tagName &&
-                    existingInfo.extractText == info.extractText &&
-                    existingInfo.attrName == info.attrName) {
+                if (existingInfo == info) {
                     return
                 }
             }
@@ -446,9 +468,7 @@ class HtmlFilter {
 
         fun TransformTag(tagName: String, value: String): String
         {
-            val ctx = tagTransforms[tagName] ?: return value
-            ctx.matcher.reset(value)
-            return ctx.matcher.replaceAll(ctx.replacement)
+            return (tagTransforms[tagName] ?: return value).Apply(value)
         }
     }
 
@@ -456,6 +476,12 @@ class HtmlFilter {
         val matchPattern = Pattern.compile(t.matchPattern)
         val matcher = matchPattern.matcher("")
         val replacement = t.replacePattern
+
+        fun Apply(value: String): String
+        {
+            matcher.reset(value)
+            return matcher.replaceAll(replacement)
+        }
     }
 
     fun Clone(): HtmlFilter
@@ -629,14 +655,9 @@ class HtmlFilter {
         ReassignIds(root)
     }
 
-    fun MakeContext(): Context
-    {
-        return Context(transforms)
-    }
-
     fun Apply(doc: HtmlDocument): Result
     {
-        return Result().also { ApplyFilter(doc.root, root, it, MakeContext()) }
+        return Result().also { ApplyFilter(doc.root, root, it, Context(transforms), false) }
     }
 
     fun IterateNodes(startNode: Node, parentNode: Node?, cbk: (node: Node, parent: Node?) -> Unit)
@@ -777,7 +798,7 @@ class HtmlFilter {
     }
 
     private fun ApplyFilter(docNode: HtmlDocument.ElementNode, node: Node, result: Result,
-                            ctx: Context)
+                            ctx: Context, markOnly: Boolean)
     {
         for (docChildNode in docNode.children) {
             if (docChildNode !is HtmlDocument.ElementNode) {
@@ -788,35 +809,43 @@ class HtmlFilter {
                 if (!childNode.Match(docChildNode)) {
                     return@ForEachChild
                 }
-                childNode.extractInfo?.also {
-                    extractList ->
-                    extractList.forEach {
-                        ExtractNode(it, docChildNode, result, ctx)
+                childNode.extractInfo?.forEach {
+                    val rn = ExtractNode(it, docChildNode, result, ctx, markOnly)
+                    if (!markOnly && rn?.docNode != null && childNode.HasChildren()) {
+                        ApplyFilter(rn.docNode, childNode, result, ctx, true)
                     }
                 }
                 if (childNode.HasChildren()) {
-                    ApplyFilter(docChildNode, childNode, result, ctx)
+                    ApplyFilter(docChildNode, childNode, result, ctx, markOnly)
                 }
             }
         }
     }
 
     private fun ExtractNode(extractInfo: ExtractInfo, docNode: HtmlDocument.ElementNode,
-                            result: Result, ctx: Context)
+                            result: Result, ctx: Context, markOnly: Boolean): ResultNode?
     {
-        val resultNode = ResultNode()
+        if (markOnly) {
+            if (extractInfo.markNode) {
+                docNode.Mark(extractInfo.tagName)
+            }
+            return null
+        }
 
-        run {
+        if (extractInfo.markNode) {
+            return null
+        }
+
+        val resultNode = run {
             extractInfo.attrName?.also { attrName ->
                 val text = docNode.GetAttribute(attrName)?.value ?: ""
-                resultNode.text = ctx.TransformTag(extractInfo.tagName, text)
-                return@run
+                return@run ResultNode(null, ctx.TransformTag(extractInfo.tagName, text))
             }
 
             if (extractInfo.extractText) {
-                resultNode.text = ctx.TransformTag(extractInfo.tagName, docNode.InnerText())
+                ResultNode(null, ctx.TransformTag(extractInfo.tagName, docNode.InnerText()))
             } else {
-                resultNode.docNode = docNode.Clone()
+                ResultNode(docNode.Clone(), null)
             }
         }
 
@@ -824,10 +853,11 @@ class HtmlFilter {
             resultNode.text.isNullOrEmpty()) {
 
             /* Discard tags with empty text value. */
-            return
+            return null
         }
 
         result.nodes.computeIfAbsent(extractInfo.tagName) { ArrayList() }.add(resultNode)
+        return resultNode
     }
 
     private fun MergeNode(parentNode: Node, node: Node)

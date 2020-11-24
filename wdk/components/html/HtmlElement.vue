@@ -28,6 +28,7 @@
     <span v-if="allowSel && !isText"
           class="selCheckbox px-1"
           :class="{selected: element.isSelected}"><q-checkbox size="xs" dense v-model="element.isSelected" /></span>
+    <q-badge v-for="tag of tags" color="orange-9">{{tag}}</q-badge>
     <table class="table table-sm attributes" v-if="hasAttributes && isExpanded"><tbody>
     <tr v-for="attr in element.attrs" :key="attr.id"
         :class="{modeInserted: _GetMode(attr) === Mode.INSERTED,
@@ -109,6 +110,10 @@ export default {
 
         name() {
             return this.element.name !== "" ? this.element.name : "ROOT"
+        },
+
+        tags() {
+            return "tags" in this.element ? this.element.tags : []
         },
 
         mode() {

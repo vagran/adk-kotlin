@@ -122,12 +122,18 @@ export default {
                 for (let ei of node.extractInfo) {
                     if (ei.attrName !== null) {
                         AddText("[@")
+                        if (ei.markNode) {
+                            AddText("^")
+                        }
                         AddSpan("TagName", ei.tagName)
                         AddText(":" + ei.attrName + "]")
                     } else {
                         AddText("@")
                         if (ei.extractText) {
                             AddText("~")
+                        }
+                        if (ei.markNode) {
+                            AddText("^")
                         }
                         AddSpan("TagName", ei.tagName)
                     }

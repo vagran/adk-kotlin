@@ -12,11 +12,14 @@ import io.github.vagran.adk.CodeUnitsParser
 /**
  * Parses filter expression. The expression can be in form:
  * selector[; auxSelector][, selector[; auxSelector]]...
- * @tag @~textTag
  *
  * Auxiliary selector used for main selector adjusting (typically in alternative form, e.g. XPath).
  * XPath selector should be enclosed in curved braces. Otherwise it is treated as CSS selector.
  * Multiple selectors are merged into one filter instance.
+ * Examples:
+ * elA > * > elB#someId.someClass.anotherClass@elementTag elC@~textTag elD@^markTag
+ * [attrName="attrValue"] .someClass[@tagName:attrName]
+ * a:nth-child(1) b:nth-of-type(2) c:nth-last-child(1) d:nth-last-of-type(2)
  */
 class HtmlFilterParser {
     class Expression(
@@ -347,28 +350,35 @@ class HtmlFilterParser {
     }
 
     private inner class SelectorTagState: State<Void>() {
-        var firstCharSeen = false
         var extractText = false
+        var markNode = false
 
         override fun Consume(c: Int): Boolean
         {
-            var consumed = false
-            if (!firstCharSeen) {
-                firstCharSeen = true
-                if (c == '~'.toInt()) {
-                    extractText = true
-                    consumed = true
+            if (c == '~'.toInt()) {
+                if (extractText) {
+                    UnexpectedCharacter(c)
                 }
+                extractText = true
+                return true
+            }
+            if (c == '^'.toInt()) {
+                if (markNode) {
+                    UnexpectedCharacter(c)
+                }
+                markNode = true
+                return true
             }
             EnterSubstate(IdentifierState()) {
                 ident ->
                 curNode.filterNode.AddExtractInfo(HtmlFilter.ExtractInfo().also {
                     it.tagName = ident
                     it.extractText = extractText
+                    it.markNode = markNode
                 })
                 Switch(AfterSelectorState())
             }
-            return consumed
+            return false
         }
     }
 

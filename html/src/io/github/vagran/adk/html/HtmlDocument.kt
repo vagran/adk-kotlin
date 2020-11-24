@@ -7,14 +7,25 @@
 package io.github.vagran.adk.html
 
 import io.github.vagran.adk.SplitByWhitespace
+import io.github.vagran.adk.omm.OmmField
 import io.github.vagran.adk.omm.OmmIgnore
+import io.github.vagran.adk.omm.OmmOption
 
 
 class HtmlDocument(val root: ElementNode = RootNode()) {
 
-    abstract class Node(val id: Int, @OmmIgnore var parent: ElementNode?) {
+    abstract class Node(val id: Int,
+                        @OmmIgnore var parent: ElementNode?) {
+        @OmmField(serializeNull = OmmOption.NO)
+        var tags: MutableList<String>? = null
+
         /** Deep clone of the node. Start node parent is not set. */
         abstract fun Clone(): Node
+
+        fun Mark(tag: String)
+        {
+            (tags ?: ArrayList<String>().also { tags = it }).add(tag)
+        }
     }
 
     class TextNode(id: Int, parent: ElementNode?, val text: String): Node(id, parent) {

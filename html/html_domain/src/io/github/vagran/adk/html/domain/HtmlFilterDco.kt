@@ -95,8 +95,9 @@ class HtmlFilterDco(@OmmField(delegatedRepresentation = true) val filter: HtmlFi
     {
         Modify(req) {
             val f = HtmlFilter()
-            f.transforms[tagName] = HtmlFilter.TagTransform(matchPattern, replacePattern)
-            f.MakeContext()
+            f.transforms[tagName] = HtmlFilter.TagTransform(matchPattern, replacePattern).also {
+                it.Validate()
+            }
             filter.MergeWith(f)
         }
     }

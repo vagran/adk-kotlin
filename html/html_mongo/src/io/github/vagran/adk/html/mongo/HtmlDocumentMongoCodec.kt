@@ -28,6 +28,16 @@ class HtmlDocumentNodeMongoCodec: Codec<HtmlDocument.Node> {
     {
         writer.writeStartDocument()
 
+        obj.tags?.also {
+            tags ->
+            writer.writeName("tags")
+            writer.writeStartArray()
+            for (tag in tags) {
+                writer.writeString(tag)
+            }
+            writer.writeEndArray()
+        }
+
         if (obj is HtmlDocument.TextNode) {
             writer.writeName("text")
             writer.writeString(obj.text)
