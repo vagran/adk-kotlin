@@ -28,7 +28,7 @@
     <span v-if="allowSel && !isText"
           class="selCheckbox px-1"
           :class="{selected: element.isSelected}"><q-checkbox size="xs" dense v-model="element.isSelected" /></span>
-    <q-badge v-for="tag of tags" color="orange-9">{{tag}}</q-badge>
+    <q-badge v-for="tag of tags" color="orange-9" :key="tag">{{tag}}</q-badge>
     <table class="table table-sm attributes" v-if="hasAttributes && isExpanded"><tbody>
     <tr v-for="attr in element.attrs" :key="attr.id"
         :class="{modeInserted: _GetMode(attr) === Mode.INSERTED,

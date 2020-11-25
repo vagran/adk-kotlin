@@ -122,6 +122,10 @@ export default {
                     order: 13
                 },
 
+                defaultField: {
+                    default: 42,
+                },
+
                 hiddenField: {
                     hidden: true
                 }
@@ -147,6 +151,9 @@ export default {
                 name: "string",
                 label: "String",
                 type: "string"
+            }, {
+                name: "defaultField",
+                default: 42
             }, {
                 name: "hiddenField",
                 hidden: true
@@ -174,8 +181,8 @@ export default {
 
     methods: {
         OnUpdated(fieldName, newValue) {
-            console.log(fieldName, newValue)//XXX
-            this.data[fieldName] = newValue
+            console.log(fieldName, newValue)
+            this.$set(this.data, fieldName, newValue)
         }
     }
 }

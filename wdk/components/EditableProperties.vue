@@ -12,22 +12,22 @@
             <td class="label">{{field.label}}:</td>
             <td>
                 <template v-if="field.type !== 'check' && field.hasOwnProperty('disabled') && field.disabled && (!field.hasOwnProperty('isLink') || !field.isLink)">
-                    {{data[field.name]}}
+                    {{_GetValue(field)}}
                 </template>
                 <a v-else-if="field.hasOwnProperty('isLink') && field.isLink && field.hasOwnProperty('disabled') && field.disabled"
-                   :href="data[field.name]">{{data[field.name]}}</a>
-                <WdkEditableField v-else-if="IsTextField(field)"
-                                :value="data[field.name]"
+                   :href="_GetValue(field)">{{_GetValue(field)}}</a>
+                <WdkEditableField v-else-if="_IsTextField(field)"
+                                :value="_GetValue(field)"
                                 :isLink="field.hasOwnProperty('isLink') && field.isLink"
                                 @input="(value) => _OnUpdated(field, value)"/>
 
                 <div v-else-if="field.type === 'check'" class="form-check">
-                    <q-checkbox dense :value="data[field.name]"
+                    <q-checkbox dense :value="_GetValue(field)"
                                 @input="(value) => _OnUpdated(field, value)"
                                 :disable="field.hasOwnProperty('disabled') && field.disabled"/>
                 </div>
                 <div v-else-if="field.type === 'option'" >
-                    <q-select @input="(value) => _OnUpdated(field, value)" :value="data[field.name]"
+                    <q-select @input="(value) => _OnUpdated(field, value)" :value="_GetValue(field)"
                               :options="_GetOptionValues(field)"
                               :disable="field.hasOwnProperty('disabled') && field.disabled"
                               dense options-dense map-options emit-value/>
@@ -64,8 +64,12 @@
  *          // may be function as well, each element can be either string or object with "label",
  *          // "value" and "disable" attributes.
  *          optionValues: ["value1", "value2"]
+ *      },
+ *      defaultField: {
+ *          // The field is visible with this default value even if the data object does not have
+ *          // it.
+ *          default: 42
  *      }
- * }
  * May be array as well, elements should have "name" element, "order" field is not used.
  * Events:
  *  - updated(fieldName, newValue) - emitted when some property updated.
@@ -117,7 +121,7 @@ export default {
             if (Array.isArray(this.fields)) {
                 let fieldsSeen = new Set()
                 for (let field of this.fields) {
-                    if (!this.data.hasOwnProperty(field.name)) {
+                    if (!this.data.hasOwnProperty(field.name) && !field.hasOwnProperty("default")) {
                         continue
                     }
                     if (!field.hasOwnProperty("label")) {
@@ -166,6 +170,26 @@ export default {
                         fields.push(field)
                     }
                 }
+                if (this.fields !== null) {
+                    for (let fieldName in this.fields) {
+                        if (!this.fields.hasOwnProperty(fieldName) ||
+                            this.data.hasOwnProperty(fieldName)) {
+
+                            continue
+                        }
+                        let field = this.fields[fieldName]
+                        if (!field.hasOwnProperty("default")) {
+                            continue
+                        }
+                        if (!field.hasOwnProperty("name")) {
+                            field.name = fieldName
+                        }
+                        if (!field.hasOwnProperty("label")) {
+                            field.label = this._MakeLabel(fieldName)
+                        }
+                        fields.push(field)
+                    }
+                }
                 fields.sort((f1, f2) => {
                     if (f1.hasOwnProperty("order")) {
                         if (f2.hasOwnProperty("order")) {
@@ -189,8 +213,18 @@ export default {
     },
 
     methods: {
+        _GetValue(field) {
+            if (this.data.hasOwnProperty(field.name)) {
+                return this.data[field.name]
+            }
+            if (!field.hasOwnProperty("default")) {
+                throw new Error("Unavailable field value requested: " + field.name)
+            }
+            return field.default
+        },
+
         /** @return {boolean} */
-        IsTextField(field) {
+        _IsTextField(field) {
             return !field.hasOwnProperty('type') ||
                 field.type === 'string' ||
                 field.type === 'number' ||
@@ -252,7 +286,11 @@ export default {
                 }
                 if (result.length !== 0) {
                     result += " "
-                    result += word.charAt(0).toLowerCase()
+                    if (isAbbr) {
+                        result += word.charAt(0)
+                    } else {
+                        result += word.charAt(0).toLowerCase()
+                    }
                 } else {
                     result += word.charAt(0).toUpperCase()
                 }
