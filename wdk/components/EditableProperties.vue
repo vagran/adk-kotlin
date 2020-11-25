@@ -74,6 +74,26 @@
 import WdkEditableField from "./EditableField";
 import WdkMessageBox from "./MessageBox"
 
+const Chars = {
+    a: "a".codePointAt(0),
+    z: "z".codePointAt(0),
+    A: "A".codePointAt(0),
+    Z: "Z".codePointAt(0),
+    _: "_".codePointAt(0),
+
+    isAlpha(c) {
+        return (c >= Chars.A && c <= Chars.Z) || (c >= Chars.a && c <= Chars.z)
+    },
+
+    isUpper(c) {
+        return c >= Chars.A && c <= Chars.Z
+    },
+
+    isLower(c) {
+        return c >= Chars.a && c <= Chars.z
+    }
+}
+
 export default {
     name: "WdkEditableProperties",
     components: {WdkEditableField, WdkMessageBox},
@@ -101,7 +121,7 @@ export default {
                         continue
                     }
                     if (!field.hasOwnProperty("label")) {
-                        field.label = field.name
+                        field.label = this._MakeLabel(field.name)
                     }
                     if (!field.hasOwnProperty("hidden") || !field.hidden) {
                         fields.push(field)
@@ -140,7 +160,7 @@ export default {
                         field.name = fieldName
                     }
                     if (!field.hasOwnProperty("label")) {
-                        field.label = fieldName
+                        field.label = this._MakeLabel(fieldName)
                     }
                     if (!field.hasOwnProperty("hidden") || !field.hidden) {
                         fields.push(field)
@@ -218,6 +238,78 @@ export default {
                 }
             }
             return result
+        },
+
+        _MakeLabel(name) {
+            let result = ""
+            let word = ""
+            let isAbbr = false
+            let firstUpper = false
+
+            function CommitWord() {
+                if (word.length === 0) {
+                    return
+                }
+                if (result.length !== 0) {
+                    result += " "
+                    result += word.charAt(0).toLowerCase()
+                } else {
+                    result += word.charAt(0).toUpperCase()
+                }
+                result += word.slice(1)
+                word = ""
+            }
+
+            function ProcessChar(cS, c) {
+                if (Chars.isAlpha(c)) {
+                    if (word.length === 0) {
+                        word += cS
+                        firstUpper = Chars.isUpper(c)
+                        isAbbr = false
+                        return true
+                    } else if (isAbbr) {
+                        if (Chars.isLower(c)) {
+                            CommitWord()
+                            return false
+                        }
+                        word += cS
+                        return true
+                    } else if (word.length === 1) {
+                        if (Chars.isUpper(c)) {
+                            if (firstUpper) {
+                                isAbbr = true
+                            } else {
+                                CommitWord()
+                                return false
+                            }
+                        }
+                        word += cS
+                        return true
+                    } else if (Chars.isUpper(c)) {
+                        CommitWord()
+                        return false
+                    }
+                    word += cS
+                    return true
+
+                } else {
+                    CommitWord()
+                    if (c === Chars._) {
+                        result += " "
+                    } else {
+                        result += cS
+                    }
+                    return true
+                }
+            }
+
+            for (const cS of name) {
+                const c = cS.codePointAt(0)
+                // noinspection StatementWithEmptyBodyJS
+                while (!ProcessChar(cS, c));
+            }
+            CommitWord()
+            return result.trim()
         }
     }
 }
