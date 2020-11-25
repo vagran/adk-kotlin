@@ -29,16 +29,11 @@ typealias EntityCommitHandler = (state: EntityInfo) -> Unit
 typealias EntityAsyncCommitHandler = suspend (state: EntityInfo) -> Unit
 
 interface IEntity {
-    /** Get entity info of the specified info level and group.
-     * @param level Info level, -1 to all fields.
-     */
-    fun GetInfo(level: Int = 0, group: Any? = null): EntityInfo
-    /** Entity with all fields included. */
-    fun ViewMap(): EntityInfo
+    val state: ManagedState
 }
 
 /** Helper class for implementing IEntity interface by aggregated state object. */
-open class EntityBase(protected open val state: ManagedState = ManagedState()): IEntity by state {
+open class EntityBase(override val state: ManagedState = ManagedState()): IEntity {
     override fun toString(): String
     {
         return state.toString()
@@ -172,6 +167,8 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         operator fun getValue(thisRef: Any, prop: KProperty<*>): T
         operator fun setValue(thisRef: Any, prop: KProperty<*>, value: T)
     }
+
+    override val state: ManagedState get() = this
 
     fun <T> Id(defValue: DefaultValueProvider<T>): DelegateProvider<T>
     {
@@ -310,12 +307,12 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         MarkDirty(field.name)
     }
 
-    override fun GetInfo(level: Int, group: Any?): EntityInfo
+    fun GetInfo(level: Int = 0, group: Any? = null): EntityInfo
     {
         return GetMap(level, group)
     }
 
-    override fun ViewMap(): EntityInfo
+    fun ViewMap(): EntityInfo
     {
         return GetMap(-1, null)
     }
@@ -419,7 +416,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         {
             val value = value ?: return null
             if (value is IEntity) {
-                return value.GetInfo(infoLevel, infoGroup)
+                return value.state.GetInfo(infoLevel, infoGroup)
             }
             if (elementCls != null && elementCls.isSubclassOf(IEntity::class)) {
                 if (value is List<*>) {
@@ -429,7 +426,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                     val result = ArrayList<Any?>()
                     for (element in value) {
                         val entity = element as? IEntity
-                        result.add(entity?.GetInfo(infoLevel, infoGroup) ?: element)
+                        result.add(entity?.state?.GetInfo(infoLevel, infoGroup) ?: element)
                     }
                     return result
 
@@ -440,7 +437,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                     val result = TreeMap<Any?, Any?>()
                     for ((key, element) in value.entries) {
                         val entity = element as? IEntity
-                        result[key] = (entity?.GetInfo(infoLevel, infoGroup) ?: element)
+                        result[key] = (entity?.state?.GetInfo(infoLevel, infoGroup) ?: element)
                     }
                     return result
                 }
