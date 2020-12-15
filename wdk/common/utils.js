@@ -18,15 +18,25 @@ export class PostRequestError extends Error {
     }
 }
 
-export async function PostRequest(url, data) {
+/**
+ * @param url
+ * @param data Request body data (will be encoded in JSON). GET request if not specified, POST
+ *  otherwise.
+ * @param abortSignal {AbortSignal|null} Abort signal to connect the fetch to.
+ * @return {Promise<null|any>} Decoded JSON response.
+ */
+export async function PostRequest(url, data = null, abortSignal = null) {
     let params = {
-        method: data !== undefined ? "POST" : "GET"
+        method: data !== null ? "POST" : "GET"
     }
-    if (data !== undefined) {
+    if (data !== null) {
         params.body = JSON.stringify(data)
         params.headers = {
             "Content-Type": "application/json; charset=utf-8"
         }
+    }
+    if (abortSignal !== null) {
+        params.signal = abortSignal
     }
     let response = await fetch(url, params)
 

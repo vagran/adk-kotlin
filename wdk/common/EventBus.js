@@ -21,8 +21,14 @@ export class EventBusSubscription {
         }
         this._queue = null
         this._queueIdx = 0
+        this._abortCtrl = new AbortController()
     }
 
+    /** Abort current fetch if any. Concurrent GetNext() call is failed if any. */
+    Destroy() {
+        this._abortCtrl.abort()
+        this._queue = null
+    }
 
     /**
      * Get next event when available.
@@ -36,7 +42,7 @@ export class EventBusSubscription {
             const q = await PostRequest(this._url + "/PollEvents", {
                 topics: this._topics,
                 seq: this._curSeq
-            })
+            }, this._abortCtrl.signal)
             if (q.length === 0) {
                 continue
             }
@@ -46,6 +52,9 @@ export class EventBusSubscription {
         }
     }
 
+    /** Get as much as possible new events.
+     * @return {Promise<{seq, topic, event}>[]}
+     */
     async GetNextMultiple() {
         if (this._queue != null) {
             for (let i = this._queueIdx; i < this._queue.length; i++) {
