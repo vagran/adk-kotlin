@@ -4,7 +4,7 @@
  * See LICENSE file for full license details.
  */
 
-package io.github.vagran.adk.omm
+package io.github.vagran.adk
 
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type

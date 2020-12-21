@@ -10,10 +10,10 @@ import io.github.vagran.adk.async.Deferred
 import io.github.vagran.adk.async.ThreadContext
 import io.github.vagran.adk.domain.httpserver.*
 import io.github.vagran.adk.json.Json
-import io.github.vagran.adk.omm.TypeToken
 import io.github.vagran.adk.log.LogConfiguration
 import io.github.vagran.adk.log.LogManager
 import com.sun.net.httpserver.HttpServer
+import io.github.vagran.adk.TypeToken
 import io.github.vagran.adk.log.Logger
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.*

@@ -7,10 +7,10 @@
 package io.github.vagran.adk.async.db.mongo
 
 import io.github.vagran.adk.LocalId
+import io.github.vagran.adk.TypeToken
 import io.github.vagran.adk.async.db.mongo.codecs.*
 import io.github.vagran.adk.async.db.mongo.codecs.MapCodec
 import io.github.vagran.adk.omm.OmmParams
-import io.github.vagran.adk.omm.TypeToken
 import org.bson.BsonDocument
 import org.bson.BsonDocumentWriter
 import org.bson.Document

@@ -5,6 +5,7 @@
  */
 
 
+import io.github.vagran.adk.TypeToken
 import io.github.vagran.adk.json.*
 import io.github.vagran.adk.omm.*
 import org.junit.jupiter.api.Assertions.*

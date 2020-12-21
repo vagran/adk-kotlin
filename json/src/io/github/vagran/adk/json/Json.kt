@@ -7,12 +7,12 @@
 package io.github.vagran.adk.json
 
 
+import io.github.vagran.adk.TypeToken
 import io.github.vagran.adk.json.internal.AppendableWriter
 import io.github.vagran.adk.json.internal.TextJsonReader
 import io.github.vagran.adk.json.internal.TextJsonWriter
 import io.github.vagran.adk.json.internal.codecs.*
 import io.github.vagran.adk.omm.OmmParams
-import io.github.vagran.adk.omm.TypeToken
 import java.io.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
