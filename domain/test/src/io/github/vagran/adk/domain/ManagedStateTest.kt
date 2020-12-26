@@ -19,9 +19,7 @@ import java.util.concurrent.locks.ReadWriteLock
 private class ManagedStateTest {
 
     class A(id: String = "someId", loadFrom: EntityInfo? = null):
-        EntityBase(ManagedState(loadFrom)) {
-
-        public override val state get() = super.state
+        EntityBase(ManagedState(loadFrom, commitHandler = {info -> println("commit: $info")})) {
 
         enum class Type {
             T1,
@@ -45,29 +43,33 @@ private class ManagedStateTest {
         var i2 by state.Param(42).InfoLevel(1)
         var d2 by state.Param(43.0).InfoLevel(2)
         private var internalCounter by state(0).InfoLevel(1).InfoGroup(InfoGroup.G1)
-        var even by state(0).Validator {
-            v ->
-            if (v % 2 != 0) {
-                throw Error("Should be even")
-            }
-        }
 
-        inner class B(loadFrom: EntityInfo? = null, lock: ReadWriteLock? = null,
+        inner class B(loadFrom: EntityInfo? = null, parent: ManagedState.ParentRef? = null,
                       s: String = "nested-string"):
-            EntityBase(ManagedState(loadFrom, lock = lock)) {
+            EntityBase(ManagedState(loadFrom, parent)) {
 
             val s by state.Param(s)
         }
 
-        val b by state.Param{ CreateB() }.Factory(this::CreateB)
+        val b by state.Param { CreateB() }.Factory(this::CreateB)
 
-        fun CreateB(loadFrom: EntityInfo? = null): B
+        fun CreateB(loadFrom: EntityInfo? = null, parent: ManagedState.ParentRef? = null): B
         {
-            return B(loadFrom, state.lock)
+            return B(loadFrom, parent)
         }
 
-        val bList by state.Param{ listOf(B(s = "list")) }.ElementFactory(this::CreateB)
-        val bMap by state.Param{ mapOf("z" to B(s = "map")) }.ElementFactory(this::CreateB)
+        val bList by state.Param { listOf(B(s = "list")) }.ElementFactory(this::CreateB)
+        val bMap by state.Param { mapOf("z" to B(s = "map")) }.ElementFactory(this::CreateB)
+    }
+
+    fun <T> RunSuspend(block: suspend () -> T): T
+    {
+        try {
+            return Deferred.ForFunc(block).Get()
+        } catch (e: Throwable) {
+            e.cause?.also { throw it }
+            throw e
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -260,7 +262,9 @@ private class ManagedStateTest {
     fun ChangeImmutableProperty()
     {
         val a = A()
-        val e = assertThrows<IllegalStateException> { a.state.Mutate(mapOf("s" to "someString")) }
+        val e = assertThrows<IllegalStateException> {
+            RunSuspend { a.state.Mutate(mapOf("s" to "someString")) }
+        }
         assertEquals("Attempting to change immutable property: 's'", e.message)
     }
 
@@ -282,9 +286,11 @@ private class ManagedStateTest {
     {
         val a = A()
 
-        a.state.Mutate {
-            a.name = "myName"
-            assertEquals("myName", a.name)
+        RunSuspend {
+            a.state.Mutate {
+                a.name = "myName"
+                assertEquals("myName", a.name)
+            }
         }
         assertEquals("myName", a.name)
     }
@@ -294,12 +300,12 @@ private class ManagedStateTest {
     {
         val a = A()
 
-        Deferred.ForFunc {
-            a.state.MutateAsync {
+        RunSuspend {
+            a.state.Mutate {
                 a.name = "myName"
                 assertEquals("myName", a.name)
             }
-        }.Get()
+        }
         assertEquals("myName", a.name)
     }
 
@@ -309,57 +315,64 @@ private class ManagedStateTest {
         val a = A(loadFrom = mapOf("name" to "aaa"))
 
         assertThrows<Error> {
-            a.state.Mutate {
-                a.name = "myName"
-                assertEquals("myName", a.name)
-                throw Error("in mutation")
+            RunSuspend {
+                a.state.Mutate {
+                    a.name = "myName"
+                    assertEquals("myName", a.name)
+                    throw Error("in mutation")
+                }
             }
         }
-        assertEquals("aaa", a.name)
+        val e = assertThrows<Error> { a.name }
+        assertEquals("Accessing object with invalid state", e.message)
     }
-
-    @Test
-    fun TransactionFailOnValidation()
-    {
-        val a = A(loadFrom = mapOf("name" to "aaa"))
-
-        a.state.Mutate {
-            a.even = 42
-        }
-        assertEquals(42, a.even)
-
-        val e = assertThrows<ManagedState.ValidationError> {
-            a.state.Mutate {
-                a.even = 3
-                assertEquals(3, a.even)
-            }
-        }
-        assertEquals("Property 'even' validation error: Should be even", e.message)
-        assertEquals(42, a.even)
-    }
+//
+//    @Test
+//    fun TransactionFailOnValidation()
+//    {
+//        val a = A(loadFrom = mapOf("name" to "aaa"))
+//
+//        a.state.Mutate {
+//            a.even = 42
+//        }
+//        assertEquals(42, a.even)
+//
+//        val e = assertThrows<ManagedState.ValidationError> {
+//            a.state.Mutate {
+//                a.even = 3
+//                assertEquals(3, a.even)
+//            }
+//        }
+//        assertEquals("Property 'even' validation error: Should be even", e.message)
+//        assertEquals(42, a.even)
+//    }
 
     @Test
     fun MutateEnumByString()
     {
         val a = A()
 
-        assertEquals(A.Type.T1, a.type)
-        a.state.Mutate {
-            a.type = A.Type.T2
+        RunSuspend {
+            assertEquals(A.Type.T1, a.type)
+            a.state.Mutate {
+                a.type = A.Type.T2
+                assertEquals(A.Type.T2, a.type)
+            }
             assertEquals(A.Type.T2, a.type)
+
+            a.state.Mutate(mapOf("type" to A.Type.T3))
+            assertEquals(A.Type.T3, a.type)
+
+            a.state.Mutate(mapOf("type" to "T4"))
+            assertEquals(A.Type.T4, a.type)
+
+            val e = assertThrows<IllegalArgumentException> {
+                RunSuspend {
+                    a.state.Mutate(mapOf("type" to "INVALID"))
+                }
+            }
+            assertEquals("Failed to convert enum value from string for property 'type'", e.message)
         }
-        assertEquals(A.Type.T2, a.type)
-
-        a.state.Mutate(mapOf("type" to A.Type.T3))
-        assertEquals(A.Type.T3, a.type)
-
-        a.state.Mutate(mapOf("type" to "T4"))
-        assertEquals(A.Type.T4, a.type)
-
-        val e = assertThrows<IllegalArgumentException> {
-            a.state.Mutate(mapOf("type" to "INVALID"))
-        }
-        assertEquals("Failed to convert enum value from string for property 'type'", e.message)
     }
 
     @Test
@@ -367,7 +380,9 @@ private class ManagedStateTest {
     {
         val a = A()
 
-        a.state.Mutate(mapOf("i2" to 45.0))
+        RunSuspend {
+            a.state.Mutate(mapOf("i2" to 45.0))
+        }
         assertEquals(45, a.i2)
     }
 
@@ -375,8 +390,9 @@ private class ManagedStateTest {
     fun MutateDoubleByInt()
     {
         val a = A()
-
-        a.state.Mutate(mapOf("d2" to 45))
+        RunSuspend {
+            a.state.Mutate(mapOf("d2" to 45))
+        }
         assertEquals(45.0, a.d2)
     }
 }

@@ -7,11 +7,15 @@
 package io.github.vagran.adk.domain
 
 import io.github.vagran.adk.EnumFromString
-import io.github.vagran.adk.domain.ManagedState.ValueValidator
+import io.github.vagran.adk.async.Deferred
 import java.util.*
-import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.collections.HashSet
+import kotlin.concurrent.withLock
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KProperty
@@ -24,9 +28,7 @@ import kotlin.reflect.jvm.jvmErasure
  */
 typealias EntityInfo = Map<String, Any?>
 
-typealias EntityCommitHandler = (state: EntityInfo) -> Unit
-
-typealias EntityAsyncCommitHandler = suspend (state: EntityInfo) -> Unit
+typealias EntityCommitHandler = suspend (state: EntityInfo) -> Unit
 
 interface IEntity {
     val state: ManagedState
@@ -54,42 +56,26 @@ open class EntityBase(override val state: ManagedState = ManagedState()): IEntit
  * on creation and later can be modified by UI. Internal state is usually maintained by the entity
  * itself.
  *
- * @param fullCommit Commit handler accepts full state if true, and only changed values (with ID) if
- * false.
+ * @param lock Lock to use in shared control block. May be specified only for root state.
+ * @param fullCommit Commit handler accepts full state if true, and only changed values (ID always
+ *  included) if false.
  */
 class ManagedState(private var loadFrom: EntityInfo? = null,
-                   val lock: ReadWriteLock? = ReentrantReadWriteLock(),
+                   private val parent: ParentRef? = null,
+                   lock: ReentrantReadWriteLock? =
+                       if (parent != null) null else ReentrantReadWriteLock(),
                    private val commitHandler: EntityCommitHandler? = null,
-                   private val asyncCommitHandler: EntityAsyncCommitHandler? = null,
                    private val fullCommit: Boolean = false): IEntity {
 
-    fun interface ValueValidator<T> {
-        /** Throw exception if validation failed.
-         * During state construction initial validation is invoked with the same value for previous
-         * and new value arguments.
-         */
-        fun Validate(prevValue: T, newValue: T)
-    }
-
-    fun interface SingleValueValidator<T> {
-        /** Throw exception if validation failed. */
-        fun Validate(newValue: T)
-
-        fun ToValidator(): ValueValidator<T>
-        {
-            return ValueValidator { _, newValue -> Validate(newValue) }
-        }
-    }
+    class ParentRef(val state: ManagedState, val propName: String)
 
     fun interface DefaultValueProvider<T> {
         fun Provide(): T
     }
 
     fun interface Factory<T> {
-        fun Create(loadFrom: EntityInfo): T
+        fun Create(loadFrom: EntityInfo, parent: ParentRef): T
     }
-
-    class ValidationError(msg: String, cause: Throwable): Exception(msg, cause)
 
     inner class DelegateProvider<T>(private val isId: Boolean,
                                     private val isParam: Boolean,
@@ -98,10 +84,9 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         operator fun provideDelegate(thisRef: Any,
                                      prop: KProperty<*>): IDelegate<T>
         {
-            val value = GetDefaultValue(prop, defValue, factory, elementFactory)
-            validator?.Validate(value, value)
+            val value = GetInitialValue(prop, defValue, factory, elementFactory)
             return DelegateImpl(prop, isId, isParam, value,
-                                validator, infoLevel, infoGroup, factory, elementFactory).also {
+                                infoLevel, infoGroup, factory, elementFactory).also {
                 values[prop.name] = it
                 if (isId) {
                     idValue?.also {
@@ -115,18 +100,6 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             }
         }
 
-        fun Validator(validator: ValueValidator<T>): DelegateProvider<T>
-        {
-            this.validator = validator
-            return this
-        }
-
-        fun Validator(validator: SingleValueValidator<T>): DelegateProvider<T>
-        {
-            this.validator = validator.ToValidator()
-            return this
-        }
-
         /**
          * @param infoLevel Desired info level, -1 to not include on any level.
          */
@@ -136,6 +109,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             return this
         }
 
+        /** @param group */
         fun InfoGroup(group: Any): DelegateProvider<T>
         {
             this.infoGroup = group
@@ -156,7 +130,6 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             return this
         }
 
-        private var validator: ValueValidator<T>? = null
         private var infoLevel = if (isParam || isId) 0 else -1
         private var infoGroup: Any? = null
         private var factory: Factory<T>? = null
@@ -225,80 +198,30 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         return Internal { defValue }
     }
 
-    fun Mutate(params: EntityInfo)
+    suspend fun Mutate(params: EntityInfo)
     {
-        val t = OpenTransaction()
-        var commit = false
-        try {
-            t.Mutate(params)
-            commit = true
-        } finally {
-            CloseTransaction(commit)
-        }
-    }
-
-    suspend fun MutateAsync(params: EntityInfo)
-    {
-        val t = OpenTransaction()
-        var commit = false
-        try {
-            t.Mutate(params)
-            commit = true
-        } finally {
-            CloseTransactionAsync(commit)
+        WithTransaction {
+            it.Mutate(params)
         }
     }
 
     /** Mutate in one transaction. Change properties as needed in the block. */
-    fun <T> Mutate(block: () -> T): T
+    suspend fun <T> Mutate(block: () -> T): T
     {
-        OpenTransaction()
-        var commit = false
-        try {
-            val ret = block()
-            commit = true
-            return ret
-        } finally {
-            CloseTransaction(commit)
+        return WithTransaction {
+            block()
         }
     }
 
-    suspend fun <T> MutateAsync(block: () -> T): T
-    {
-        OpenTransaction()
-        var commit = false
-        try {
-            val ret = block()
-            commit = true
-            return ret
-        } finally {
-            CloseTransactionAsync(commit)
-        }
-    }
-
-    /** The caller is responsible for ensuring the provided block continues in the same thread where
-     * mutation is started as well as all values modifications performed in this thread.
+    /** Mark field dirty so that it is included into commit data. Should be called in transaction
+     * context.
      */
-    suspend fun <T> MutateAsyncS(block: suspend () -> T): T
-    {
-        val t = OpenTransaction()
-        var commit = false
-        try {
-            val ret = block()
-            if (t !== transaction.get()) {
-                throw IllegalStateException("Mutation block continued in other thread")
-            }
-            commit = true
-            return ret
-        } finally {
-            CloseTransactionAsync(commit)
-        }
-    }
-
-    /** Mark field dirty so that it is included into commit data. */
     fun MarkDirty(fieldName: String)
     {
-        val t = transaction.get() ?: throw IllegalStateException("No active transaction")
+        if (!controlBlock.isLocked) {
+            throw IllegalStateException("Attempt to mark property dirty outside of transaction")
+        }
+        val t = EnsureTransaction()
         t.SetDirty(fieldName)
     }
 
@@ -320,12 +243,11 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
     /** Get field representation in info structure. Useful for nested entities. */
     fun GetFieldInfoValue(fieldName: String, level: Int = 0, group: Any? = null): Any?
     {
-        val lock = this.lock?.readLock()
-        lock?.lock()
-        val value = values[fieldName] ?: throw Error("Field not found: $fieldName")
-        val result = value.GetInfoValue(level, group)
-        lock?.unlock()
-        return result
+        return WithReadLock {
+            controlBlock.CheckError()
+            val value = values[fieldName] ?: throw Error("Field not found: $fieldName")
+            value.GetInfoValue(level, group)
+        }
     }
 
     fun GetFieldInfoValue(field: KProperty<*>, level: Int = 0, group: Any? = null): Any?
@@ -342,16 +264,135 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
     private var numLoaded = 0
     private val values = TreeMap<String, DelegateImpl<*>>()
     private var idValue: DelegateImpl<*>? = null
-    private val transaction = ThreadLocal<Transaction?>()
-    /** Asynchronous commit in progress, concurrent commit is not allowed. */
-    private var isCommitting = false
+    private var transaction: Transaction? = null
+    private val controlBlock: ControlBlock =
+        if (parent != null) {
+            if (lock != null) {
+                throw IllegalArgumentException("Lock may only be specified for root state")
+            }
+            parent.state.controlBlock
+        } else {
+            if (lock == null) {
+                throw IllegalArgumentException("Lock may not be null for root state")
+            }
+            ControlBlock(lock)
+        }
+
+
+    private class ControlBlock(val lock: ReentrantReadWriteLock) {
+        var transactionNesting = 0
+        val commitQueue = ArrayDeque<CommitData>()
+        var commitPending: Deferred<Unit>? = null
+        val transactions = ArrayList<Transaction>()
+        /** Non-null error invalidates whole the state hierarchy. It cannot be longer accessed. */
+        var error: Throwable? = null
+
+        /** Check if current thread hold lock to active transaction. */
+        val isLocked: Boolean get() = lock.isWriteLockedByCurrentThread
+
+        inner class CommitHandle(private val commitData: CommitData?,
+                                 private val def: Deferred<Unit>) {
+            suspend fun Wait()
+            {
+                if (commitData == null) {
+                    def.Await()
+                    return
+                }
+                var error: Throwable? = null
+                try {
+                    commitData.invoke()
+                } catch (e: Throwable) {
+                    error = e
+                }
+                synchronized(commitQueue) {
+                    commitPending = null
+                    if (error != null) {
+                        commitQueue.addFirst(commitData)
+                    }
+                }
+                if (error != null) {
+                    def.SetError(error)
+                } else {
+                    def.SetResult(Unit)
+                }
+            }
+        }
+
+        fun RegisterTransaction(t: Transaction)
+        {
+            transactions.add(t)
+        }
+
+        fun StartTransaction()
+        {
+            transactionNesting++
+        }
+
+        fun EndTransaction(error: Throwable?)
+        {
+            if (error != null) {
+                val oldError = this.error
+                this.error = error
+                if (oldError != null) {
+                    error.addSuppressed(oldError)
+                }
+            }
+            if (transactionNesting == 0) {
+                throw IllegalStateException("Unmatched transaction end")
+            }
+            transactionNesting--
+            if (transactionNesting != 0) {
+                return
+            }
+            if (this.error != null) {
+                for (t in transactions) {
+                    t.Finalize()?.also {
+                        synchronized(commitQueue) {
+                            commitQueue.addLast(it)
+                        }
+                    }
+                }
+            }
+            transactions.clear()
+        }
+
+        /** Check for pending commits. Returns handle which should be waited with lock released.
+         * Returns null if no pending commits and can proceed with new transaction. Should be called
+         * with lock acquired.
+         */
+        fun GetCommit(): CommitHandle?
+        {
+            synchronized(commitQueue) {
+                commitPending?.also {
+                    return CommitHandle(null, it)
+                }
+                val commit = commitQueue.pollFirst() ?: return null
+                val def = Deferred.Create<Unit>()
+                commitPending = def
+                return CommitHandle(commit, def)
+            }
+        }
+
+        fun CheckError()
+        {
+            error?.also {
+                throw Error("Accessing object with invalid state", it)
+            }
+        }
+    }
+
+    private class CommitData(val data: EntityInfo, val handler: EntityCommitHandler) {
+        suspend operator fun invoke()
+        {
+            handler(data)
+        }
+    }
 
     private inner class DelegateImpl<T>(
         prop: KProperty<*>,
         val isId: Boolean,
         val isParam: Boolean,
         private var value: T,
-        private val validator: ValueValidator<T>?,
         val infoLevel: Int,
         val infoGroup: Any?,
         val factory: Factory<T>?,
@@ -367,30 +408,17 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         @Suppress("UNCHECKED_CAST")
         override operator fun getValue(thisRef: Any, prop: KProperty<*>): T
         {
-            val t = transaction.get()
-            if (t != null && name in t.newValues) {
-                return t.newValues[name] as T
-            }
+            controlBlock.CheckError()
             return value
         }
 
         override operator fun setValue(thisRef: Any, prop: KProperty<*>, value: T)
         {
-            val t = transaction.get() ?: throw IllegalStateException(
-                "Attempt to modify property outside of transaction")
-            t.Mutate(name, value)
-        }
-
-        @Suppress("UNCHECKED_CAST")
-        fun Validate(newValue: Any?)
-        {
-            try {
-                validator?.also {
-                    it.Validate(value, newValue as T)
-                }
-            } catch(e: Throwable) {
-                throw ValidationError("Property '$name' validation error: ${e.message}", e)
+            if (!controlBlock.isLocked) {
+                throw IllegalStateException("Attempt to modify property outside of transaction")
             }
+            val t = EnsureTransaction()
+            t.Mutate(this, value)
         }
 
         @Suppress("UNCHECKED_CAST")
@@ -408,8 +436,8 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         fun CheckInfoLevel(infoLevel: Int, infoGroup: Any?): Boolean
         {
             return infoLevel == -1 ||
-                    (this.infoLevel != -1 && this.infoLevel <= infoLevel &&
-                     infoGroup === this.infoGroup)
+                   (this.infoLevel != -1 && this.infoLevel <= infoLevel &&
+                    infoGroup === this.infoGroup)
         }
 
         fun GetInfoValue(infoLevel: Int, infoGroup: Any?): Any?
@@ -447,9 +475,8 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
     }
 
     private inner class Transaction {
-        val newValues = TreeMap<String, Any?>()
-        val dirtyValues = TreeSet<String>()
-        var nestCount = 1
+        val dirtyValues: HashSet<DelegateImpl<*>>? =
+            if (commitHandler != null) HashSet() else null
 
         fun Mutate(params: EntityInfo)
         {
@@ -461,102 +488,65 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         fun Mutate(name: String, value: Any?)
         {
             val d = values[name] ?: throw IllegalArgumentException("No such property: '$name'")
+            Mutate(d, value)
+        }
+
+        fun Mutate(d: DelegateImpl<*>, value: Any?)
+        {
             if (!d.isMutable) {
-                throw IllegalStateException("Attempting to change immutable property: '$name'")
+                throw IllegalStateException(
+                    "Attempting to change immutable property: '${d.name}'")
             }
             if (value == null && !d.isNullable) {
-                throw IllegalArgumentException("Null value assigned to non-nullable property '$name'")
+                throw IllegalArgumentException(
+                    "Null value assigned to non-nullable property '${d.name}'")
             }
-            newValues[name] = d.TransformValue(value)
+            if (dirtyValues != null) {
+                dirtyValues.add(d)
+            } else if (parent != null) {
+                parent.state.EnsureTransaction().SetDirty(parent.propName)
+            }
+            d.Set(d.TransformValue(value))
         }
 
         fun SetDirty(name: String)
         {
-            dirtyValues.add(name)
+            val d = values[name] ?: throw IllegalArgumentException("No such property: '$name'")
+            if (dirtyValues != null) {
+                dirtyValues.add(d)
+            } else if (parent != null) {
+                parent.state.EnsureTransaction().SetDirty(parent.propName)
+            }
         }
 
-        fun GetCommitData(): EntityInfo
+        /** @return Commit data if any. May be null if no data for this transaction. */
+        fun Finalize(): CommitData?
         {
-            val data = TreeMap<String, Any?>(newValues)
+            transaction = null
+            if (dirtyValues == null) {
+                return null
+            }
+            val data = TreeMap<String, Any?>()
             if (fullCommit) {
                 for ((name, value) in values) {
-                    if (name !in data) {
-                        data[name] = value.GetInfoValue(-1, null)
-                    }
+                    data[name] = value.GetInfoValue(-1, null)
                 }
             } else {
-                for (name in dirtyValues) {
-                    if (name in newValues) {
-                        continue
-                    }
-                    val v = values[name] ?: throw Error("Field not found: $name")
-                    data[name] = v.GetInfoValue(-1, null)
+                if (dirtyValues.isEmpty()) {
+                    return null
+                }
+                for (value in dirtyValues) {
+                    data[value.name] = value.GetInfoValue(-1, null)
                 }
                 idValue?.also {
                     data[it.name] = it.curValue
                 }
             }
-            return data
-        }
-
-        fun Apply()
-        {
-            for ((name, value) in newValues) {
-                values[name]!!.Set(value)
-            }
+            return CommitData(data, commitHandler!!)
         }
     }
 
     private companion object {
-        @Suppress("UNCHECKED_CAST")
-        fun <T> TransformValue(name: String, cls: KClass<*>, value: Any?, factory: Factory<T>?,
-                               elementFactory: Factory<*>?, elementCls: KClass<*>?): T
-        {
-            if (factory != null && value is Map<*, *>) {
-                return factory.Create(value as EntityInfo)
-            }
-            if (elementFactory != null) {
-                if (value is List<*>) {
-                    if (value.size == 0) {
-                        return value as T
-                    }
-                    val result = ArrayList<Any?>()
-                    for ((idx, element) in value.withIndex()) {
-                        result.add(TransformValue("$name[$idx]", elementCls!!, element,
-                                                  elementFactory, null, null))
-                    }
-                    return result as T
-                }
-                if (value is Map<*, *>) {
-                    if (value.size == 0) {
-                        return value as T
-                    }
-                    val result = HashMap<Any?, Any?>()
-                    for ((key, element) in value.entries) {
-                        result[key] = TransformValue("$name[$key]", elementCls!!, element,
-                                                     elementFactory, null, null)
-                    }
-                    return result as T
-                }
-            }
-            if (cls.isSubclassOf(Enum::class) && value is String) {
-                try {
-                    return EnumFromString(cls, value) as T
-                } catch (e: Throwable) {
-                    throw IllegalArgumentException(
-                        "Failed to convert enum value from string for property '$name'", e)
-                }
-            }
-            if (cls.isSubclassOf(Number::class) && value is Number) {
-                return value as T
-            }
-            if (value != null && !value::class.isSubclassOf(cls)) {
-                throw IllegalArgumentException(
-                    "Wrong type returned for property '$name': " +
-                    "${value::class.qualifiedName} is not subclass of ${cls.qualifiedName}")
-            }
-            return value as T
-        }
 
         /** Get element type of collection type property. */
         fun GetElementClass(prop: KProperty<*>): KClass<*>?
@@ -586,14 +576,73 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         }
     }
 
-    init {
-        if (commitHandler != null && asyncCommitHandler != null) {
-            throw IllegalArgumentException("Only one commit handler should be specified")
+    /** Transform value if necessary from representation acceptable in EntityInfo to stored
+     * representation.
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun <T> TransformValue(name: String, cls: KClass<*>, value: Any?, factory: Factory<T>?,
+                           elementFactory: Factory<*>?, elementCls: KClass<*>?): T
+    {
+        if (factory != null && value is Map<*, *>) {
+            return factory.Create(value as EntityInfo, ParentRef(this, name))
         }
+        if (elementFactory != null) {
+            if (value is List<*>) {
+                if (value.size == 0) {
+                    return value as T
+                }
+                val result = ArrayList<Any?>()
+                for ((idx, element) in value.withIndex()) {
+                    result.add(TransformValue("$name[$idx]", elementCls!!, element,
+                                              elementFactory, null, null))
+                }
+                return result as T
+            }
+            if (value is Map<*, *>) {
+                if (value.size == 0) {
+                    return value as T
+                }
+                val result = HashMap<Any?, Any?>()
+                for ((key, element) in value.entries) {
+                    result[key] = TransformValue("$name[$key]", elementCls!!, element,
+                                                 elementFactory, null, null)
+                }
+                return result as T
+            }
+        }
+        if (cls.isSubclassOf(Enum::class) && value is String) {
+            try {
+                return EnumFromString(cls, value) as T
+            } catch (e: Throwable) {
+                throw IllegalArgumentException(
+                    "Failed to convert enum value from string for property '$name'", e)
+            }
+        }
+        if (cls.isSubclassOf(Number::class) && value is Number) {
+            return value as T
+        }
+        if (value != null && !value::class.isSubclassOf(cls)) {
+            throw IllegalArgumentException(
+                "Wrong type returned for property '$name': " +
+                    "${value::class.qualifiedName} is not subclass of ${cls.qualifiedName}")
+        }
+        return value as T
     }
 
+    //XXX control block enough?
+    private fun GetRootState(): ManagedState
+    {
+        var state = this
+        while (true) {
+            val parent = state.parent ?: break
+            state = parent.state
+        }
+        return state
+    }
+
+    /** Get initial value for the specified property. */
     @Suppress("UNCHECKED_CAST")
-    private fun <T> GetDefaultValue(prop: KProperty<*>, defValue: DefaultValueProvider<T>?,
+    private fun <T> GetInitialValue(prop: KProperty<*>, defValue: DefaultValueProvider<T>?,
                                     factory: Factory<T>?, elementFactory: Factory<*>?): T
     {
         val name = prop.name
@@ -633,88 +682,54 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         return null as T
     }
 
-    private fun OpenTransaction(): Transaction
+    /** Should be called with write lock acquired. */
+    private fun EnsureTransaction(): Transaction
     {
-        transaction.get()?.also {
-            it.nestCount++
-            return it
-        }
-        val t = Transaction()
-        transaction.set(t)
-        return t
-    }
-
-    private fun BeginCloseTransaction(commit: Boolean): Transaction?
-    {
-        val t = transaction.get() ?: throw IllegalStateException("No transaction in progress")
-        t.nestCount--
-        if (t.nestCount > 0) {
-            return null
-        }
-        if (!commit) {
-            transaction.set(null)
-            return null
-        }
-        return t
-    }
-
-    private fun CloseTransaction(commit: Boolean)
-    {
-        if (commit && asyncCommitHandler != null) {
-            throw IllegalStateException("Synchronous commit not possible")
-        }
-
-        val t = BeginCloseTransaction(commit) ?: return
-
-        val lock = this.lock?.writeLock()
-        lock?.lock()
-        transaction.set(null)
-
-        try {
-            for ((name, value) in t.newValues) {
-                values[name]!!.Validate(value)
-            }
-            commitHandler?.invoke(t.GetCommitData())
-            t.Apply()
-        } finally {
-            lock?.unlock()
+        transaction?.also { return it }
+        return Transaction().also {
+            transaction = it
+            controlBlock.RegisterTransaction(it)
         }
     }
 
-    private suspend fun CloseTransactionAsync(commit: Boolean)
+    /** Write lock is acquired. */
+    @Suppress("UNCHECKED_CAST")
+    private suspend inline fun <T> WithTransaction(block: (t: Transaction) -> T): T
     {
-        val t = BeginCloseTransaction(commit) ?: return
-        var lock = this.lock?.writeLock()
-        lock?.lock()
-        transaction.set(null)
-
-        try {
-            if (isCommitting) {
-                throw IllegalStateException("Concurrent commit not allowed")
-            }
-            for ((name, value) in t.newValues) {
-                values[name]!!.Validate(value)
-            }
-            if (asyncCommitHandler != null) {
-                isCommitting = true
-            } else {
-                commitHandler?.invoke(t.GetCommitData())
-                t.Apply()
-            }
-        } finally {
-            lock?.unlock()
-        }
-
-        if (asyncCommitHandler != null) {
-            lock = null
-            try {
-                asyncCommitHandler.invoke(t.GetCommitData())
-                lock = this.lock?.writeLock()
-                lock?.lock()
-                t.Apply()
-            } finally {
-                isCommitting = false
-                lock?.unlock()
+        val lock = controlBlock.lock.writeLock()
+        var done = false
+        var result: T? = null
+        outer@while (true) {
+            lock.lock()
+            inner@while (true) {
+                val commit = controlBlock.GetCommit()
+                if (commit != null) {
+                    lock.unlock()
+                    commit.Wait()
+                    continue@outer
+                }
+                if (done) {
+                    val error = controlBlock.error
+                    lock.unlock()
+                    if (error != null) {
+                        throw error
+                    }
+                    return result as T
+                }
+                controlBlock.CheckError()
+                controlBlock.StartTransaction()
+                val t = EnsureTransaction()
+                val error = try {
+                    result = block(t)
+                    null
+                } catch (error: Throwable) {
+                    controlBlock.EndTransaction(error)
+                    error
+                }
+                if (error == null) {
+                    controlBlock.EndTransaction(null)
+                }
+                done = true
             }
         }
     }
@@ -722,22 +737,34 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
     private fun GetMap(infoLevel: Int, infoGroup: Any?): TreeMap<String, Any?>
     {
         val result = TreeMap<String, Any?>()
-        val lock = this.lock?.readLock()
-        lock?.lock()
-        for ((name, value) in values) {
-            if (value.CheckInfoLevel(infoLevel, infoGroup)) {
-                result[name] = value.GetInfoValue(infoLevel, infoGroup)
+        WithReadLock {
+            controlBlock.CheckError()
+            for ((name, value) in values) {
+                if (value.CheckInfoLevel(infoLevel, infoGroup)) {
+                    result[name] = value.GetInfoValue(infoLevel, infoGroup)
+                }
             }
-        }
-        if (infoLevel != -1) {
-            idValue?.also {
-                idValue ->
-                if (idValue.infoLevel != -1 && idValue.name !in result) {
-                    result[idValue.name] = idValue.curValue
+            if (infoLevel != -1) {
+                idValue?.also { idValue ->
+                    if (idValue.infoLevel != -1 && idValue.name !in result) {
+                        result[idValue.name] = idValue.curValue
+                    }
                 }
             }
         }
-        lock?.unlock()
         return result
+    }
+
+    // is needed?
+    private inline fun <T> WithWriteLock(block: () -> T): T
+    {
+        contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
+        return controlBlock.lock.writeLock().withLock(block)
+    }
+
+    private inline fun <T> WithReadLock(block: () -> T): T
+    {
+        contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
+        return controlBlock.lock.readLock().withLock(block)
     }
 }
