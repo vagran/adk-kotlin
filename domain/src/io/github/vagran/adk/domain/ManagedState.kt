@@ -344,7 +344,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             if (transactionNesting != 0) {
                 return
             }
-            if (this.error != null) {
+            if (this.error == null) {
                 for (t in transactions) {
                     t.Finalize()?.also {
                         synchronized(commitQueue) {
@@ -629,17 +629,6 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         return value as T
     }
 
-    //XXX control block enough?
-    private fun GetRootState(): ManagedState
-    {
-        var state = this
-        while (true) {
-            val parent = state.parent ?: break
-            state = parent.state
-        }
-        return state
-    }
-
     /** Get initial value for the specified property. */
     @Suppress("UNCHECKED_CAST")
     private fun <T> GetInitialValue(prop: KProperty<*>, defValue: DefaultValueProvider<T>?,
@@ -753,13 +742,6 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             }
         }
         return result
-    }
-
-    // is needed?
-    private inline fun <T> WithWriteLock(block: () -> T): T
-    {
-        contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
-        return controlBlock.lock.writeLock().withLock(block)
     }
 
     private inline fun <T> WithReadLock(block: () -> T): T

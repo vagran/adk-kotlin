@@ -15,11 +15,23 @@ import org.junit.jupiter.api.assertThrows
 import java.util.concurrent.locks.ReadWriteLock
 
 
+class CommitHandler {
+    var data: EntityInfo? = null
+
+    suspend fun Commit(state: EntityInfo)
+    {
+        println("Commit: $state")
+        data = state
+    }
+}
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 private class ManagedStateTest {
 
-    class A(id: String = "someId", loadFrom: EntityInfo? = null):
-        EntityBase(ManagedState(loadFrom, commitHandler = {info -> println("commit: $info")})) {
+    class A(id: String = "someId", loadFrom: EntityInfo? = null,
+            commitHandler: EntityCommitHandler? = null):
+        EntityBase(ManagedState(loadFrom, commitHandler = commitHandler)) {
+
 
         enum class Type {
             T1,
@@ -65,7 +77,7 @@ private class ManagedStateTest {
     fun <T> RunSuspend(block: suspend () -> T): T
     {
         try {
-            return Deferred.ForFunc(block).Get()
+            return Deferred.ForFunc(block).WaitComplete().Get()
         } catch (e: Throwable) {
             e.cause?.also { throw it }
             throw e
@@ -284,7 +296,8 @@ private class ManagedStateTest {
     @Test
     fun TransactionTest()
     {
-        val a = A()
+        val c = CommitHandler()
+        val a = A(commitHandler = c::Commit)
 
         RunSuspend {
             a.state.Mutate {
@@ -293,20 +306,31 @@ private class ManagedStateTest {
             }
         }
         assertEquals("myName", a.name)
+        assertEquals("someId", c.data!!["id"])
+        assertEquals("myName", c.data!!["name"])
     }
 
     @Test
-    fun TransactionTestAsyncWithSyncHandler()
+    fun NestedTransactionTest()
     {
-        val a = A()
+        val c = CommitHandler()
+        val a = A(commitHandler = c::Commit)
 
         RunSuspend {
             a.state.Mutate {
                 a.name = "myName"
                 assertEquals("myName", a.name)
+                RunSuspend {
+                    a.state.Mutate {
+                        a.i2 = 100
+                    }
+                }
             }
         }
         assertEquals("myName", a.name)
+        assertEquals("someId", c.data!!["id"])
+        assertEquals("myName", c.data!!["name"])
+        assertEquals(100, c.data!!["i2"])
     }
 
     @Test
@@ -350,7 +374,8 @@ private class ManagedStateTest {
     @Test
     fun MutateEnumByString()
     {
-        val a = A()
+        val c = CommitHandler()
+        val a = A(commitHandler = c::Commit)
 
         RunSuspend {
             assertEquals(A.Type.T1, a.type)
