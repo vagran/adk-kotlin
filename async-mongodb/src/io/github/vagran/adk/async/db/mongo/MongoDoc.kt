@@ -54,6 +54,18 @@ class MongoDoc(builderFunc: MongoDocBuilderFunc): Document() {
             return UpdateDocs(filter, Document("\$set", update), arrayFilters)
         }
 
+        /** Create update documents for array element removal. It assumes that the element has
+         * ID field (with name `idFieldName`) which is matched with the elementId.
+         */
+        fun SetArrayRemove(docId: Any, arrayFieldName: String, elementId: Any,
+                           idFieldName: String = "_id"): UpdateDocs
+        {
+            val filter = MongoDoc("_id", docId)
+            val update = Document("\$pull",
+                                  Document(arrayFieldName, Document(idFieldName, elementId)))
+            return UpdateDocs(filter, update)
+        }
+
         private fun GetId(data: Map<String, Any?>, idFieldName: String, idIsObjectId: Boolean): Any
         {
             val id = data[idFieldName] ?: throw Error("ID field missing: $idFieldName")

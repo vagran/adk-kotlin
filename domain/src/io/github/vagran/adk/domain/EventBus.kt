@@ -117,7 +117,7 @@ class EventBus(queueSize: Int = 1024,
     }
 
     /**
-     * Terminates all active event waits with
+     * Terminates all active event waits with ClosedException.
      */
     fun Close()
     {

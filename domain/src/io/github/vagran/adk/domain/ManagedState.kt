@@ -30,6 +30,17 @@ typealias EntityInfo = Map<String, Any?>
 
 typealias EntityCommitHandler = suspend (state: EntityInfo) -> Unit
 
+/**
+ * @param T ID type. If the entity does not have ID field, then ManagedState instance is passed as
+ * id argument.
+ */
+interface EntityDeleteHandler<T> {
+    /** Called in scope of transaction to affect state. */
+    fun Apply(id: T)
+    /** Called on commit phase to commit deletion. */
+    suspend fun Commit(id: T)
+}
+
 interface IEntity {
     val state: ManagedState
 }
@@ -65,6 +76,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                    lock: ReentrantReadWriteLock? =
                        if (parent != null) null else ReentrantReadWriteLock(),
                    private val commitHandler: EntityCommitHandler? = null,
+                   private val deleteHandler: EntityDeleteHandler<*>? = null,
                    private val fullCommit: Boolean = false): IEntity {
 
     class ParentRef(val state: ManagedState, val propName: String)
@@ -94,6 +106,9 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                         throw IllegalStateException(
                             "ID already specified by property '${idValue.name}', " +
                             "redefining by '${prop.name}'")
+                    }
+                    if (prop is KMutableProperty) {
+                        throw IllegalStateException("Mutable ID field is not allowed")
                     }
                     idValue = it
                 }
@@ -230,6 +245,19 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         MarkDirty(field.name)
     }
 
+    suspend fun Delete()
+    {
+        if (deleteHandler == null) {
+            throw IllegalStateException(
+                "Delete operation not supported due to unspecified deletion handler")
+        }
+        return WithTransaction {
+            t ->
+            ApplyDeletion()
+            t.SetDelete()
+        }
+    }
+
     fun GetInfo(level: Int = 0, group: Any? = null): EntityInfo
     {
         return GetMap(level, group)
@@ -253,6 +281,17 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
     fun GetFieldInfoValue(field: KProperty<*>, level: Int = 0, group: Any? = null): Any?
     {
         return GetFieldInfoValue(field.name, level, group)
+    }
+
+    fun GetFieldValue(fieldName: String): Any?
+    {
+        val v = values[fieldName] ?: throw Error("Field not found: $fieldName")
+        return v.curValue
+    }
+
+    fun GetFieldValue(field: KProperty<*>): Any?
+    {
+        return GetFieldValue(field.name)
     }
 
     override fun toString(): String
@@ -475,8 +514,9 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
     }
 
     private inner class Transaction {
-        val dirtyValues: HashSet<DelegateImpl<*>>? =
+        private val dirtyValues: HashSet<DelegateImpl<*>>? =
             if (commitHandler != null) HashSet() else null
+        private var delete = false
 
         fun Mutate(params: EntityInfo)
         {
@@ -509,6 +549,11 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             d.Set(d.TransformValue(value))
         }
 
+        fun SetDelete()
+        {
+            delete = true
+        }
+
         fun SetDirty(name: String)
         {
             val d = values[name] ?: throw IllegalArgumentException("No such property: '$name'")
@@ -523,6 +568,9 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         fun Finalize(): CommitData?
         {
             transaction = null
+            if (delete) {
+                return CommitData(emptyMap()) { CommitDeletion() }
+            }
             if (dirtyValues == null) {
                 return null
             }
@@ -574,6 +622,26 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                 else -> null
             }
         }
+    }
+
+    private fun GetIdForDeletion(): Any?
+    {
+        idValue?.also {
+            return it.curValue
+        }
+        return this
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun ApplyDeletion()
+    {
+        (deleteHandler as EntityDeleteHandler<Any?>).Apply(GetIdForDeletion())
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private suspend fun CommitDeletion()
+    {
+        (deleteHandler as EntityDeleteHandler<Any?>).Commit(GetIdForDeletion())
     }
 
     /** Transform value if necessary from representation acceptable in EntityInfo to stored

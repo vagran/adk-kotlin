@@ -7,12 +7,10 @@
 package io.github.vagran.adk.domain
 
 import io.github.vagran.adk.async.Deferred
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
-import java.util.concurrent.locks.ReadWriteLock
 
 
 class CommitHandler {
@@ -58,12 +56,26 @@ private class ManagedStateTest {
 
         inner class B(loadFrom: EntityInfo? = null, parent: ManagedState.ParentRef? = null,
                       s: String = "nested-string"):
-            EntityBase(ManagedState(loadFrom, parent)) {
+            EntityBase(ManagedState(loadFrom, parent,
+                                    deleteHandler = object: EntityDeleteHandler<Int> {
+                                        override fun Apply(id: Int)
+                                        {
+                                            bDeleted = true
+                                        }
+
+                                        override suspend fun Commit(id: Int)
+                                        {
+                                            bDeleteCommitted = true
+                                        }
+                                    })) {
 
             val s by state.Param(s)
+            val i by state.Id(42)
         }
 
         val b by state.Param { CreateB() }.Factory(this::CreateB)
+        var bDeleted = false
+        var bDeleteCommitted = false
 
         fun CreateB(loadFrom: EntityInfo? = null, parent: ManagedState.ParentRef? = null): B
         {
@@ -77,7 +89,7 @@ private class ManagedStateTest {
     fun <T> RunSuspend(block: suspend () -> T): T
     {
         try {
-            return Deferred.ForFunc(block).WaitComplete().Get()
+            return Deferred.WaitFunc(block)
         } catch (e: Throwable) {
             e.cause?.also { throw it }
             throw e
@@ -172,7 +184,7 @@ private class ManagedStateTest {
                             "type" to A.Type.T2,
                             "i" to 41,
                             "d" to 11.0,
-                            "b" to mapOf("s" to "loaded"),
+                            "b" to mapOf("s" to "loaded", "i" to 10),
                             "bList" to listOf(
                                 mapOf("s" to "item1"),
                                 mapOf("s" to "item2")
@@ -192,6 +204,7 @@ private class ManagedStateTest {
         assertEquals(42, a.i2)
         assertEquals(43.0, a.d2)
         assertEquals("loaded", a.b.s)
+        assertEquals(10, a.b.i)
         assertEquals(2, a.bList.size)
         assertEquals("item1", a.bList[0].s)
         assertEquals("item2", a.bList[1].s)
@@ -234,6 +247,15 @@ private class ManagedStateTest {
         val e = assertThrows<IllegalArgumentException> { A(loadFrom = mapOf("i" to "string")) }
         assertEquals("Wrong type returned for property 'i': kotlin.String is not subclass of kotlin.Int",
                      e.message)
+    }
+
+    @Test
+    fun DeleteTest()
+    {
+        val a = A()
+        RunSuspend { a.b.state.Delete() }
+        assertTrue(a.bDeleted)
+        assertTrue(a.bDeleteCommitted)
     }
 
     @Test
