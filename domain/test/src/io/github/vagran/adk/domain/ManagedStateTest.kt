@@ -442,4 +442,24 @@ private class ManagedStateTest {
         }
         assertEquals(45.0, a.d2)
     }
+
+    @Test
+    fun SharedStateFailure()
+    {
+        class C1: EntityBase() {
+            val i by state(0)
+        }
+        val c1 = C1()
+
+        class C2 {
+            val i by c1.state(0)
+        }
+        val e = assertThrows<Error> {
+            C2()
+        }
+        assertEquals("Managed object reference mismatch, " +
+                     "possibly attempting to share one state between several objects",
+                     e.message)
+
+    }
 }

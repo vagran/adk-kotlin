@@ -31,7 +31,7 @@ typealias EntityInfo = Map<String, Any?>
 typealias EntityCommitHandler = suspend (state: EntityInfo) -> Unit
 
 /**
- * @param T ID type. If the entity does not have ID field, then ManagedState instance is passed as
+ * @param T ID type. If the entity does not have ID field, then managed object instance is passed as
  * id argument.
  */
 interface EntityDeleteHandler<T> {
@@ -75,8 +75,8 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                    private val parent: ParentRef? = null,
                    lock: ReentrantReadWriteLock? =
                        if (parent != null) null else ReentrantReadWriteLock(),
-                   private val commitHandler: EntityCommitHandler? = null,
-                   private val deleteHandler: EntityDeleteHandler<*>? = null,
+                   commitHandler: EntityCommitHandler? = null,
+                   deleteHandler: EntityDeleteHandler<*>? = null,
                    private val fullCommit: Boolean = false): IEntity {
 
     class ParentRef(val state: ManagedState, val propName: String)
@@ -96,23 +96,25 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         operator fun provideDelegate(thisRef: Any,
                                      prop: KProperty<*>): IDelegate<T>
         {
+            managedObj = thisRef
             val value = GetInitialValue(prop, defValue, factory, elementFactory)
-            return DelegateImpl(prop, isId, isParam, value,
-                                infoLevel, infoGroup, factory, elementFactory).also {
-                values[prop.name] = it
-                if (isId) {
-                    idValue?.also {
-                        idValue ->
-                        throw IllegalStateException(
-                            "ID already specified by property '${idValue.name}', " +
-                            "redefining by '${prop.name}'")
-                    }
-                    if (prop is KMutableProperty) {
-                        throw IllegalStateException("Mutable ID field is not allowed")
-                    }
-                    idValue = it
+            val d = DelegateImpl(prop, isId, isParam, value,
+                                infoLevel, infoGroup, factory, elementFactory,
+                                commitHandler, deleteHandler)
+            values[prop.name] = d
+            if (isId) {
+                idValue?.also {
+                    idValue ->
+                    throw IllegalStateException(
+                        "ID already specified by property '${idValue.name}', " +
+                        "redefining by '${prop.name}'")
                 }
+                if (prop is KMutableProperty) {
+                    throw IllegalStateException("Mutable ID field is not allowed")
+                }
+                idValue = d
             }
+            return d
         }
 
         /**
@@ -145,10 +147,24 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             return this
         }
 
+        fun CommitHandler(commitHandler: EntityCommitHandler): DelegateProvider<T>
+        {
+            this.commitHandler = commitHandler
+            return this
+        }
+
+        fun DeleteHandler(deleteHandler: EntityDeleteHandler<*>): DelegateProvider<T>
+        {
+            this.deleteHandler = deleteHandler
+            return this
+        }
+
         private var infoLevel = if (isParam || isId) 0 else -1
         private var infoGroup: Any? = null
         private var factory: Factory<T>? = null
         private var elementFactory: Factory<*>? = null
+        private var commitHandler: EntityCommitHandler? = null
+        private var deleteHandler: EntityDeleteHandler<*>? = null
     }
 
     interface IDelegate<T> {
@@ -313,10 +329,32 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
     }
 
     // /////////////////////////////////////////////////////////////////////////////////////////////
+    private var _managedObj: Any? = null
     private var numLoaded = 0
     private val values = TreeMap<String, DelegateImpl<*>>()
     private var idValue: DelegateImpl<*>? = null
     private var transaction: Transaction? = null
+
+    private val commitHandler: EntityCommitHandler? =
+        if (commitHandler != null) {
+            if (parent?.state?.GetFieldCommitHandler(parent) != null) {
+                throw Error("Overriding commit handler from parent")
+            }
+            commitHandler
+        } else {
+            parent?.state?.GetFieldCommitHandler(parent)
+        }
+
+    private val deleteHandler: EntityDeleteHandler<*>? =
+        if (deleteHandler != null) {
+            if (parent?.state?.GetFieldDeleteHandler(parent) != null) {
+                throw Error("Overriding delete handler from parent")
+            }
+            deleteHandler
+        } else {
+            parent?.state?.GetFieldDeleteHandler(parent)
+        }
+
     private val controlBlock: ControlBlock =
         if (parent != null) {
             if (lock != null) {
@@ -330,6 +368,20 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             ControlBlock(lock)
         }
 
+    private var managedObj: Any
+        get() {
+            return _managedObj ?: throw Error("Managed object not set yet")
+        }
+        set(value) {
+            if (_managedObj === value) {
+                return
+            }
+            if (_managedObj != null) {
+                throw Error("Managed object reference mismatch, " +
+                            "possibly attempting to share one state between several objects")
+            }
+            _managedObj = value
+        }
 
     private class ControlBlock(val lock: ReentrantReadWriteLock) {
         var transactionNesting = 0
@@ -448,7 +500,9 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         val infoLevel: Int,
         val infoGroup: Any?,
         val factory: Factory<T>?,
-        val elementFactory: Factory<*>?): IDelegate<T> {
+        val elementFactory: Factory<*>?,
+        val commitHandler: EntityCommitHandler?,
+        val deleteHandler: EntityDeleteHandler<*>?): IDelegate<T> {
 
         val name = prop.name
         val isNullable = prop.returnType.isMarkedNullable
@@ -642,7 +696,17 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         idValue?.also {
             return it.curValue
         }
-        return this
+        return managedObj
+    }
+
+    private fun GetFieldCommitHandler(ref: ParentRef): EntityCommitHandler?
+    {
+        return values[ref.propName]?.commitHandler
+    }
+
+    private fun GetFieldDeleteHandler(ref: ParentRef): EntityDeleteHandler<*>?
+    {
+        return values[ref.propName]?.deleteHandler
     }
 
     @Suppress("UNCHECKED_CAST")
