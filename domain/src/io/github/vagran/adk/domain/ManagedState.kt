@@ -258,6 +258,19 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         }
     }
 
+    fun GetParentRef(fieldName: String): ParentRef
+    {
+        if (fieldName !in values) {
+            throw Error("Field not found: $fieldName")
+        }
+        return ParentRef(this, fieldName)
+    }
+
+    fun GetParentRef(field: KProperty<*>): ParentRef
+    {
+        return ParentRef(this, field.name)
+    }
+
     fun GetInfo(level: Int = 0, group: Any? = null): EntityInfo
     {
         return GetMap(level, group)
