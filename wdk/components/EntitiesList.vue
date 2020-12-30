@@ -98,7 +98,7 @@ import WdkStatusView from "./StatusView"
 import WdkMessageBox from "./MessageBox"
 import WdkEditableProperties from "./EditableProperties"
 
-import { REFRESH_INTERVAL, PollTimer, PostRequest } from "../common/utils"
+import {REFRESH_INTERVAL, PollTimer, PostRequest, LocalIdShortDisplay} from "../common/utils"
 
 
 export default {
@@ -128,8 +128,11 @@ export default {
         itemDisplayName: {
             type: Function,
             default(info) {
+                if (!info.hasOwnProperty(this.idField)) {
+                    return info
+                }
                 if (this.isLocalId) {
-                    return "#" + app.LocalIdShortDisplay(info[this.idField]);
+                    return "#" + LocalIdShortDisplay(info[this.idField]);
                 }
                 return "#" + info[this.idField];
             }
@@ -267,6 +270,12 @@ export default {
                     } else {
                         this.newItemData = Object.assign({}, this.newItem)
                     }
+                    return
+                }
+                if (this.idField !== null && this.newItemData.hasOwnProperty(this.idField) &&
+                    this.newItemData[this.idField] !== null &&
+                    this.entities.find(e => e[this.idField] === this.newItemData[this.idField])) {
+                    this.status.op = `E>Duplicated ID field [${this.idField}]: ${this.newItemData[this.idField]}`
                     return
                 }
                 this.status.op = "%>Processing..."

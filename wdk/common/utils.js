@@ -58,6 +58,16 @@ export async function PostRequest(url, data = null, abortSignal = null) {
     return await response.json()
 }
 
+/**
+ * @return {string} Short display string for the provided LocalId string.
+ */
+export function LocalIdShortDisplay(id) {
+    if (id === "0000000000000000") {
+        return "0"
+    }
+    return ".." + id.substr(6, 2) + ".." + id.substr(14, 2)
+}
+
 export class PollTimer {
     /** @param pollInterval Polling interval in ms. */
     constructor(pollInterval) {
