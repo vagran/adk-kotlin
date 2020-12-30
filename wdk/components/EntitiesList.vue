@@ -10,7 +10,7 @@ Events:
  * onAdded(name | newItemData) - argument depends on add mode.
  * onDeleted(info)
  * onEdit(info) - edit triggered without built-in editor enabled.
- * onModify(info, fieldName, newValue) - field value modified in built-in editor.
+ * onModify(info, fieldName, newValue, oldValue) - field value modified in built-in editor.
 -->
 
 <template>
@@ -185,7 +185,7 @@ export default {
             default: null
         },
         /** Should return request object with "url" and optional "params" object.
-         * Arguments: (entity, fieldName, value)
+         * Arguments: (entity, fieldName, value, oldValue)
          */
         modifyReq: {
             type: Function,
@@ -355,10 +355,11 @@ export default {
             if (this.editItem === null) {
                 return
             }
+            const oldValue = this.editItem[field]
             this.editItem[field] = value
-            this.$emit("onModify", this.editItem, field, value)
+            this.$emit("onModify", this.editItem, field, value, oldValue)
             if (this.modifyReq !== null) {
-                let req = this.modifyReq(this.editItem, field, value)
+                let req = this.modifyReq(this.editItem, field, value, oldValue)
                 PostRequest(req.url, req.params)
                     .then(result => {
                         this.editStatus = null
