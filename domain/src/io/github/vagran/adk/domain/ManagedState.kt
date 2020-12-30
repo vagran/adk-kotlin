@@ -726,10 +726,11 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
      */
     @Suppress("UNCHECKED_CAST")
     fun <T> TransformValue(name: String, cls: KClass<*>, value: Any?, factory: Factory<T>?,
-                           elementFactory: Factory<*>?, elementCls: KClass<*>?): T
+                           elementFactory: Factory<*>?, elementCls: KClass<*>?,
+                           parentName: String = name): T
     {
         if (factory != null && value is Map<*, *>) {
-            return factory.Create(value as EntityInfo, ParentRef(this, name))
+            return factory.Create(value as EntityInfo, ParentRef(this, parentName))
         }
         if (elementFactory != null) {
             if (value is List<*>) {
@@ -739,7 +740,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                 val result = ArrayList<Any?>()
                 for ((idx, element) in value.withIndex()) {
                     result.add(TransformValue("$name[$idx]", elementCls!!, element,
-                                              elementFactory, null, null))
+                                              elementFactory, null, null, parentName))
                 }
                 return result as T
             }
@@ -750,7 +751,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                 val result = HashMap<Any?, Any?>()
                 for ((key, element) in value.entries) {
                     result[key] = TransformValue("$name[$key]", elementCls!!, element,
-                                                 elementFactory, null, null)
+                                                 elementFactory, null, null, parentName)
                 }
                 return result as T
             }
