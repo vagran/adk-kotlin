@@ -1,10 +1,12 @@
 /*
  * This file is part of ADK project.
- * Copyright (c) 2020 Artyom Lebedev <artyom.lebedev@gmail.com>. All rights reserved.
+ * Copyright (c) 2017-2021 Artyom Lebedev <artyom.lebedev@gmail.com>. All rights reserved.
  * See LICENSE file for full license details.
  */
 
 package io.github.vagran.adk.json
+
+import java.util.ArrayDeque
 
 /** Adapter class which reads from arbitrary object (any JSON allowed primitives, List and Map of
  * them).
