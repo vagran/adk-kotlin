@@ -173,6 +173,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
     }
 
     override val state: ManagedState get() = this
+    val lock: ReentrantReadWriteLock get() = controlBlock.lock
 
     fun <T> Id(defValue: DefaultValueProvider<T>): DelegateProvider<T>
     {

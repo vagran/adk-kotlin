@@ -15,5 +15,6 @@
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="module" module-name="json" />
     <orderEntry type="module" module-name="html" />
+    <orderEntry type="module" module-name="adk" />
   </component>
 </module>
