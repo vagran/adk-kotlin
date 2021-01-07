@@ -12,7 +12,6 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 /** Close the receiver if an exception occurs in the provided block. */
-@ExperimentalContracts
 inline fun <R> AutoCloseable.Guard(block: () -> R): R
 {
     contract {

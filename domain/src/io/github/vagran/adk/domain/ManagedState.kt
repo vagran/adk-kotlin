@@ -230,17 +230,23 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         return Internal { defValue }
     }
 
-    suspend fun Mutate(params: EntityInfo)
+    /**
+     * @param preCheckFunc Optional function to invoke under the lock atomically with the mutation
+     *  to check preconditions. The function can throw error if preconditions are not satisfied.
+     *  Throwing an error does not put the object in invalid state. The function is called before
+     *  transaction is opened so it cannot modify the object state.
+     */
+    suspend fun Mutate(params: EntityInfo, preCheckFunc: (() -> Unit)? = null)
     {
-        WithTransaction {
+        WithTransaction(preCheckFunc) {
             it.Mutate(params)
         }
     }
 
     /** Mutate in one transaction. Change properties as needed in the block. */
-    suspend fun <T> Mutate(block: () -> T): T
+    suspend fun <T> Mutate(preCheckFunc: (() -> Unit)? = null, block: () -> T): T
     {
-        return WithTransaction {
+        return WithTransaction(preCheckFunc) {
             block()
         }
     }
@@ -268,7 +274,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
             throw IllegalStateException(
                 "Delete operation not supported due to unspecified deletion handler")
         }
-        return WithTransaction {
+        return WithTransaction(null) {
             t ->
             ApplyDeletion()
             t.SetDelete()
@@ -830,7 +836,8 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
 
     /** Write lock is acquired. */
     @Suppress("UNCHECKED_CAST")
-    private suspend inline fun <T> WithTransaction(block: (t: Transaction) -> T): T
+    private suspend inline fun <T> WithTransaction(noinline preCheckFunc: (() -> Unit)?,
+                                                   block: (t: Transaction) -> T): T
     {
         val lock = controlBlock.lock.writeLock()
         var done = false
@@ -851,6 +858,13 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                         throw error
                     }
                     return result as T
+                } else {
+                    try {
+                        preCheckFunc?.invoke()
+                    } catch (e: Throwable) {
+                        lock.unlock()
+                        throw e
+                    }
                 }
                 controlBlock.CheckError()
                 controlBlock.StartTransaction()
@@ -859,12 +873,9 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
                     result = block(t)
                     null
                 } catch (error: Throwable) {
-                    controlBlock.EndTransaction(error)
                     error
                 }
-                if (error == null) {
-                    controlBlock.EndTransaction(null)
-                }
+                controlBlock.EndTransaction(error)
                 done = true
             }
         }
