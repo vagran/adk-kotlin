@@ -776,7 +776,7 @@ class ManagedState(private var loadFrom: EntityInfo? = null,
         }
         if (value != null && !value::class.isSubclassOf(cls)) {
             throw IllegalArgumentException(
-                "Wrong type returned for property '$name': " +
+                "Wrong type provided for property '$name': " +
                     "${value::class.qualifiedName} is not subclass of ${cls.qualifiedName}")
         }
         return value as T

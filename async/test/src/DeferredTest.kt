@@ -6,6 +6,7 @@
 
 import io.github.vagran.adk.async.Deferred
 import io.github.vagran.adk.async.Map
+import io.github.vagran.adk.async.WhenAny
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -198,5 +199,19 @@ private class DeferredTest {
                 assertNull(e)
             }
         assertEquals("test", cbkRes)
+    }
+
+    @Test
+    fun WhenAny()
+    {
+        val def1 = Deferred.ForResult(42)
+        val def2 = Deferred.ForResult(43)
+        var cbkRes = false
+        Deferred.WhenAny(def1, def2).Subscribe {
+            _, e ->
+            cbkRes = true
+            assertNull(e)
+        }
+        assertTrue(cbkRes)
     }
 }

@@ -41,6 +41,8 @@ fun Deferred.Companion.When(results: Iterator<Deferred<*>>, all: Boolean): Defer
         private var numResults = 0
         private var numComplete = 0
         private var error: Throwable? = null
+        private val subscriptions: ArrayList<Deferred.Subscription>? =
+            if (all) null else ArrayList()
 
         init {
             while (results.hasNext()) {
@@ -48,13 +50,16 @@ fun Deferred.Companion.When(results: Iterator<Deferred<*>>, all: Boolean): Defer
                 synchronized(this) {
                     numResults++
                 }
-                def.Subscribe(this::OnComplete)
+                val sn = def.Subscribe(this::OnComplete)
+                subscriptions?.add(sn)
             }
-            val result = synchronized(this) {
-                iterDone = true
-                CheckComplete()
+            if (all) {
+                val result = synchronized(this) {
+                    iterDone = true
+                    CheckComplete()
+                }
+                result?.invoke()
             }
-            result?.invoke()
         }
 
         @Suppress("UNUSED_PARAMETER")
@@ -81,6 +86,7 @@ fun Deferred.Companion.When(results: Iterator<Deferred<*>>, all: Boolean): Defer
         {
             if ((iterDone && all && numComplete == numResults) || (!all && numComplete > 0)) {
                 return {
+                    subscriptions?.forEach { it.Unsubscribe() }
                     if (error == null) {
                         result.SetResult(Unit)
                     } else {

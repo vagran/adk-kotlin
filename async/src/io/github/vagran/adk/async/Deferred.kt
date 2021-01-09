@@ -72,6 +72,11 @@ class Deferred<T> private constructor(): Awaitable<T> {
         private const val STATE_READY = 3
     }
 
+    fun interface Subscription {
+        /** @return True if unsubscribed, false if too late or not subscribed. */
+        fun Unsubscribe(): Boolean
+    }
+    
     fun SetResult(result: T)
     {
         SetResult(result, null)
@@ -86,7 +91,7 @@ class Deferred<T> private constructor(): Awaitable<T> {
      * Subscribe for result. The provided callback is called instantly if the result is already
      * available (any possible exception in the provided callback may be thrown in such case).
      */
-    fun Subscribe(cbk: DeferredCallback<in T>)
+    fun Subscribe(cbk: DeferredCallback<in T>): Subscription
     {
         while (true) {
             val curState = state.get()
@@ -110,16 +115,30 @@ class Deferred<T> private constructor(): Awaitable<T> {
                 break
             }
         }
+        return SubscriptionImpl(cbk)
     }
 
     /** Subscribe for successful result. */
     @Suppress("UNCHECKED_CAST")
-    fun Subscribe(cbk: DeferredValueCallback<in T>)
+    fun Subscribe(cbk: DeferredValueCallback<in T>): Subscription
     {
-        Subscribe {
+        return Subscribe {
             result, error ->
             if (error == null) {
                 cbk(result as T)
+            }
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun Subscribe(def: Deferred<in T>): Subscription
+    {
+        return Subscribe {
+            result, error ->
+            if (error != null) {
+                def.SetError(error)
+            } else {
+                def.SetResult(result as T)
             }
         }
     }
@@ -235,6 +254,33 @@ class Deferred<T> private constructor(): Awaitable<T> {
                 }
             }
             subscribers = null
+        }
+    }
+    
+    private inner class SubscriptionImpl(private val cbk: DeferredCallback<in T>): Subscription {
+
+        override fun Unsubscribe(): Boolean
+        {
+            while (true) {
+                val curState = state.get()
+                if (curState == STATE_WAITING) {
+                    if (!state.compareAndSet(STATE_WAITING,  STATE_SUBSCRIBING)) {
+                        continue
+                    }
+                    val removed = if (subscriber == cbk) {
+                        subscriber = null
+                        true
+                    } else {
+                        subscribers?.remove(cbk) ?: false
+                    }
+                    state.set(STATE_WAITING)
+                    return removed
+                }
+                if (curState == STATE_READY || curState == STATE_SETTING) {
+                    /* Already fired */
+                    return false
+                }
+            }
         }
     }
 }
