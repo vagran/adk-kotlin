@@ -11,25 +11,25 @@
         <tr v-for="field in sortedFields">
             <td class="label">{{field.label}}:</td>
             <td>
-                <template v-if="field.type !== 'check' && field.hasOwnProperty('disabled') && field.disabled && (!field.hasOwnProperty('isLink') || !field.isLink)">
+                <template v-if="_IsPlainTextField(field)">
                     {{_GetValue(field)}}
                 </template>
-                <a v-else-if="field.hasOwnProperty('isLink') && field.isLink && field.hasOwnProperty('disabled') && field.disabled"
+                <a v-else-if="_IsPlainLinkField(field)"
                    :href="_GetValue(field)">{{_GetValue(field)}}</a>
                 <WdkEditableField v-else-if="_IsTextField(field)"
                                 :value="_GetValue(field)"
-                                :isLink="field.hasOwnProperty('isLink') && field.isLink"
+                                :isLink="_IsLinkField(field)"
                                 @input="(value) => _OnUpdated(field, value)"/>
 
                 <div v-else-if="field.type === 'check'" class="form-check">
                     <q-checkbox dense :value="_GetValue(field)"
                                 @input="(value) => _OnUpdated(field, value)"
-                                :disable="field.hasOwnProperty('disabled') && field.disabled"/>
+                                :disable="_IsDisabledField(field)"/>
                 </div>
                 <div v-else-if="field.type === 'option'" >
                     <q-select @input="(value) => _OnUpdated(field, value)" :value="_GetValue(field)"
                               :options="_GetOptionValues(field)"
-                              :disable="field.hasOwnProperty('disabled') && field.disabled"
+                              :disable="_IsDisabledField(field)"
                               dense options-dense map-options emit-value/>
                 </div>
 
@@ -230,6 +230,23 @@ export default {
                 field.type === 'number' ||
                 field.type === 'integer' ||
                 field.type === 'float'
+        },
+
+        _IsDisabledField(field) {
+            return field.hasOwnProperty('disabled') && field.disabled
+        },
+
+        _IsLinkField(field) {
+            return field.hasOwnProperty('isLink') && field.isLink
+        },
+
+        _IsPlainTextField(field) {
+            return field.type !== 'check' && this._IsDisabledField(field) &&
+                !this._IsLinkField(field)
+        },
+
+        _IsPlainLinkField(field) {
+            return this._IsLinkField(field) && this._IsDisabledField(field)
         },
 
         _OnUpdated(field, value) {
