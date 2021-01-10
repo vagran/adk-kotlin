@@ -853,4 +853,34 @@ private class ObservableTest {
         assertFalse(src.IsFailed())
         assertFalse(sub2.IsFailed())
     }
+
+    @Test
+    fun MergeTest()
+    {
+        val s1 = Observable.From(0..99)
+        val s2 = Observable.From(100..199)
+        val s3 = Observable.From(200..299)
+        val m = Observable.Merge(s1, s2, s3)
+        val seen = HashSet<Int>()
+        var errorSeen: Throwable? = null
+        var endSeen = false
+        m.Subscribe {
+            value, error ->
+            if (error != null) {
+                errorSeen = error
+            }
+            if (value.isSet) {
+                seen.add(value.value)
+            } else {
+                endSeen = true
+            }
+            null
+        }
+        assertNull(errorSeen)
+        assertTrue(endSeen)
+        for (i in 0..299) {
+            assertTrue(seen.contains(i))
+        }
+        assertEquals(300, seen.size)
+    }
 }

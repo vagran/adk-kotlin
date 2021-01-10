@@ -15,9 +15,9 @@ import java.util.*
  * Input is requested continuously. Otherwise the input is requested only if the queue has free
  * space available.
  */
-class QueueOperator<T>(input: Observable<T>,
-                       private val maxSize: Int,
-                       private val tailDrop: Boolean): Observable.Source<T> {
+internal class QueueOperator<T>(input: Observable<T>,
+                                private val maxSize: Int,
+                                private val tailDrop: Boolean): Observable.Source<T> {
 
     val output: Observable<T> = Observable.Create(this)
 
