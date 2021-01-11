@@ -944,6 +944,49 @@ private class ObservableTest {
     }
 
     @Test
+    fun MergeTestMultithreadedFail()
+    {
+        val s1 = Observable.Create(GetContextSource(TestRangeSource(0, 100), ctx))
+        val s2 = Observable.Create(GetContextSource(TestRangeSource(100, 100), ctx2))
+        val src = TestRangeSource(200, 10)
+        src.SetError()
+        val s3 = Observable.Create(GetContextSource(src, ctx3))
+        val m = Observable.Merge(s1, s2, s3, delayError = false)
+        val seen = HashSet<Int?>()
+        var errorSeen: Throwable? = null
+        var endSeen = false
+        var failed = false
+        val done = Deferred.Create<Unit>()
+        m.Subscribe {
+            value, error ->
+            if (error != null) {
+                errorSeen = error
+                done.SetResult(Unit)
+                return@Subscribe null
+            }
+            if (errorSeen != null || endSeen) {
+                System.err.println("Unexpected value after end")
+                failed = true
+                done.SetResult(Unit)
+                return@Subscribe null
+            }
+            if (value.isSet) {
+                seen.add(value.value)
+            } else {
+                endSeen = true
+                done.SetResult(Unit)
+            }
+            null
+        }
+        done.WaitComplete()
+        assertFalse(failed)
+        assertNotNull(errorSeen)
+        assertEquals("Expected error", errorSeen!!.message)
+        assertFalse(endSeen)
+        assertTrue(seen.size < 300)
+    }
+
+    @Test
     fun MergeFailTest()
     {
         val s1 = Observable.Create(GetTestSource(1, 2, 3))
