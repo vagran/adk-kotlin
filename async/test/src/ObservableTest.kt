@@ -901,6 +901,50 @@ private class ObservableTest {
     }
 
     @Test
+    fun MergeTestUnequalLength()
+    {
+        val s1 = Observable.From(0..99)
+        val s2 = Observable.From(100..149)
+        val s3 = Observable.From(200..279)
+        val m = Observable.Merge(s1, s2, s3)
+        val seen = HashSet<Int>()
+        var errorSeen: Throwable? = null
+        var endSeen = false
+        var failed = false
+        m.Subscribe {
+            value, error ->
+            if (error != null) {
+                errorSeen = error
+                return@Subscribe null
+            }
+            if (errorSeen != null || endSeen) {
+                System.err.println("Unexpected value after end")
+                failed = true
+                return@Subscribe null
+            }
+            if (value.isSet) {
+                seen.add(value.value)
+            } else {
+                endSeen = true
+            }
+            null
+        }
+        assertFalse(failed)
+        assertNull(errorSeen)
+        assertTrue(endSeen)
+        for (i in 0..99) {
+            assertTrue(seen.contains(i))
+        }
+        for (i in 100..149) {
+            assertTrue(seen.contains(i))
+        }
+        for (i in 200..279) {
+            assertTrue(seen.contains(i))
+        }
+        assertEquals(230, seen.size)
+    }
+
+    @Test
     fun MergeTestMultithreaded()
     {
         val s1 = Observable.Create(GetContextSource(TestRangeSource(0, 100), ctx))

@@ -26,6 +26,7 @@ class LocalId(val value: Long): Comparable<LocalId>, Serializable {
 
     val isZero: Boolean get() = value == 0L
 
+    /** UTC Unix timestamp in seconds. */
     val timestamp: Long get() = value ushr 32
 
     override fun equals(other: Any?): Boolean

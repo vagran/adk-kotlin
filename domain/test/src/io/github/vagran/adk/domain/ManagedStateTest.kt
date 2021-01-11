@@ -245,7 +245,7 @@ private class ManagedStateTest {
     fun LoadBadTypeTest()
     {
         val e = assertThrows<IllegalArgumentException> { A(loadFrom = mapOf("i" to "string")) }
-        assertEquals("Wrong type returned for property 'i': kotlin.String is not subclass of kotlin.Int",
+        assertEquals("Wrong type provided for property 'i': kotlin.String is not subclass of kotlin.Int",
                      e.message)
     }
 
