@@ -10,7 +10,7 @@ import io.github.vagran.adk.async.Deferred
 import java.util.*
 import kotlin.collections.ArrayList
 
-//XXX test recursion
+
 internal class MergeOperator<T>(inputs: Iterator<Observable<T>>,
                                 private val delayError: Boolean): Observable.Source<T> {
 
@@ -23,7 +23,7 @@ internal class MergeOperator<T>(inputs: Iterator<Observable<T>>,
         val ret = synchronized(queue) {
             val v = queue.pollFirst()
             if (v != null) {
-                if (queue.isEmpty()) {
+                if (queue.isEmpty() && (error == null || delayError)) {
                     queueEmptyDef = this.queueEmptyDef
                     this.queueEmptyDef = Deferred.Create()
                 }
@@ -49,14 +49,20 @@ internal class MergeOperator<T>(inputs: Iterator<Observable<T>>,
     private var numInputs = 0
     private var nextDef: Deferred<Observable.Value<T>>? = null
     private var queueEmptyDef = Deferred.Create<Boolean>()
-    private val subscriptions = ArrayList<Observable.Subscription>()
+    private var subscriptions: ArrayList<Observable.Subscription>?
 
     init {
+        subscriptions = if (delayError) {
+            null
+        } else {
+            ArrayList()
+        }
         while (inputs.hasNext()) {
             val next = inputs.next()
             synchronized(queue) {
                 numInputs--
-                subscriptions.add(next.Subscribe(this::OnNext))
+                val s = next.Subscribe(this::OnNext)
+                subscriptions?.add(s)
             }
         }
         synchronized(queue) {
@@ -112,8 +118,13 @@ internal class MergeOperator<T>(inputs: Iterator<Observable<T>>,
         val error = this.error
         if ((error != null && !delayError) || numInputs == numComplete) {
             this.nextDef = null
+            val subscriptions = subscriptions
+            this.subscriptions = null
             if (error != null) {
-                return { nextDef.SetError(error) }
+                return {
+                    subscriptions?.forEach { it.Unsubscribe() }
+                    nextDef.SetError(error)
+                }
             } else {
                 return { nextDef.SetResult(Observable.Value.None()) }
             }
@@ -133,13 +144,7 @@ fun <T> Observable.Companion.Merge(inputs: Iterator<Observable<T>>, delayError: 
     return MergeOperator(inputs, delayError).output
 }
 
-fun <T> Observable.Companion.Merge(vararg inputs: Observable<T>):
-    Observable<T>
-{
-    return MergeOperator(inputs.iterator(), false).output
-}
-
-fun <T> Observable.Companion.Merge(delayError: Boolean, vararg inputs: Observable<T>):
+fun <T> Observable.Companion.Merge(vararg inputs: Observable<T>, delayError: Boolean = true):
     Observable<T>
 {
     return MergeOperator(inputs.iterator(), delayError).output

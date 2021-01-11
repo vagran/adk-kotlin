@@ -18,18 +18,26 @@ import java.util.stream.Stream
 private class ObservableTest {
 
     lateinit var ctx: ScheduledThreadContext
+    lateinit var ctx2: ScheduledThreadContext
+    lateinit var ctx3: ScheduledThreadContext
 
     @BeforeEach
     fun SetupEach()
     {
         ctx = ScheduledThreadContext("test")
         ctx.Start()
+        ctx2 = ScheduledThreadContext("test2")
+        ctx2.Start()
+        ctx3 = ScheduledThreadContext("test3")
+        ctx3.Start()
     }
 
     @AfterEach
     fun TeardownEach()
     {
         ctx.Stop()
+        ctx2.Stop()
+        ctx3.Stop()
     }
 
     @Test
@@ -864,10 +872,17 @@ private class ObservableTest {
         val seen = HashSet<Int>()
         var errorSeen: Throwable? = null
         var endSeen = false
+        var failed = false
         m.Subscribe {
             value, error ->
             if (error != null) {
                 errorSeen = error
+                return@Subscribe null
+            }
+            if (errorSeen != null || endSeen) {
+                System.err.println("Unexpected value after end")
+                failed = true
+                return@Subscribe null
             }
             if (value.isSet) {
                 seen.add(value.value)
@@ -876,11 +891,133 @@ private class ObservableTest {
             }
             null
         }
+        assertFalse(failed)
         assertNull(errorSeen)
         assertTrue(endSeen)
         for (i in 0..299) {
             assertTrue(seen.contains(i))
         }
         assertEquals(300, seen.size)
+    }
+
+    @Test
+    fun MergeTestMultithreaded()
+    {
+        val s1 = Observable.Create(GetContextSource(TestRangeSource(0, 100), ctx))
+        val s2 = Observable.Create(GetContextSource(TestRangeSource(100, 100), ctx2))
+        val s3 = Observable.Create(GetContextSource(TestRangeSource(200, 100), ctx3))
+        val m = Observable.Merge(s1, s2, s3)
+        val seen = HashSet<Int?>()
+        var errorSeen: Throwable? = null
+        var endSeen = false
+        var failed = false
+        val done = Deferred.Create<Unit>()
+        m.Subscribe {
+            value, error ->
+            if (error != null) {
+                errorSeen = error
+                done.SetResult(Unit)
+                return@Subscribe null
+            }
+            if (errorSeen != null || endSeen) {
+                System.err.println("Unexpected value after end")
+                failed = true
+                done.SetResult(Unit)
+                return@Subscribe null
+            }
+            if (value.isSet) {
+                seen.add(value.value)
+            } else {
+                endSeen = true
+                done.SetResult(Unit)
+            }
+            null
+        }
+        done.WaitComplete()
+        assertFalse(failed)
+        assertNull(errorSeen)
+        assertTrue(endSeen)
+        for (i in 0..299) {
+            assertTrue(seen.contains(i))
+        }
+        assertEquals(300, seen.size)
+    }
+
+    @Test
+    fun MergeFailTest()
+    {
+        val s1 = Observable.Create(GetTestSource(1, 2, 3))
+        val s2 = Observable.Create(GetTestSource(4, 5, 6))
+        val s3 = Observable.Create(GetTestSource(7, needError = true))
+        val m = Observable.Merge(s1, s2, s3)
+        val seen = HashSet<Int?>()
+        var errorSeen: Throwable? = null
+        var endSeen = false
+        var failed = false
+        m.Subscribe {
+            value, error ->
+            if (error != null) {
+                errorSeen = error
+                return@Subscribe null
+            }
+            if (errorSeen != null || endSeen) {
+                System.err.println("Unexpected value after end")
+                failed = true
+                return@Subscribe null
+            }
+            if (value.isSet) {
+                seen.add(value.value)
+            } else {
+                endSeen = true
+            }
+            null
+        }
+        assertFalse(failed)
+        assertNotNull(errorSeen)
+        assertEquals("test", errorSeen!!.message)
+        assertFalse(endSeen)
+        for (i in 1..7) {
+            assertTrue(seen.contains(i))
+        }
+        assertEquals(7, seen.size)
+    }
+
+    @Test
+    fun MergeFailNoDelayErrorTest()
+    {
+        val s1 = Observable.Create(GetTestSource(1, 2, 3))
+        val s2 = Observable.Create(GetTestSource(4, 5, 6))
+        val s3 = Observable.Create(GetTestSource(7, needError = true))
+        val m = Observable.Merge(s1, s2, s3, delayError = false)
+        val seen = HashSet<Int?>()
+        var errorSeen: Throwable? = null
+        var endSeen = false
+        var failed = false
+        m.Subscribe {
+            value, error ->
+            if (error != null) {
+                errorSeen = error
+                return@Subscribe null
+            }
+            if (errorSeen != null || endSeen) {
+                System.err.println("Unexpected value after end")
+                failed = true
+                return@Subscribe null
+            }
+            if (value.isSet) {
+                seen.add(value.value)
+            } else {
+                endSeen = true
+            }
+            null
+        }
+        assertFalse(failed)
+        assertNotNull(errorSeen)
+        assertEquals("test", errorSeen!!.message)
+        assertFalse(endSeen)
+        for (i in arrayOf(1, 4, 7, 2, 5)) {
+            assertTrue(seen.contains(i))
+        }
+        assertEquals(5, seen.size)
     }
 }
