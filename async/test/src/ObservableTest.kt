@@ -901,6 +901,70 @@ private class ObservableTest {
     }
 
     @Test
+    fun MergePullTest()
+    {
+        val s1 = PushSource<Int>()
+        val s2 = PushSource<Int>()
+        val s3 = PushSource<Int>()
+        val m = Observable.Merge(Observable.Create(s1),
+                                 Observable.Create(s2),
+                                 Observable.Create(s3))
+        val seen = HashSet<Int>()
+        var errorSeen: Throwable? = null
+        var endSeen = false
+        var failed = false
+        m.Subscribe {
+            value, error ->
+            if (error != null) {
+                errorSeen = error
+                return@Subscribe null
+            }
+            if (errorSeen != null || endSeen) {
+                System.err.println("Unexpected value after end")
+                failed = true
+                return@Subscribe null
+            }
+            if (value.isSet) {
+                seen.add(value.value)
+            } else {
+                endSeen = true
+            }
+            null
+        }
+        assertFalse(failed)
+        assertFalse(endSeen)
+
+        s1.Push(1)
+        assertTrue(1 in seen)
+
+        s2.Push(2)
+        assertTrue(2 in seen)
+
+        s3.Push(3)
+        assertTrue(3 in seen)
+
+        s1.Error(Error("test1"))
+        assertFalse(failed)
+        assertNull(errorSeen)
+
+        s2.Push(4)
+        assertTrue(4 in seen)
+
+        s3.Error(Error("test3"))
+        assertFalse(failed)
+        assertNull(errorSeen)
+
+        s2.Push(5)
+        assertTrue(5 in seen)
+
+        s2.Complete()
+        assertFalse(failed)
+        assertFalse(endSeen)
+        assertNotNull(errorSeen)
+        assertEquals("test1", errorSeen!!.message)
+    }
+
+    @Test
     fun MergeTestUnequalLength()
     {
         val s1 = Observable.From(0..99)

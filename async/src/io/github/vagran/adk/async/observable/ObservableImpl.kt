@@ -114,7 +114,7 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
     private val subscribers: Deque<SubscriptionImpl> = ArrayDeque(2)
     private var curRound: Byte = 0
     /** Number of subscribers currently processing a round value. */
-    private var numSubscribersPending = 0;
+    private var numSubscribersPending = 0
     /** Completion value if completed successfully. */
     private var lastValue: Observable.Value<T>? = null
     /** Set if complete with an error. */
