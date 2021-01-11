@@ -26,6 +26,8 @@ class LocalId(val value: Long): Comparable<LocalId>, Serializable {
 
     val isZero: Boolean get() = value == 0L
 
+    val timestamp: Long get() = value ushr 32
+
     override fun equals(other: Any?): Boolean
     {
         val _other = other as? LocalId ?: return false
@@ -53,7 +55,7 @@ class LocalId(val value: Long): Comparable<LocalId>, Serializable {
 
         private fun NextValue(): Long
         {
-            val ts = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+            val ts = System.currentTimeMillis() / 1000
             while (true) {
                 val cnt = counter.get()
                 val newCnt = if (ts > (cnt + 1) ushr 32) {
