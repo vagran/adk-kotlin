@@ -1186,4 +1186,84 @@ private class ObservableTest {
         }
         assertEquals(5, seen.size)
     }
+
+    @Test
+    fun ConcatTest()
+    {
+        val s1 = TestRangeSource(1, 3)
+        val s2 = TestRangeSource(4, 3)
+        val s3 = TestRangeSource(7, 3)
+        val observable = Observable.Concat(Observable.Create(s1),
+                                           Observable.Create(s2),
+                                           Observable.Create(s3))
+
+        val sub = RangeTestSubscriber(1, 9)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(s1.IsFailed())
+        assertFalse(s2.IsFailed())
+        assertFalse(s3.IsFailed())
+    }
+
+    @Test
+    fun ConcatTestTwoSources()
+    {
+        val s1 = TestRangeSource(1, 3)
+        val s2 = TestRangeSource(4, 3)
+        val observable = Observable.Concat(Observable.Create(s1),
+                                           Observable.Create(s2))
+
+        val sub = RangeTestSubscriber(1, 6)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(s1.IsFailed())
+        assertFalse(s2.IsFailed())
+    }
+
+    @Test
+    fun ConcatTestOneSource()
+    {
+        val s1 = TestRangeSource(1, 3)
+        val observable = Observable.Concat(Observable.Create(s1))
+
+        val sub = RangeTestSubscriber(1, 3)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(s1.IsFailed())
+    }
+
+    @Test
+    fun ConcatTestNoSource()
+    {
+        val observable = Observable.Concat<Int>()
+
+        val sub = RangeTestSubscriber(0, 0)
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun ConcatTestError()
+    {
+        val s1 = TestRangeSource(1, 3)
+        val s2 = TestRangeSource(4, 3)
+        val s3 = TestRangeSource(7, 3)
+        s3.SetError()
+        val observable = Observable.Concat(Observable.Create(s1),
+                                           Observable.Create(s2),
+                                           Observable.Create(s3))
+
+        val sub = RangeTestSubscriber(1, 9)
+        sub.SetExpectedError()
+        observable.Subscribe(sub)
+
+        assertFalse(sub.IsFailed())
+        assertFalse(s1.IsFailed())
+        assertFalse(s2.IsFailed())
+        assertFalse(s3.IsFailed())
+    }
 }

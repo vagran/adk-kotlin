@@ -77,7 +77,9 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
                 return
             }
             if (def == null) {
-                Resubscribe()
+                if (value?.isSet == true) {
+                    Resubscribe()
+                }
                 return
             }
             def.Subscribe {
@@ -87,7 +89,7 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
                     Unsubscribe()
                     return@Subscribe
                 }
-                if (result as Boolean) {
+                if (result as Boolean && value?.isSet == true) {
                     Resubscribe()
                 } else {
                     Unsubscribe()
