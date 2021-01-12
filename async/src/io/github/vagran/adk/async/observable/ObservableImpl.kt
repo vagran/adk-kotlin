@@ -87,7 +87,7 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
                     Unsubscribe()
                     return@Subscribe
                 }
-                if (result!!) {
+                if (result as Boolean) {
                     Resubscribe()
                 } else {
                     Unsubscribe()
@@ -112,7 +112,10 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
     }
 
     private val subscribers: Deque<SubscriptionImpl> = ArrayDeque(2)
+    /** Alternates between 0 and 1 for proper subscribers queuing. */
     private var curRound: Byte = 0
+    /** Round when source requested. */
+    private var sourceReqRound: Byte = -1
     /** Number of subscribers currently processing a round value. */
     private var numSubscribersPending = 0
     /** Completion value if completed successfully. */
@@ -129,7 +132,9 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
      */
     private fun CheckNext()
     {
-        if (isComplete || !isConnected || numSubscribersPending > 0 || subscribers.size == 0) {
+        if (isComplete || !isConnected || numSubscribersPending > 0 || subscribers.size == 0 ||
+            curRound == sourceReqRound) {
+
             return
         }
         /* Check if there are still queued subscribers for last round. */
@@ -139,6 +144,7 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
             return
         }
         try {
+            sourceReqRound = curRound
             source.Get().Subscribe(this::OnNext)
         } catch (error: Throwable) {
             OnNext(null, error)

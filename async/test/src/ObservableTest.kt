@@ -134,12 +134,14 @@ private class ObservableTest {
         override fun OnError(error: Throwable)
         {
             if (isComplete) {
-                System.err.format("Unexpected error after completed%n", error)
+                System.err.println("Unexpected error after completed")
+                error.printStackTrace()
                 isFailed = true
                 return
             }
             if (!isErrorExpected) {
-                System.err.format("Unexpected error%n", error)
+                System.err.println("Unexpected error")
+                error.printStackTrace()
                 isFailed = true
                 return
             }
@@ -316,6 +318,19 @@ private class ObservableTest {
         val sub = TestSubscriber(*values)
         sub.SetExpectedError()
         observable.Subscribe(sub)
+        assertFalse(sub.IsFailed())
+    }
+
+    @Test
+    fun UnsubscribeResubscribeTest()
+    {
+        val src = PushSource<Int>()
+        val obs = Observable.Create(src)
+        obs.Subscribe().Unsubscribe()
+        val sub = TestSubscriber(1)
+        obs.Subscribe(sub)
+        src.Push(1)
+        src.Complete()
         assertFalse(sub.IsFailed())
     }
 
