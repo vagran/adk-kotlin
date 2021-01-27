@@ -15,6 +15,11 @@ class MapOperator<T, U>(input: Observable<T>,
                         private val func: MapOperatorFunc<T, U>):
         ObservableOperator<U>() {
 
+    fun Close()
+    {
+        subscription.Unsubscribe()
+    }
+
     private fun OnNext(value: Observable.Value<T>, error: Throwable?): Deferred<Boolean>?
     {
         val result = NextInput()
@@ -47,9 +52,7 @@ class MapOperator<T, U>(input: Observable<T>,
         }).resume(Unit)
     }
 
-    init {
-        input.Subscribe(this::OnNext)
-    }
+    private val subscription: Observable.Subscription = input.Subscribe(this::OnNext)
 }
 
 fun <T, U> Observable<T>.Map(func: MapOperatorFunc<T, U>): Observable<U>

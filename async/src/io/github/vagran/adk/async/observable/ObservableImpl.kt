@@ -86,6 +86,7 @@ internal class ObservableImpl<T>(private val source: Observable.Source<T>,
                 result, _error ->
                 if (_error != null) {
                     //XXX propagate somewhere?
+                    _error.printStackTrace()
                     Unsubscribe()
                     return@Subscribe
                 }

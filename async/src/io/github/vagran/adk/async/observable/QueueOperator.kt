@@ -71,7 +71,7 @@ internal class QueueOperator<T>(input: Observable<T>,
 
             } else {
                 if (error != null) {
-                    pendingError = error;
+                    pendingError = error
                 } else {
                     if (tailDrop && queue.size >= maxSize && value.isSet) {
                         queue.removeFirst()
